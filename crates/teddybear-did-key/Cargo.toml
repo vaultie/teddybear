@@ -1,0 +1,14 @@
+[package]
+name = "teddybear-did-key"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+async-trait = "0.1.74"
+ed25519-dalek = "2.1.0"
+iref = "2.1.1"
+multibase = "0.9.1"
+serde_json = "1.0.108"
+ssi-dids = "0.1.1"
+ssi-jwk = "0.1.2"
+static-iref = "2.0.0"
