@@ -1,0 +1,18 @@
+[package]
+name = "teddybear-js"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+categories.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+teddybear-crypto = { path = "../teddybear-crypto" }
+js-sys = "0.3.65"
+serde = "1.0.193"
+serde-wasm-bindgen = "0.6.1"
+wasm-bindgen = "0.2.89"
+wasm-bindgen-futures = "0.4.39"

@@ -1,3 +1,24 @@
 [workspace]
 members = ["crates/*"]
 resolver = "2"
+
+[workspace.package]
+name = "teddybear"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/vaultie/teddybear"
+categories = ["cryptography", "wasm"]
+
+[workspace.dependencies]
+ssi-dids = "0.1.1"
+ssi-jwk = { version = "0.1.2", default-features = false, features = ["ed25519"] }
+multibase = { version = "0.9.1", default-features = false }
+thiserror = "1.0.56"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true
