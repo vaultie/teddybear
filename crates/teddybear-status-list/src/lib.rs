@@ -10,7 +10,7 @@ const ENCODE_BUF_INIT_CAPACITY: usize = 1536;
 const RNG_SAMPLE_ATTEMPTS: usize = 25;
 const INIT_SIZE: usize = 131_072;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct EncodedRevocationList {
     pub issued: String,
     pub revoked: String,
