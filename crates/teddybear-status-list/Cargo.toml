@@ -1,0 +1,21 @@
+[package]
+name = "teddybear-status-list"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+categories.workspace = true
+
+[dependencies]
+base64 = { workspace = true }
+bitvec = "1.0.1"
+flate2 = "1.0.28"
+rand = "0.8.5"
+serde = { workspace = true }
+
+[dev-dependencies]
+criterion = "0.5.1"
+
+[[bench]]
+name = "list"
+harness = false

@@ -9,6 +9,7 @@ categories.workspace = true
 [dependencies]
 ssi-dids = { workspace = true }
 ssi-jwk = { workspace = true }
-teddybear-did-key = { path = "../teddybear-did-key" }
+ssi-jws = { workspace = true }
+teddybear-did-key = { workspace = true }
 multibase = { workspace = true }
 thiserror = { workspace = true }

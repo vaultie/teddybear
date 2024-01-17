@@ -94,6 +94,8 @@
         commonArgs = {
           inherit src;
 
+          pname = "teddybear";
+
           strictDeps = true;
 
           CARGO_NET_GIT_FETCH_WITH_CLI = "true";
@@ -107,6 +109,10 @@
           ];
         };
 
+        npmrc = pkgs.writeText "gh-registry" ''
+          @vaultie:registry=https://npm.pkg.github.com
+        '';
+
         package = craneLib.buildPackage (commonArgs
           // {
             cargoArtifacts = null;
@@ -114,7 +120,8 @@
             buildPhaseCargoCommand = ''
               HOME=$(mktemp -d)
 
-              wasm-pack build crates/teddybear-js \
+              wasm-pack build \
+                crates/teddybear-js \
                 --out-dir build \
                 --out-name index \
                 --target bundler \
@@ -124,15 +131,19 @@
             doInstallCargoArtifacts = false;
             doCheck = false;
 
+            preInstall = ''
+              sed -i "s/teddybear-js/\@vaultie\/teddybear/g" \
+                crates/teddybear-js/build/package.json
+            '';
+
             installPhaseCommand = ''
               mv crates/teddybear-js/build $out
+              cp ${npmrc} $out/.npmrc
             '';
           });
       in {
         devShells.default = pkgs.mkShell {
-          buildInputs = [
-            rustToolchain
-          ];
+          buildInputs = [rustToolchain];
         };
 
         packages.default = package;
