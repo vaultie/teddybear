@@ -25,13 +25,17 @@ pub struct KeyInfo {
 
 #[derive(Debug)]
 pub struct Ed25519 {
+    document: Document,
     pub ed25519: KeyInfo,
     pub x25519: KeyInfo,
 }
 
 impl Ed25519 {
     pub async fn generate() -> Result<Ed25519, Error> {
-        Ed25519::from_jwk(JWK::generate_ed25519().expect("ed25519 should always generate successfully")).await
+        Ed25519::from_jwk(
+            JWK::generate_ed25519().expect("ed25519 should always generate successfully"),
+        )
+        .await
     }
 
     pub async fn from_jwk(mut jwk: JWK) -> Result<Ed25519, Error> {
@@ -56,6 +60,7 @@ impl Ed25519 {
         )?;
 
         Ok(Ed25519 {
+            document,
             ed25519: KeyInfo { jwk },
             x25519,
         })
@@ -78,21 +83,34 @@ impl Ed25519 {
                 .expect("teddybear-did-key should provide at least one x25519 key"),
         )?;
 
-        Ok(Ed25519 { ed25519, x25519 })
+        Ok(Ed25519 {
+            document,
+            ed25519,
+            x25519,
+        })
     }
 
+    #[inline]
     pub fn to_ed25519_public_jwk(&self) -> JWK {
         self.ed25519.jwk.to_public()
     }
 
+    #[inline]
     pub fn to_x25519_public_jwk(&self) -> JWK {
         self.x25519.jwk.to_public()
     }
 
+    #[inline]
     pub fn to_ed25519_private_jwk(&self) -> &JWK {
         &self.ed25519.jwk
     }
 
+    #[inline]
+    pub fn document_did(&self) -> &str {
+        &self.document.id
+    }
+
+    #[inline]
     pub fn ed25519_did(&self) -> &str {
         self.ed25519
             .jwk
@@ -101,6 +119,7 @@ impl Ed25519 {
             .expect("key id should always be present")
     }
 
+    #[inline]
     pub fn x25519_did(&self) -> &str {
         self.x25519
             .jwk
@@ -109,6 +128,7 @@ impl Ed25519 {
             .expect("key id should always be present")
     }
 
+    #[inline]
     pub fn sign(&self, payload: &str) -> Result<String, ssi_jws::Error> {
         let header = Header {
             algorithm: Algorithm::EdDSA,
@@ -121,6 +141,7 @@ impl Ed25519 {
     }
 }
 
+#[inline]
 fn extract_key_info(
     curve: String,
     document: &Document,
@@ -151,6 +172,7 @@ fn extract_key_info(
     Ok(KeyInfo { jwk })
 }
 
+#[inline]
 fn first_verification_method(
     verification_methods: Option<&[VerificationMethod]>,
 ) -> Option<&VerificationMethod> {

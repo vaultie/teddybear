@@ -7,7 +7,6 @@ use ssi_json_ld::ContextLoader;
 use ssi_ldp::ProofSuiteType;
 use ssi_vc::{Credential, Issuer, LinkedDataProofOptions, Presentation, ProofPurpose, URI};
 use teddybear_crypto::{DidKey, Ed25519, JWK};
-use teddybear_status_list::RevocationList;
 use uuid::Uuid;
 use wasm_bindgen::prelude::*;
 
@@ -52,6 +51,11 @@ impl WrappedEd25519 {
         WrappedJWK(self.0.to_x25519_public_jwk())
     }
 
+    #[wasm_bindgen(js_name = "documentDID")]
+    pub fn document_did(&self) -> String {
+        self.0.document_did().to_string()
+    }
+
     #[wasm_bindgen(js_name = "ed25519DID")]
     pub fn ed25519_did(&self) -> String {
         self.0.ed25519_did().to_string()
@@ -70,9 +74,8 @@ impl WrappedEd25519 {
     #[wasm_bindgen(js_name = "issueVC")]
     pub async fn issue_vc(&self, vc: Object) -> String {
         let mut credential: Credential = serde_wasm_bindgen::from_value(vc.into()).unwrap();
-        credential.issuer = Some(Issuer::URI(URI::String(
-            self.0.ed25519_did().split_once('#').unwrap().0.to_string(),
-        )));
+
+        credential.issuer = Some(Issuer::URI(URI::String(self.0.document_did().to_string())));
 
         credential.validate_unsigned().unwrap();
 
@@ -153,30 +156,6 @@ impl WrappedJWK {
     #[wasm_bindgen(js_name = "asObject")]
     pub fn as_object(&self) -> Object {
         self.0.serialize(&OBJECT_SERIALIZER).unwrap().into()
-    }
-}
-
-#[wasm_bindgen]
-pub struct WrappedRevocationList(RevocationList);
-
-#[wasm_bindgen]
-impl WrappedRevocationList {
-    #[wasm_bindgen(constructor)]
-    pub fn new() -> WrappedRevocationList {
-        WrappedRevocationList(RevocationList::default())
-    }
-
-    #[wasm_bindgen(js_name = "isRevoked")]
-    pub fn is_revoked(&self, idx: usize) -> bool {
-        self.0.is_revoked(idx)
-    }
-
-    pub fn issue(&mut self) -> usize {
-        self.0.issue()
-    }
-
-    pub fn revoke(&mut self, idx: usize) -> bool {
-        self.0.revoke(idx)
     }
 }
 

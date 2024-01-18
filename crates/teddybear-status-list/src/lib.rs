@@ -1,140 +1,132 @@
+pub mod credential;
+
 use std::io;
 
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
-use bitvec::{bitbox, boxed::BitBox, slice::BitSlice, vec::BitVec};
+use bitvec::{bitbox, boxed::BitBox, vec::BitVec};
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use rand::{thread_rng, Rng};
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Deserializer, Serialize};
 
 const ENCODE_BUF_INIT_CAPACITY: usize = 1536;
 const RNG_SAMPLE_ATTEMPTS: usize = 25;
 const INIT_SIZE: usize = 131_072;
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct EncodedRevocationList {
-    pub issued: String,
-    pub revoked: String,
-}
-
 #[derive(PartialEq, Eq, Debug)]
-pub struct RevocationList {
-    issued: BitBox,
-    revoked: BitBox,
+pub struct StatusList {
+    inner: BitBox,
 }
 
-impl RevocationList {
-    pub fn encode(&self) -> EncodedRevocationList {
+impl StatusList {
+    pub fn encode(&self) -> String {
         let mut buf = Vec::with_capacity(ENCODE_BUF_INIT_CAPACITY);
 
-        let issued = Self::encode_bit_slice(&self.issued, &mut buf);
-        let revoked = Self::encode_bit_slice(&self.revoked, &mut buf);
-
-        EncodedRevocationList { issued, revoked }
-    }
-
-    #[inline]
-    fn encode_bit_slice<T: AsRef<BitSlice>>(val: &T, buf: &mut Vec<u8>) -> String {
-        buf.clear();
-
         {
-            let mut encoder = GzEncoder::new(&mut *buf, Compression::fast());
-            io::copy(&mut val.as_ref(), &mut encoder)
+            let mut encoder = GzEncoder::new(&mut buf, Compression::fast());
+            io::copy(&mut &*self.inner, &mut encoder)
                 .expect("copying to in-memory buffer should not fail");
         }
 
         URL_SAFE_NO_PAD.encode(buf)
     }
 
-    pub fn decode(encoded: &EncodedRevocationList) -> Option<Self> {
+    pub fn decode(encoded: &str) -> Option<Self> {
         let mut buf = Vec::with_capacity(ENCODE_BUF_INIT_CAPACITY);
 
-        let issued = Self::decode_string(&encoded.issued, &mut buf)?;
-        let revoked = Self::decode_string(&encoded.revoked, &mut buf)?;
+        URL_SAFE_NO_PAD.decode_vec(encoded, &mut buf).ok()?;
+        let mut decoder = GzDecoder::new(&*buf);
+        let mut inner = BitVec::with_capacity(INIT_SIZE);
+        io::copy(&mut decoder, &mut inner).ok()?;
 
-        Some(RevocationList {
-            issued: issued.into_boxed_bitslice(),
-            revoked: revoked.into_boxed_bitslice(),
+        Some(StatusList {
+            inner: inner.into_boxed_bitslice(),
         })
     }
 
     #[inline]
-    fn decode_string<T: AsRef<[u8]>>(val: &T, buf: &mut Vec<u8>) -> Option<BitVec> {
-        buf.clear();
-        URL_SAFE_NO_PAD.decode_vec(val, buf).ok()?;
-        let mut decoder = GzDecoder::new(&**buf);
-        let mut bits = BitVec::with_capacity(INIT_SIZE);
-        io::copy(&mut decoder, &mut bits).ok()?;
-        Some(bits)
+    pub fn is_set(&self, idx: usize) -> bool {
+        self.inner.get(idx).map(|val| *val).unwrap_or(false)
     }
 
-    pub fn is_revoked(&self, idx: usize) -> bool {
-        self.revoked.get(idx).map(|val| *val).unwrap_or(false)
+    #[inline]
+    pub fn set(&mut self, idx: usize) -> bool {
+        let Some(mut bit) = self.inner.get_mut(idx) else {
+            return false;
+        };
+
+        bit.set(true);
+
+        true
     }
 
-    pub fn issue(&mut self) -> usize {
+    #[inline]
+    pub fn set_random(&mut self) -> usize {
         let mut rng = thread_rng();
 
         for _ in 0..RNG_SAMPLE_ATTEMPTS {
             // FIXME: Possible sampling optimizations.
-            let idx = rng.gen_range(0..self.issued.len());
+            let idx = rng.gen_range(0..self.inner.len());
 
-            if !self.exists(idx) {
-                self.issued.set(idx, true);
+            if !self.is_set(idx) {
+                self.inner.set(idx, true);
                 return idx;
             }
         }
 
-        self.issue_with_resize(&mut rng)
-    }
-
-    pub fn revoke(&mut self, idx: usize) -> bool {
-        assert!(self.issued.len() == self.revoked.len());
-
-        if self.exists(idx) {
-            self.revoked.set(idx, true);
-            true
-        } else {
-            false
-        }
+        self.set_random_with_resize(&mut rng)
     }
 
     #[cold]
-    fn issue_with_resize<R: Rng>(&mut self, rng: &mut R) -> usize {
+    #[inline]
+    fn set_random_with_resize<R: Rng>(&mut self, rng: &mut R) -> usize {
         let start = self.resize();
         let idx = rng.gen_range(start..start * 2);
-        self.issued.set(idx, true);
+        self.inner.set(idx, true);
         idx
     }
 
+    #[inline]
     fn resize(&mut self) -> usize {
-        assert!(self.issued.len() == self.revoked.len());
+        let start = self.inner.len();
 
-        let start = self.issued.len();
+        let mut resized = bitbox![0; start * 2];
 
-        let mut issued = bitbox![0; self.issued.len() * 2];
-        let mut revoked = bitbox![0; self.revoked.len() * 2];
+        resized[0..start].copy_from_bitslice(&self.inner);
 
-        issued[0..self.issued.len()].copy_from_bitslice(&self.issued);
-        revoked[0..self.revoked.len()].copy_from_bitslice(&self.revoked);
-
-        self.issued = issued;
-        self.revoked = revoked;
+        self.inner = resized;
 
         start
     }
+}
 
-    #[inline]
-    fn exists(&self, idx: usize) -> bool {
-        self.issued.get(idx).map(|val| *val).unwrap_or(false)
+impl Default for StatusList {
+    fn default() -> Self {
+        StatusList {
+            inner: bitbox![0; INIT_SIZE],
+        }
     }
 }
 
-impl Default for RevocationList {
-    fn default() -> Self {
-        RevocationList {
-            issued: bitbox![0; INIT_SIZE],
-            revoked: bitbox![0; INIT_SIZE],
-        }
+impl Serialize for StatusList {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&self.encode())
+    }
+}
+
+impl<'de> Deserialize<'de> for StatusList {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let encoded = String::deserialize(deserializer)?;
+
+        StatusList::decode(&encoded).ok_or(de::Error::invalid_value(
+            de::Unexpected::Other("string value"),
+            &"a base64-encoded gzipped bit array",
+        ))
     }
 }
 
@@ -142,53 +134,43 @@ impl Default for RevocationList {
 mod tests {
     use bitvec::bitbox;
 
-    use crate::RevocationList;
+    use crate::StatusList;
 
     #[test]
-    fn issue_and_revoke() {
-        let mut list = RevocationList::default();
-        let idx = list.issue();
-        assert!(!list.is_revoked(idx));
-        assert!(list.revoke(idx));
-        assert!(list.is_revoked(idx));
+    fn set_random() {
+        let mut list = StatusList::default();
+        let idx = list.set_random();
+        assert!(list.is_set(idx));
     }
 
     #[test]
-    fn non_existent_id() {
-        let mut list = RevocationList::default();
-        assert!(!list.revoke(123));
-        assert!(!list.is_revoked(123));
-    }
-
-    #[test]
-    fn resize() {
-        let mut list = RevocationList::default();
-        let current_length = list.issued.len();
-        assert!(list.resize() == current_length);
+    fn set() {
+        let mut list = StatusList::default();
+        assert!(!list.is_set(123));
+        list.set(123);
+        assert!(list.is_set(123));
     }
 
     #[test]
     fn issue_with_resize() {
-        let mut list = RevocationList {
-            issued: bitbox![1; 1],
-            revoked: bitbox![1; 1],
+        let mut list = StatusList {
+            inner: bitbox![1; 1],
         };
 
-        assert!(list.issue() >= 1);
+        assert!(list.set_random() >= 1);
     }
 
     #[test]
     fn encode_and_decode() {
-        let mut first_list = RevocationList::default();
+        let mut first_list = StatusList::default();
 
         for _ in 0..10 {
-            let idx = first_list.issue();
-            first_list.revoke(idx);
+            first_list.set_random();
         }
 
         let encoded = first_list.encode();
 
-        let second_list = RevocationList::decode(&encoded).unwrap();
+        let second_list = StatusList::decode(&encoded).unwrap();
 
         assert_eq!(first_list, second_list);
     }

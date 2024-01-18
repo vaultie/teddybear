@@ -16,7 +16,6 @@ ssi-vc = { workspace = true }
 
 teddybear-crypto = { workspace = true }
 teddybear-jwe = { workspace = true }
-teddybear-status-list = { workspace = true }
 
 serde = { workspace = true }
 serde_json = { workspace = true }

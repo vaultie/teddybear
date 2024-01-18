@@ -1,39 +1,39 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use teddybear_status_list::RevocationList;
+use teddybear_status_list::StatusList;
 
 fn encode_and_decode(c: &mut Criterion) {
     c.bench_function("one issue", |b| {
         b.iter(|| {
-            let mut list = RevocationList::default();
-            list.issue();
+            let mut list = StatusList::default();
+            list.set_random();
             let encoded = list.encode();
-            RevocationList::decode(&encoded).unwrap();
+            StatusList::decode(&encoded).unwrap();
         })
     });
 
     c.bench_function("ten issues", |b| {
         b.iter(|| {
-            let mut list = RevocationList::default();
+            let mut list = StatusList::default();
 
             for _ in 0..10 {
-                list.issue();
+                list.set_random();
             }
 
             let encoded = list.encode();
-            RevocationList::decode(&encoded).unwrap();
+            StatusList::decode(&encoded).unwrap();
         })
     });
 
     c.bench_function("one million issues", |b| {
         b.iter(|| {
-            let mut list = RevocationList::default();
+            let mut list = StatusList::default();
 
             for _ in 0..1_000_000 {
-                list.issue();
+                list.set_random();
             }
 
             let encoded = list.encode();
-            RevocationList::decode(&encoded).unwrap();
+            StatusList::decode(&encoded).unwrap();
         })
     });
 }

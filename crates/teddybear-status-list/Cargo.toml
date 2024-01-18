@@ -10,8 +10,14 @@ categories.workspace = true
 base64 = { workspace = true }
 bitvec = "1.0.1"
 flate2 = "1.0.28"
+iref = { workspace = true }
 rand = "0.8.5"
 serde = { workspace = true }
+serde-aux = { version = "4.4.0", default-features = false }
+serde_json = { workspace = true }
+ssi-json-ld = { workspace = true }
+ssi-vc = { workspace = true }
+thiserror = { workspace = true }
 
 [dev-dependencies]
 criterion = "0.5.1"
