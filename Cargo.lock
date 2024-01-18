@@ -3785,7 +3785,7 @@ checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 
 [[package]]
 name = "teddybear-crypto"
-version = "0.1.3"
+version = "0.2.0"
 dependencies = [
  "multibase 0.9.1",
  "ssi-dids",
@@ -3797,7 +3797,7 @@ dependencies = [
 
 [[package]]
 name = "teddybear-did-key"
-version = "0.1.3"
+version = "0.2.0"
 dependencies = [
  "async-trait",
  "ed25519-dalek",
@@ -3811,7 +3811,7 @@ dependencies = [
 
 [[package]]
 name = "teddybear-js"
-version = "0.1.3"
+version = "0.2.0"
 dependencies = [
  "console_error_panic_hook",
  "js-sys",
@@ -3830,7 +3830,7 @@ dependencies = [
 
 [[package]]
 name = "teddybear-jwe"
-version = "0.1.3"
+version = "0.2.0"
 dependencies = [
  "askar-crypto",
  "base64 0.21.7",
@@ -3841,7 +3841,7 @@ dependencies = [
 
 [[package]]
 name = "teddybear-status-list"
-version = "0.1.3"
+version = "0.2.0"
 dependencies = [
  "base64 0.21.7",
  "bitvec 1.0.1",
