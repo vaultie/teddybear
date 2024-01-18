@@ -1,14 +1,14 @@
 extern crate alloc;
 
+mod credential;
+
 use js_sys::{Object, Uint8Array};
 use serde::Serialize;
 use serde_wasm_bindgen::Serializer;
-use ssi_json_ld::ContextLoader;
-use ssi_ldp::ProofSuiteType;
-use ssi_vc::{Credential, Issuer, LinkedDataProofOptions, Presentation, ProofPurpose, URI};
-use teddybear_crypto::{DidKey, Ed25519, JWK, Public, Private};
-use uuid::Uuid;
+use teddybear_crypto::{Ed25519, Private, Public, JWK};
 use wasm_bindgen::prelude::*;
+
+use crate::credential::{issue_vc, issue_vp, verify_credential, verify_presentation};
 
 const OBJECT_SERIALIZER: Serializer = Serializer::new().serialize_maps_as_objects(true);
 
@@ -68,75 +68,22 @@ impl PrivateEd25519 {
 
     #[wasm_bindgen(js_name = "issueVC")]
     pub async fn issue_vc(&self, vc: Object) -> Object {
-        let mut credential: Credential = serde_wasm_bindgen::from_value(vc.into()).unwrap();
-
-        credential.issuer = Some(Issuer::URI(URI::String(self.0.document_did().to_string())));
-
-        credential.validate_unsigned().unwrap();
-
-        let proof_options = LinkedDataProofOptions {
-            type_: Some(ProofSuiteType::Ed25519Signature2020),
-            verification_method: Some(URI::String(self.0.ed25519_did().to_string())),
-            ..Default::default()
-        };
-
-        let mut context_loader = ContextLoader::default();
-
-        let proof = credential
-            .generate_proof(
-                self.0.as_ed25519_private_jwk(),
-                &proof_options,
-                &DidKey,
-                &mut context_loader,
-            )
-            .await
-            .unwrap();
-
-        credential.add_proof(proof);
-
+        let mut credential = serde_wasm_bindgen::from_value(vc.into()).unwrap();
+        issue_vc(&self.0, &mut credential).await;
         credential.serialize(&OBJECT_SERIALIZER).unwrap().into()
     }
 
     #[wasm_bindgen(js_name = "issueVP")]
     pub async fn issue_vp(&self, folio_id: &str, vp: Object) -> Object {
-        let mut presentation: Presentation = serde_wasm_bindgen::from_value(vp.into()).unwrap();
-
-        presentation.validate_unsigned().unwrap();
-
-        let proof_options = LinkedDataProofOptions {
-            type_: Some(ProofSuiteType::Ed25519Signature2020),
-            verification_method: Some(URI::String(self.0.ed25519_did().to_string())),
-            proof_purpose: Some(ProofPurpose::Authentication),
-            domain: Some(format!("https://vaultie.io/folio/{folio_id}")),
-            challenge: Some(Uuid::new_v4().to_string()),
-            ..Default::default()
-        };
-
-        let mut context_loader = ContextLoader::default();
-
-        let proof = presentation
-            .generate_proof(
-                self.0.as_ed25519_private_jwk(),
-                &proof_options,
-                &DidKey,
-                &mut context_loader,
-            )
-            .await
-            .unwrap();
-
-        presentation.add_proof(proof);
-
+        let mut presentation = serde_wasm_bindgen::from_value(vp.into()).unwrap();
+        issue_vp(&self.0, folio_id, &mut presentation).await;
         presentation.serialize(&OBJECT_SERIALIZER).unwrap().into()
-    }
-
-    #[wasm_bindgen(js_name = "verifyCredential")]
-    pub async fn verify_credential(&self, document: Object) -> bool {
-        verify_credential(&self.0, document).await
     }
 
     #[wasm_bindgen(js_name = "verifyPresentation")]
     pub async fn verify_presentation(&self, document: Object) -> bool {
-        verify_presentation(&self.0, document).await
+        let presentation = serde_wasm_bindgen::from_value(document.into()).unwrap();
+        verify_presentation(&self.0, &presentation).await
     }
 }
 
@@ -180,49 +127,17 @@ impl PublicEd25519 {
         self.0.x25519_did().to_string()
     }
 
-    #[wasm_bindgen(js_name = "verifyCredential")]
-    pub async fn verify_credential(&self, document: Object) -> bool {
-        verify_credential(&self.0, document).await
-    }
-
     #[wasm_bindgen(js_name = "verifyPresentation")]
     pub async fn verify_presentation(&self, document: Object) -> bool {
-        verify_presentation(&self.0, document).await
+        let presentation = serde_wasm_bindgen::from_value(document.into()).unwrap();
+        verify_presentation(&self.0, &presentation).await
     }
 }
 
-#[inline]
-async fn verify_credential<T>(ed25519: &Ed25519<T>, document: Object) -> bool {
-    let credential: Credential = serde_wasm_bindgen::from_value(document.into()).unwrap();
-
-    let proof_options = LinkedDataProofOptions {
-        type_: Some(ProofSuiteType::Ed25519Signature2020),
-        verification_method: Some(URI::String(ed25519.ed25519_did().to_string())),
-        proof_purpose: Some(ProofPurpose::AssertionMethod),
-        ..Default::default()
-    };
-
-    credential.verify(Some(proof_options), &DidKey, &mut ContextLoader::default())
-        .await
-        .errors
-        .is_empty()
-}
-
-#[inline]
-async fn verify_presentation<T>(ed25519: &Ed25519<T>, document: Object) -> bool {
-    let presentation: Presentation = serde_wasm_bindgen::from_value(document.into()).unwrap();
-
-    let proof_options = LinkedDataProofOptions {
-        type_: Some(ProofSuiteType::Ed25519Signature2020),
-        verification_method: Some(URI::String(ed25519.ed25519_did().to_string())),
-        proof_purpose: Some(ProofPurpose::Authentication),
-        ..Default::default()
-    };
-
-    presentation.verify(Some(proof_options), &DidKey, &mut ContextLoader::default())
-        .await
-        .errors
-        .is_empty()
+#[wasm_bindgen(js_name = "verifyCredential")]
+pub async fn js_verify_credential(document: Object) -> bool {
+    let credential = serde_wasm_bindgen::from_value(document.into()).unwrap();
+    verify_credential(&credential).await
 }
 
 #[wasm_bindgen]

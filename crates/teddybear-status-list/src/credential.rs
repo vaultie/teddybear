@@ -7,9 +7,9 @@ use thiserror::Error;
 
 use crate::StatusList;
 
-const STATUS_LIST_CONTEXT: Iri<'static> = CREDENTIALS_V2_CONTEXT;
-const STATUS_LIST_CREDENTIAL_TYPE: &'static str = "BitstringStatusListCredential";
-const STATUS_LIST_CREDENTIAL_SUBJECT_TYPE: &'static str = "BitstringStatusList";
+const STATUS_LIST_CONTEXT: Iri<'_> = CREDENTIALS_V2_CONTEXT;
+const STATUS_LIST_CREDENTIAL_TYPE: &str = "BitstringStatusListCredential";
+const STATUS_LIST_CREDENTIAL_SUBJECT_TYPE: &str = "BitstringStatusList";
 
 /// Purpose of the status entry.
 ///
