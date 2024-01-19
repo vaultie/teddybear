@@ -35,6 +35,8 @@ pub async fn issue_vc(key: &Ed25519<Private>, credential: &mut Credential) {
 
 #[inline]
 pub async fn issue_vp(key: &Ed25519<Private>, folio_id: &str, presentation: &mut Presentation) {
+    presentation.holder = Some(URI::String(key.document_did().to_string()));
+
     presentation.validate_unsigned().unwrap();
 
     let proof_options = LinkedDataProofOptions {
