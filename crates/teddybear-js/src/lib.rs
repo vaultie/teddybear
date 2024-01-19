@@ -124,7 +124,7 @@ impl PrivateEd25519 {
     #[wasm_bindgen(js_name = "issueVC")]
     pub async fn issue_vc(&self, vc: Object) -> Result<Object, JsError> {
         let mut credential = serde_wasm_bindgen::from_value(vc.into())?;
-        issue_vc(&self.0, &mut credential).await;
+        issue_vc(&self.0, &mut credential).await?;
         Ok(credential.serialize(&OBJECT_SERIALIZER)?.into())
     }
 
@@ -135,7 +135,7 @@ impl PrivateEd25519 {
     #[wasm_bindgen(js_name = "issueVP")]
     pub async fn issue_vp(&self, folio_id: &str, vp: Object) -> Result<Object, JsError> {
         let mut presentation = serde_wasm_bindgen::from_value(vp.into())?;
-        issue_vp(&self.0, folio_id, &mut presentation).await;
+        issue_vp(&self.0, folio_id, &mut presentation).await?;
         Ok(presentation.serialize(&OBJECT_SERIALIZER)?.into())
     }
 

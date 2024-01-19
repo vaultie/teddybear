@@ -7,10 +7,13 @@ use thiserror::Error;
 use uuid::Uuid;
 
 #[inline]
-pub async fn issue_vc(key: &Ed25519<Private>, credential: &mut Credential) {
+pub async fn issue_vc(
+    key: &Ed25519<Private>,
+    credential: &mut Credential,
+) -> Result<(), ssi_vc::Error> {
     credential.issuer = Some(Issuer::URI(URI::String(key.document_did().to_string())));
 
-    credential.validate_unsigned().unwrap();
+    credential.validate_unsigned()?;
 
     let proof_options = LinkedDataProofOptions {
         type_: Some(ProofSuiteType::Ed25519Signature2020),
@@ -27,17 +30,22 @@ pub async fn issue_vc(key: &Ed25519<Private>, credential: &mut Credential) {
             &DidKey,
             &mut context_loader,
         )
-        .await
-        .unwrap();
+        .await?;
 
     credential.add_proof(proof);
+
+    Ok(())
 }
 
 #[inline]
-pub async fn issue_vp(key: &Ed25519<Private>, folio_id: &str, presentation: &mut Presentation) {
+pub async fn issue_vp(
+    key: &Ed25519<Private>,
+    folio_id: &str,
+    presentation: &mut Presentation,
+) -> Result<(), ssi_vc::Error> {
     presentation.holder = Some(URI::String(key.document_did().to_string()));
 
-    presentation.validate_unsigned().unwrap();
+    presentation.validate_unsigned()?;
 
     let proof_options = LinkedDataProofOptions {
         type_: Some(ProofSuiteType::Ed25519Signature2020),
@@ -57,10 +65,11 @@ pub async fn issue_vp(key: &Ed25519<Private>, folio_id: &str, presentation: &mut
             &DidKey,
             &mut context_loader,
         )
-        .await
-        .unwrap();
+        .await?;
 
     presentation.add_proof(proof);
+
+    Ok(())
 }
 
 #[derive(Copy, Clone, Error, Debug)]
