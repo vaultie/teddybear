@@ -7,6 +7,7 @@ repository.workspace = true
 categories.workspace = true
 
 [dependencies]
+ed25519-dalek = { workspace = true }
 ssi-dids = { workspace = true }
 ssi-jwk = { workspace = true }
 ssi-jws = { workspace = true }

@@ -7,8 +7,12 @@ repository.workspace = true
 categories.workspace = true
 
 [dependencies]
-askar-crypto = { version = "0.3.0", default-features = false, features = ["alloc", "aes", "ed25519", "getrandom"] }
+askar-crypto = { version = "0.3.0", default-features = false, features = ["aes", "ed25519", "std"] }
 base64 = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 ssi-jwk = { workspace = true }
+
+[dev-dependencies]
+teddybear-crypto = { workspace = true }
+tokio = { version = "1.35.1", features = ["macros", "test-util"] }

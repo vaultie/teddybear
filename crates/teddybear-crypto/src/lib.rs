@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
 
+use ed25519_dalek::SigningKey;
 use ssi_dids::{did_resolve::easy_resolve, DIDMethod, Document, Source, VerificationMethod};
 use ssi_jwk::{Algorithm, Base64urlUInt, OctetParams, Params};
 use ssi_jws::{encode_sign_custom_header, Header};
@@ -13,13 +14,16 @@ pub enum Error {
     #[error("provided JWK is missing a private key value")]
     MissingPrivateKey,
 
-    #[error("jwk error: {0}")]
+    #[error(transparent)]
+    Ed25519(#[from] ed25519_dalek::SignatureError),
+
+    #[error(transparent)]
     Jwk(#[from] ssi_jwk::Error),
 
-    #[error("multibase decode error: {0}")]
+    #[error(transparent)]
     MultibaseError(#[from] multibase::Error),
 
-    #[error("did resolve error: {0}")]
+    #[error(transparent)]
     DidResolve(#[from] ssi_dids::Error),
 }
 
@@ -51,12 +55,21 @@ impl Ed25519<Private> {
     }
 
     pub async fn from_private_jwk(jwk: JWK) -> Result<Self, Error> {
-        match &jwk.params {
-            Params::OKP(okp) if okp.private_key.is_some() => {}
-            _ => return Err(Error::MissingPrivateKey),
-        }
+        let private_key = match &jwk.params {
+            Params::OKP(okp) => okp.private_key.as_ref(),
+            _ => None,
+        };
 
-        let (document, ed25519, x25519) = Ed25519::<()>::parts_from_jwk(jwk).await?;
+        let key = SigningKey::try_from(&*private_key.ok_or(Error::MissingPrivateKey)?.0)?;
+
+        let (document, ed25519, mut x25519) = Ed25519::<()>::parts_from_jwk(jwk).await?;
+
+        match &mut x25519.jwk.params {
+            Params::OKP(okp) => {
+                okp.private_key = Some(Base64urlUInt(key.to_scalar_bytes().to_vec()))
+            }
+            _ => unreachable!("X25519 keys should always have OKP params"),
+        }
 
         Ok(Self {
             document,
@@ -81,6 +94,11 @@ impl Ed25519<Private> {
     #[inline]
     pub fn as_ed25519_private_jwk(&self) -> &JWK {
         &self.ed25519.jwk
+    }
+
+    #[inline]
+    pub fn as_x25519_private_jwk(&self) -> &JWK {
+        &self.x25519.jwk
     }
 }
 
