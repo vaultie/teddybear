@@ -161,7 +161,7 @@ pub fn decrypt(jwe: &GeneralJWE<'_>, recipient: &JWK) -> Result<Vec<u8>, Error> 
 }
 
 #[allow(clippy::type_complexity)]
-pub fn encrypt_with_cek<'a>(
+fn encrypt_with_cek<'a>(
     cek: &AesKey<A256Gcm>,
     payload: &'a mut Vec<u8>,
     aad: &[u8],
@@ -173,7 +173,7 @@ pub fn encrypt_with_cek<'a>(
     Ok((iv.into(), ciphertext, tag))
 }
 
-pub fn decrypt_with_cek(
+fn decrypt_with_cek(
     cek: &AesKey<A256Gcm>,
     ciphertext: &mut Vec<u8>,
     iv: &[u8],
