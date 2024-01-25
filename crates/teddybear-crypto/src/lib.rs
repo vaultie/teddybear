@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use ed25519_dalek::SigningKey;
 use ssi_dids::{did_resolve::easy_resolve, DIDMethod, Document, Source, VerificationMethod};
 use ssi_jwk::{Algorithm, Base64urlUInt, OctetParams, Params};
-use ssi_jws::{encode_sign_custom_header, Header};
+use ssi_jws::{encode_sign_custom_header, Header, split_jws, DecodedJWS, decode_jws_parts, verify_bytes};
 use thiserror::Error;
 
 pub use ssi_jwk::JWK;
@@ -19,6 +19,9 @@ pub enum Error {
 
     #[error(transparent)]
     Jwk(#[from] ssi_jwk::Error),
+
+    #[error(transparent)]
+    Jws(#[from] ssi_jws::Error),
 
     #[error(transparent)]
     MultibaseError(#[from] multibase::Error),
@@ -197,6 +200,23 @@ impl<T> Ed25519<T> {
 
         Ok((document, KeyInfo { jwk }, x25519))
     }
+}
+
+pub fn verify_jws_with_embedded_jwk(jws: &str) -> Result<(JWK, Vec<u8>), Error> {
+    let (header_b64, payload_enc, signature_b64) = split_jws(jws)?;
+
+    let DecodedJWS {
+        header,
+        signing_input,
+        payload,
+        signature,
+    } = decode_jws_parts(header_b64, payload_enc.as_bytes(), signature_b64)?;
+
+    let key = header.jwk.ok_or(ssi_jws::Error::InvalidSignature)?;
+
+    verify_bytes(header.algorithm, &signing_input, &key, &signature)?;
+
+    Ok((key, payload))
 }
 
 #[inline]
