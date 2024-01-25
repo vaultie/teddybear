@@ -5,9 +5,14 @@ mod credential;
 use credential::CredentialError;
 use js_sys::{Object, Uint8Array};
 use serde::Serialize;
+use serde_json::json;
 use serde_wasm_bindgen::Serializer;
 use teddybear_crypto::{Ed25519, Private, Public, JWK};
 use teddybear_jwe::decrypt;
+use teddybear_status_list::{
+    credential::{BitstringStatusListCredentialSubject, StatusPurpose},
+    StatusList,
+};
 use wasm_bindgen::prelude::*;
 use wee_alloc::WeeAlloc;
 
@@ -237,9 +242,60 @@ impl WrappedJWK {
     }
 
     /// Serialize the current wrapped JWK as an object.
-    #[wasm_bindgen(js_name = "asObject")]
-    pub fn as_object(&self) -> Result<Object, JsError> {
+    #[wasm_bindgen(js_name = "toJSON")]
+    pub fn to_json(&self) -> Result<Object, JsError> {
         Ok(self.0.serialize(&OBJECT_SERIALIZER)?.into())
+    }
+}
+
+/// Encoded W3C-compatible status list credential.
+#[wasm_bindgen]
+pub struct StatusListCredential(StatusList);
+
+#[wasm_bindgen]
+impl StatusListCredential {
+    /// Create new StatusListCredential with all bits set to 0.
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Self {
+        StatusListCredential(StatusList::default())
+    }
+
+    /// Create new StatusListCredential from a credential subject object.
+    #[wasm_bindgen(js_name = "fromCredentialSubject")]
+    pub fn from_credential_subject(
+        credential_subject: &Object,
+    ) -> Result<StatusListCredential, JsError> {
+        let credential: BitstringStatusListCredentialSubject =
+            serde_wasm_bindgen::from_value(credential_subject.into())?;
+
+        Ok(StatusListCredential(credential.encoded_list))
+    }
+
+    /// Check if a given index is revoked (bit set to 1).
+    pub fn is_revoked(&self, idx: usize) -> bool {
+        self.0.is_set(idx)
+    }
+
+    /// Revoke a given index (set bit to 1).
+    pub fn revoke(&mut self, idx: usize) {
+        self.0.set(idx);
+    }
+
+    /// Serialize the current status list as an object.
+    #[wasm_bindgen(js_name = "toJSON")]
+    pub fn to_json(&self) -> Result<Object, JsError> {
+        Ok(json!({
+            "status_purpose": StatusPurpose::Revocation,
+            "encoded_list": self.0,
+        })
+        .serialize(&OBJECT_SERIALIZER)?
+        .into())
+    }
+}
+
+impl Default for StatusListCredential {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

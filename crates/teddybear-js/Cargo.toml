@@ -16,6 +16,7 @@ ssi-vc = { workspace = true }
 
 teddybear-crypto = { workspace = true }
 teddybear-jwe = { workspace = true }
+teddybear-status-list = { workspace = true }
 
 chrono = "0.4.31"
 serde = { workspace = true }
