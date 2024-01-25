@@ -2,7 +2,7 @@ use chrono::{DateTime, FixedOffset, Utc};
 use ssi_json_ld::ContextLoader;
 use ssi_ldp::{LinkedDataProofOptions, ProofSuiteType};
 use ssi_vc::{Credential, CredentialOrJWT, Issuer, OneOrMany, Presentation, ProofPurpose, URI};
-use teddybear_crypto::{DidKey, Ed25519, Private};
+use teddybear_crypto::{DidKey, Ed25519, Private, Public};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -14,7 +14,10 @@ pub enum Error {
     CredentialExpired,
 
     #[error(transparent)]
-    Lib(#[from] ssi_vc::Error)
+    Crypto(#[from] teddybear_crypto::Error),
+
+    #[error(transparent)]
+    Lib(#[from] ssi_vc::Error),
 }
 
 #[inline]
@@ -85,9 +88,7 @@ pub async fn issue_vp(
 }
 
 #[inline]
-pub async fn verify_credential(
-    credential: &Credential,
-) -> Result<(), Error> {
+pub async fn verify_credential(credential: &Credential) -> Result<(), Error> {
     credential.validate()?;
 
     let proof_options = LinkedDataProofOptions {
@@ -120,15 +121,23 @@ pub async fn verify_credential(
 }
 
 #[inline]
-pub async fn verify_presentation<'a, T>(
-    key: &Ed25519<T>,
-    presentation: &'a Presentation,
-) -> Result<Option<&'a str>, Error> {
+pub async fn verify_presentation(
+    presentation: &Presentation,
+) -> Result<(Ed25519<Public>, Option<&str>), Error> {
     presentation.validate()?;
+
+    let holder = Ed25519::from_did(
+        presentation
+            .holder
+            .as_ref()
+            .ok_or(ssi_vc::Error::MissingHolder)?
+            .as_str(),
+    )
+    .await?;
 
     let proof_options = LinkedDataProofOptions {
         type_: Some(ProofSuiteType::Ed25519Signature2020),
-        verification_method: Some(URI::String(key.ed25519_did().to_string())),
+        verification_method: Some(URI::String(holder.ed25519_did().to_string())),
         proof_purpose: Some(ProofPurpose::Authentication),
         ..Default::default()
     };
@@ -168,7 +177,8 @@ pub async fn verify_presentation<'a, T>(
         _ => return Err(ssi_vc::Error::MissingCredential.into()),
     }
 
-    let challenge = presentation.proof
+    let challenge = presentation
+        .proof
         .as_ref()
         .ok_or(Error::VerificationFailed)?
         .to_single()
@@ -176,5 +186,5 @@ pub async fn verify_presentation<'a, T>(
         .challenge
         .as_deref();
 
-    Ok(challenge)
+    Ok((holder, challenge))
 }

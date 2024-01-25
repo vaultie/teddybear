@@ -116,23 +116,20 @@ impl PrivateEd25519 {
     #[wasm_bindgen(js_name = "issueVP")]
     pub async fn issue_vp(&self, folio_id: &str, vp: Object) -> Result<Object, JsError> {
         let mut presentation = serde_wasm_bindgen::from_value(vp.into())?;
-        issue_vp(&self.0, folio_id, Some(Uuid::new_v4().to_string()), &mut presentation).await?;
+        issue_vp(
+            &self.0,
+            folio_id,
+            Some(Uuid::new_v4().to_string()),
+            &mut presentation,
+        )
+        .await?;
         Ok(presentation.serialize(&OBJECT_SERIALIZER)?.into())
-    }
-
-    /// Verify the provided verifiable presentation against the current keypair.
-    ///
-    /// See the `ErrorBag` documentation for more details on how to handle errors
-    /// that may occur during the validation process.
-    #[wasm_bindgen(js_name = "verifyPresentation")]
-    pub async fn verify_presentation(&self, document: Object) -> Result<Option<String>, JsError> {
-        let presentation = serde_wasm_bindgen::from_value(document.into())?;
-        Ok(verify_presentation(&self.0, &presentation).await?.map(ToString::to_string))
     }
 }
 
 /// A public Ed25519/X25519 keypair.
 #[wasm_bindgen]
+#[derive(Clone)]
 pub struct PublicEd25519(Ed25519<Public>);
 
 #[wasm_bindgen]
@@ -183,16 +180,6 @@ impl PublicEd25519 {
     pub fn x25519_did(&self) -> String {
         self.0.x25519_did().to_string()
     }
-
-    /// Verify the provided verifiable presentation against the current keypair.
-    ///
-    /// See the `ErrorBag` documentation for more details on how to handle errors
-    /// that may occur during the validation process.
-    #[wasm_bindgen(js_name = "verifyPresentation")]
-    pub async fn verify_presentation(&self, document: Object) -> Result<Option<String>, JsError> {
-        let presentation = serde_wasm_bindgen::from_value(document.into())?;
-        Ok(verify_presentation(&self.0, &presentation).await?.map(ToString::to_string))
-    }
 }
 
 /// Verify the provided verifiable credential.
@@ -203,6 +190,41 @@ impl PublicEd25519 {
 pub async fn js_verify_credential(document: Object) -> Result<(), JsError> {
     let credential = serde_wasm_bindgen::from_value(document.into())?;
     Ok(verify_credential(&credential).await?)
+}
+
+#[wasm_bindgen]
+pub struct PresentationVerificationResult {
+    key: PublicEd25519,
+    challenge: Option<String>,
+}
+
+#[wasm_bindgen]
+impl PresentationVerificationResult {
+    pub fn key(self) -> PublicEd25519 {
+        self.key
+    }
+
+    pub fn challenge(self) -> Option<String> {
+        self.challenge
+    }
+}
+
+/// Verify the provided verifiable presentation against the current keypair.
+///
+/// See the `ErrorBag` documentation for more details on how to handle errors
+/// that may occur during the validation process.
+#[wasm_bindgen(js_name = "verifyPresentation")]
+pub async fn js_verify_presentation(
+    document: Object,
+) -> Result<PresentationVerificationResult, JsError> {
+    let presentation = serde_wasm_bindgen::from_value(document.into())?;
+
+    let (key, challenge) = verify_presentation(&presentation).await?;
+
+    Ok(PresentationVerificationResult {
+        key: PublicEd25519(key),
+        challenge: challenge.map(ToString::to_string),
+    })
 }
 
 /// Wrapped JWK value.

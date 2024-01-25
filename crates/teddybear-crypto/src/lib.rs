@@ -3,7 +3,9 @@ use std::marker::PhantomData;
 use ed25519_dalek::SigningKey;
 use ssi_dids::{did_resolve::easy_resolve, DIDMethod, Document, Source, VerificationMethod};
 use ssi_jwk::{Algorithm, Base64urlUInt, OctetParams, Params};
-use ssi_jws::{encode_sign_custom_header, Header, split_jws, DecodedJWS, decode_jws_parts, verify_bytes};
+use ssi_jws::{
+    decode_jws_parts, encode_sign_custom_header, split_jws, verify_bytes, DecodedJWS, Header,
+};
 use thiserror::Error;
 
 pub use ssi_jwk::JWK;
@@ -30,18 +32,18 @@ pub enum Error {
     DidResolve(#[from] ssi_dids::Error),
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct KeyInfo {
     jwk: JWK,
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct Public;
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct Private;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Ed25519<T> {
     document: Document,
     pub ed25519: KeyInfo,
