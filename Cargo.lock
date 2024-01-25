@@ -3787,7 +3787,7 @@ checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 
 [[package]]
 name = "teddybear-crypto"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "ed25519-dalek",
  "multibase 0.9.1",
@@ -3800,7 +3800,7 @@ dependencies = [
 
 [[package]]
 name = "teddybear-did-key"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "async-trait",
  "ed25519-dalek",
@@ -3814,20 +3814,16 @@ dependencies = [
 
 [[package]]
 name = "teddybear-js"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
- "chrono",
  "js-sys",
  "serde",
  "serde-wasm-bindgen",
  "serde_json",
- "ssi-json-ld",
- "ssi-ldp",
- "ssi-vc",
  "teddybear-crypto",
  "teddybear-jwe",
  "teddybear-status-list",
- "thiserror",
+ "teddybear-vc",
  "uuid",
  "wasm-bindgen",
  "wasm-bindgen-futures",
@@ -3836,7 +3832,7 @@ dependencies = [
 
 [[package]]
 name = "teddybear-jwe"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "askar-crypto",
  "base64 0.21.7",
@@ -3849,7 +3845,7 @@ dependencies = [
 
 [[package]]
 name = "teddybear-status-list"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "base64 0.21.7",
  "bitvec 1.0.1",
@@ -3862,6 +3858,18 @@ dependencies = [
  "serde_json",
  "ssi-json-ld",
  "ssi-vc",
+ "thiserror",
+]
+
+[[package]]
+name = "teddybear-vc"
+version = "0.6.0"
+dependencies = [
+ "chrono",
+ "ssi-json-ld",
+ "ssi-ldp",
+ "ssi-vc",
+ "teddybear-crypto",
  "thiserror",
 ]
 
@@ -4125,9 +4133,9 @@ checksum = "ca61eb27fa339aa08826a29f03e87b99b4d8f0fc2255306fd266bb1b6a9de498"
 
 [[package]]
 name = "uuid"
-version = "1.6.1"
+version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e395fcf16a7a3d8127ec99782007af141946b4795001f876d54fb0d55978560"
+checksum = "f00cc9702ca12d3c81455259621e676d0f7251cec66a21e98fe2e9a37db93b2a"
 dependencies = [
  "getrandom",
  "wasm-bindgen",

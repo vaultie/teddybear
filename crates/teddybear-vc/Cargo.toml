@@ -1,0 +1,16 @@
+[package]
+name = "teddybear-vc"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+categories.workspace = true
+
+[dependencies]
+ssi-json-ld = { workspace = true }
+ssi-ldp = { workspace = true }
+ssi-vc = { workspace = true }
+
+chrono = "0.4.31"
+teddybear-crypto = { workspace = true }
+thiserror = { workspace = true }

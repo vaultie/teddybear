@@ -1,8 +1,5 @@
 extern crate alloc;
 
-mod credential;
-
-use credential::CredentialError;
 use js_sys::{Object, Uint8Array};
 use serde::Serialize;
 use serde_json::json;
@@ -13,37 +10,16 @@ use teddybear_status_list::{
     credential::{BitstringStatusListCredentialSubject, StatusPurpose},
     StatusList,
 };
+use uuid::Uuid;
 use wasm_bindgen::prelude::*;
 use wee_alloc::WeeAlloc;
 
-use crate::credential::{issue_vc, issue_vp, verify_credential, verify_presentation, Level};
+use teddybear_vc::{issue_vc, issue_vp, verify_credential, verify_presentation};
 
 #[global_allocator]
 static ALLOC: WeeAlloc = WeeAlloc::INIT;
 
 const OBJECT_SERIALIZER: Serializer = Serializer::new().serialize_maps_as_objects(true);
-
-/// A collection of errors gathered during the validation process.
-#[wasm_bindgen]
-pub struct ErrorBag(Vec<CredentialError>);
-
-#[wasm_bindgen]
-impl ErrorBag {
-    /// Get human-readable details of all errors and warnings that occured during the validation process.
-    pub fn details(&self) -> Vec<String> {
-        self.0.iter().map(|error| error.to_string()).collect()
-    }
-
-    /// Check if no errors of warnings occured during the validation process.
-    pub fn is_ok(&self) -> bool {
-        self.0.is_empty()
-    }
-
-    /// Check if the current error bag contains at least one critical error.
-    pub fn is_error(&self) -> bool {
-        self.0.iter().any(|error| error.level() == Level::Error)
-    }
-}
 
 /// A public/private Ed25519/X25519 keypair.
 #[wasm_bindgen]
@@ -140,7 +116,7 @@ impl PrivateEd25519 {
     #[wasm_bindgen(js_name = "issueVP")]
     pub async fn issue_vp(&self, folio_id: &str, vp: Object) -> Result<Object, JsError> {
         let mut presentation = serde_wasm_bindgen::from_value(vp.into())?;
-        issue_vp(&self.0, folio_id, &mut presentation).await?;
+        issue_vp(&self.0, folio_id, Some(Uuid::new_v4().to_string()), &mut presentation).await?;
         Ok(presentation.serialize(&OBJECT_SERIALIZER)?.into())
     }
 
@@ -149,9 +125,9 @@ impl PrivateEd25519 {
     /// See the `ErrorBag` documentation for more details on how to handle errors
     /// that may occur during the validation process.
     #[wasm_bindgen(js_name = "verifyPresentation")]
-    pub async fn verify_presentation(&self, document: Object) -> Result<ErrorBag, JsError> {
+    pub async fn verify_presentation(&self, document: Object) -> Result<Option<String>, JsError> {
         let presentation = serde_wasm_bindgen::from_value(document.into())?;
-        Ok(ErrorBag(verify_presentation(&self.0, &presentation).await?))
+        Ok(verify_presentation(&self.0, &presentation).await?.map(ToString::to_string))
     }
 }
 
@@ -213,9 +189,9 @@ impl PublicEd25519 {
     /// See the `ErrorBag` documentation for more details on how to handle errors
     /// that may occur during the validation process.
     #[wasm_bindgen(js_name = "verifyPresentation")]
-    pub async fn verify_presentation(&self, document: Object) -> Result<ErrorBag, JsError> {
+    pub async fn verify_presentation(&self, document: Object) -> Result<Option<String>, JsError> {
         let presentation = serde_wasm_bindgen::from_value(document.into())?;
-        Ok(ErrorBag(verify_presentation(&self.0, &presentation).await?))
+        Ok(verify_presentation(&self.0, &presentation).await?.map(ToString::to_string))
     }
 }
 
@@ -224,9 +200,9 @@ impl PublicEd25519 {
 /// See the `ErrorBag` documentation for more details on how to handle errors
 /// that may occur during the validation process.
 #[wasm_bindgen(js_name = "verifyCredential")]
-pub async fn js_verify_credential(document: Object) -> Result<ErrorBag, JsError> {
+pub async fn js_verify_credential(document: Object) -> Result<(), JsError> {
     let credential = serde_wasm_bindgen::from_value(document.into())?;
-    Ok(ErrorBag(verify_credential(&credential).await?))
+    Ok(verify_credential(&credential).await?)
 }
 
 /// Wrapped JWK value.
