@@ -204,6 +204,18 @@ impl<T> Ed25519<T> {
     }
 }
 
+impl<T, U> PartialEq<Ed25519<U>> for Ed25519<T> {
+    fn eq(&self, other: &Ed25519<U>) -> bool {
+        self.ed25519.jwk.equals_public(&other.ed25519.jwk)
+    }
+}
+
+impl<T> PartialEq<JWK> for Ed25519<T> {
+    fn eq(&self, other: &JWK) -> bool {
+        self.ed25519.jwk.equals_public(other)
+    }
+}
+
 pub fn verify_jws_with_embedded_jwk(jws: &str) -> Result<(JWK, Vec<u8>), Error> {
     let (header_b64, payload_enc, signature_b64) = split_jws(jws)?;
 
