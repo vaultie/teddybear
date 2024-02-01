@@ -4,7 +4,7 @@ use js_sys::{Object, Uint8Array};
 use serde::Serialize;
 use serde_json::json;
 use serde_wasm_bindgen::Serializer;
-use teddybear_crypto::{Ed25519, Private, Public, JWK};
+use teddybear_crypto::{Ed25519, Private, Public, JWK as InnerJWK};
 use teddybear_jwe::decrypt;
 use teddybear_status_list::{
     credential::{BitstringStatusListCredentialSubject, StatusPurpose},
@@ -14,7 +14,13 @@ use uuid::Uuid;
 use wasm_bindgen::prelude::*;
 use wee_alloc::WeeAlloc;
 
-use teddybear_vc::{issue_vc, issue_vp, verify_credential, verify_presentation};
+use teddybear_vc::{
+    issue_vc, issue_vp,
+    validation::{
+        Constraint as InnerConstraint, PresentationDefinition as InnerPresentationDefinition,
+    },
+    verify_credential, verify_presentation,
+};
 
 #[global_allocator]
 static ALLOC: WeeAlloc = WeeAlloc::INIT;
@@ -34,32 +40,32 @@ impl PrivateEd25519 {
 
     /// Convert an Ed25519 JWK value to a public/private keypair.
     #[wasm_bindgen(js_name = "fromJWK")]
-    pub async fn from_jwk(jwk: WrappedJWK) -> Result<PrivateEd25519, JsError> {
+    pub async fn from_jwk(jwk: JWK) -> Result<PrivateEd25519, JsError> {
         Ok(PrivateEd25519(Ed25519::from_private_jwk(jwk.0).await?))
     }
 
     /// Get the JWK value (with the private key) of the Ed25519 key within the current keypair.
     #[wasm_bindgen(js_name = "toEd25519PrivateJWK")]
-    pub fn to_ed25519_private_jwk(&self) -> WrappedJWK {
-        WrappedJWK(self.0.as_ed25519_private_jwk().clone())
+    pub fn to_ed25519_private_jwk(&self) -> JWK {
+        JWK(self.0.as_ed25519_private_jwk().clone())
     }
 
     /// Get the JWK value (without the private key) of the Ed25519 key within the current keypair.
     #[wasm_bindgen(js_name = "toEd25519PublicJWK")]
-    pub fn to_ed25519_public_jwk(&self) -> WrappedJWK {
-        WrappedJWK(self.0.to_ed25519_public_jwk())
+    pub fn to_ed25519_public_jwk(&self) -> JWK {
+        JWK(self.0.to_ed25519_public_jwk())
     }
 
     /// Get the JWK value (with the private key) of the X25519 key within the current keypair.
     #[wasm_bindgen(js_name = "toX25519PrivateJWK")]
-    pub fn to_x25519_private_jwk(&self) -> WrappedJWK {
-        WrappedJWK(self.0.as_x25519_private_jwk().clone())
+    pub fn to_x25519_private_jwk(&self) -> JWK {
+        JWK(self.0.as_x25519_private_jwk().clone())
     }
 
     /// Get the JWK value (without the private key) of the X25519 key within the current keypair.
     #[wasm_bindgen(js_name = "toX25519PublicJWK")]
-    pub fn to_x25519_public_jwk(&self) -> WrappedJWK {
-        WrappedJWK(self.0.to_x25519_public_jwk())
+    pub fn to_x25519_public_jwk(&self) -> JWK {
+        JWK(self.0.to_x25519_public_jwk())
     }
 
     /// Get the document DID value.
@@ -136,7 +142,7 @@ pub struct PublicEd25519(Ed25519<Public>);
 impl PublicEd25519 {
     /// Convert an Ed25519 JWK value to a public keypair.
     #[wasm_bindgen(js_name = "fromJWK")]
-    pub async fn from_jwk(jwk: WrappedJWK) -> Result<PublicEd25519, JsError> {
+    pub async fn from_jwk(jwk: JWK) -> Result<PublicEd25519, JsError> {
         Ok(PublicEd25519(Ed25519::from_jwk(jwk.0).await?))
     }
 
@@ -148,14 +154,14 @@ impl PublicEd25519 {
 
     /// Get the JWK value (without the private key) of the Ed25519 key within the current keypair.
     #[wasm_bindgen(js_name = "toEd25519PublicJWK")]
-    pub fn to_ed25519_public_jwk(&self) -> WrappedJWK {
-        WrappedJWK(self.0.to_ed25519_public_jwk())
+    pub fn to_ed25519_public_jwk(&self) -> JWK {
+        JWK(self.0.to_ed25519_public_jwk())
     }
 
     /// Get the JWK value (without the private key) of the X25519 key within the current keypair.
     #[wasm_bindgen(js_name = "toX25519PublicJWK")]
-    pub fn to_x25519_public_jwk(&self) -> WrappedJWK {
-        WrappedJWK(self.0.to_x25519_public_jwk())
+    pub fn to_x25519_public_jwk(&self) -> JWK {
+        JWK(self.0.to_x25519_public_jwk())
     }
 
     /// Get the document DID value.
@@ -229,13 +235,13 @@ pub async fn js_verify_presentation(
 
 /// Wrapped JWK value.
 #[wasm_bindgen]
-pub struct WrappedJWK(JWK);
+pub struct JWK(InnerJWK);
 
 #[wasm_bindgen]
-impl WrappedJWK {
+impl JWK {
     /// Create a new wrapped JWK value from the provided JWK object.
-    #[wasm_bindgen(js_name = "fromObject")]
-    pub fn from_object(object: &Object) -> Result<WrappedJWK, JsError> {
+    #[wasm_bindgen(constructor)]
+    pub fn new(object: &Object) -> Result<JWK, JsError> {
         Ok(Self(serde_wasm_bindgen::from_value(object.into())?))
     }
 
@@ -297,13 +303,49 @@ impl Default for StatusListCredential {
     }
 }
 
+#[wasm_bindgen]
+pub struct PresentationDefinition(InnerPresentationDefinition);
+
+#[wasm_bindgen]
+impl PresentationDefinition {
+    /// Create a new presentation definition from the provided object.
+    #[wasm_bindgen(constructor)]
+    pub fn from_object(object: &Object) -> Result<PresentationDefinition, JsError> {
+        Ok(Self(serde_wasm_bindgen::from_value(object.into())?))
+    }
+
+    /// Validate the provided object against the presentation definition.
+    pub fn validate(&self, object: &Object) -> Result<bool, JsError> {
+        let value = serde_wasm_bindgen::from_value(object.into())?;
+        Ok(self.0.validate(&value))
+    }
+}
+
+#[wasm_bindgen]
+pub struct Constraint(InnerConstraint);
+
+#[wasm_bindgen]
+impl Constraint {
+    /// Create a new constraint from the provided object.
+    #[wasm_bindgen(constructor)]
+    pub fn from_object(object: &Object) -> Result<Constraint, JsError> {
+        Ok(Self(serde_wasm_bindgen::from_value(object.into())?))
+    }
+
+    /// Validate the provided object against the constraint.
+    pub fn validate(&self, object: &Object) -> Result<bool, JsError> {
+        let value = serde_wasm_bindgen::from_value(object.into())?;
+        Ok(self.0.validate(&value))
+    }
+}
+
 /// Encrypt the provided payload for the provided recipient array.
 ///
 /// The provided recipients array must contain only wrapped X25519 JWK values.
 ///
 /// You may acquire X25519 JWK values using the `toX25519PublicJWK` method on the keypair structs.
 #[wasm_bindgen]
-pub fn encrypt(payload: Uint8Array, recipients: Vec<WrappedJWK>) -> Result<Object, JsError> {
+pub fn encrypt(payload: Uint8Array, recipients: Vec<JWK>) -> Result<Object, JsError> {
     let jwe = teddybear_jwe::encrypt(
         &payload.to_vec(),
         &recipients.iter().map(|val| &val.0).collect::<Vec<_>>(),

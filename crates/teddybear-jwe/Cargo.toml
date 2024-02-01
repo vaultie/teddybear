@@ -15,4 +15,4 @@ ssi-jwk = { workspace = true }
 
 [dev-dependencies]
 teddybear-crypto = { workspace = true }
-tokio = { version = "1.35.1", features = ["macros", "test-util"] }
+tokio = { workspace = true, features = ["test-util"] }

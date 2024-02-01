@@ -1,3 +1,5 @@
+pub mod validation;
+
 use chrono::{DateTime, FixedOffset, Utc};
 use ssi_json_ld::ContextLoader;
 use ssi_ldp::{LinkedDataProofOptions, ProofSuiteType};

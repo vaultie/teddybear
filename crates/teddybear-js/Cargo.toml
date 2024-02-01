@@ -9,6 +9,9 @@ categories.workspace = true
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["--enable-simd"]
+
 [dependencies]
 teddybear-crypto = { workspace = true }
 teddybear-jwe = { workspace = true }

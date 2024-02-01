@@ -117,6 +117,8 @@
           // {
             cargoArtifacts = null;
 
+            RUSTFLAGS = "-Ctarget-feature=+simd128";
+
             buildPhaseCargoCommand = ''
               HOME=$(mktemp -d)
 
