@@ -112,6 +112,7 @@ impl<'a> From<&'a DataSet> for QueryableDataset<'a> {
 #[cfg(test)]
 mod tests {
     use iref::Iri;
+    use rdf_types::{Literal, StringLiteral, Term};
     use serde_json::json;
     use ssi_json_ld::ContextLoader;
     use ssi_ldp::LinkedDataDocument;
@@ -154,6 +155,20 @@ mod tests {
             .validate_issuer(Iri::from_str("https://example.com/issuer/123").unwrap())
             .validate_type(
                 Iri::from_str("https://www.w3.org/2018/credentials#VerifiableCredential").unwrap(),
+            )
+            .validate_custom(
+                Iri::from_str("did:example:ebfeb1f712ebc6f1c276e12ec21").unwrap(),
+                Iri::from_str("https://www.w3.org/ns/credentials/examples#spouse").unwrap(),
+                Term::Literal(&Literal::String(StringLiteral::from(String::from(
+                    "did:example:c276e12ec21ebfeb1f712ebc6f1",
+                )))),
+            )
+            .validate_custom(
+                Iri::from_str("did:example:c276e12ec21ebfeb1f712ebc6f1").unwrap(),
+                Iri::from_str("https://www.w3.org/ns/credentials/examples#spouse").unwrap(),
+                Term::Literal(&Literal::String(StringLiteral::from(String::from(
+                    "did:example:ebfeb1f712ebc6f1c276e12ec21",
+                )))),
             )
             .validate(&queryable_dataset)
             .unwrap();
