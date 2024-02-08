@@ -4000,7 +4000,7 @@ checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 
 [[package]]
 name = "teddybear-crypto"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "ed25519-dalek",
  "multibase 0.9.1",
@@ -4013,7 +4013,7 @@ dependencies = [
 
 [[package]]
 name = "teddybear-did-key"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "async-trait",
  "ed25519-dalek",
@@ -4027,7 +4027,7 @@ dependencies = [
 
 [[package]]
 name = "teddybear-js"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "js-sys",
  "serde",
@@ -4045,7 +4045,7 @@ dependencies = [
 
 [[package]]
 name = "teddybear-jwe"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "askar-crypto",
  "base64 0.21.7",
@@ -4058,7 +4058,7 @@ dependencies = [
 
 [[package]]
 name = "teddybear-status-list"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "base64 0.21.7",
  "bitvec 1.0.1",
@@ -4076,18 +4076,23 @@ dependencies = [
 
 [[package]]
 name = "teddybear-vc"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "chrono",
+ "grdf",
+ "iref",
  "jsonschema",
+ "rdf-types",
  "serde",
  "serde_json",
  "serde_json_path",
  "ssi-json-ld",
  "ssi-ldp",
  "ssi-vc",
+ "static-iref",
  "teddybear-crypto",
  "thiserror",
+ "tokio",
 ]
 
 [[package]]
