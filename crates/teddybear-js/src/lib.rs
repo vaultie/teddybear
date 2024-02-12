@@ -353,3 +353,31 @@ pub fn encrypt(payload: Uint8Array, recipients: Vec<JWK>) -> Result<Object, JsEr
 
     Ok(jwe.serialize(&OBJECT_SERIALIZER)?.into())
 }
+
+#[cfg(test)]
+mod tests {
+    use js_sys::Uint8Array;
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    use crate::{encrypt, PrivateEd25519};
+
+    #[wasm_bindgen_test]
+    async fn encrypt_and_decrypt() {
+        let key = PrivateEd25519::generate()
+            .await
+            .unwrap_or_else(|_| panic!());
+
+        let encrypted = encrypt(
+            Uint8Array::from(b"Hello, world".as_slice()),
+            vec![key.to_x25519_public_jwk()],
+        )
+        .unwrap_or_else(|_| panic!());
+
+        let decrypted = key.decrypt(encrypted)
+            .unwrap_or_else(|_| panic!());
+
+        let mut buf = [0; 12];
+        decrypted.copy_to(&mut buf);
+        assert_eq!(buf.as_slice(), b"Hello, world");
+    }
+}

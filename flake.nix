@@ -86,9 +86,9 @@
           });
 
         wasm-bindgen-cli = pkgs.wasm-bindgen-cli.override {
-          version = "0.2.90";
-          hash = "sha256-X8+DVX7dmKh7BgXqP7Fp0smhup5OO8eWEhn26ODYbkQ=";
-          cargoHash = "sha256-ckJxAR20GuVGstzXzIj1M0WBFj5eJjrO2/DRMUK5dwM=";
+          version = "0.2.91";
+          hash = "sha256-f/RK6s12ItqKJWJlA2WtOXtwX4Y0qa8bq/JHlLTAS3c=";
+          cargoHash = "sha256-3vxVI0BhNz/9m59b+P2YEIrwGwlp7K3pyPKt4VqQuHE=";
         };
 
         commonArgs = {
@@ -106,6 +106,9 @@
             wasm-bindgen-cli
             pkgs.binaryen
             pkgs.llvmPackages.lld
+
+            # Testing
+            pkgs.nodejs-slim
           ];
         };
 
@@ -130,8 +133,12 @@
                 --release
             '';
 
+            checkPhaseCargoCommand = ''
+              wasm-pack test --node \
+                crates/teddybear-js
+            '';
+
             doInstallCargoArtifacts = false;
-            doCheck = false;
 
             preInstall = ''
               sed -i "s/teddybear-js/\@vaultie\/teddybear/g" \
