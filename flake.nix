@@ -60,18 +60,23 @@
 
         rustToolchain = with fenix.packages.${system};
           combine [
-            stable.toolchain
+            stable.rustc
+            stable.cargo
+            stable.clippy
+            stable.rustfmt
+
             targets.wasm32-unknown-unknown.stable.rust-std
           ];
 
         craneLib = crane.lib.${system}.overrideToolchain rustToolchain;
 
-        wasm-pack = pkgs.callPackage ./nix/wasm-pack.nix {};
+        rustPlatform = pkgs.makeRustPlatform {
+          cargo = rustToolchain;
+          rustc = rustToolchain;
+        };
 
-        wasm-bindgen-cli = pkgs.wasm-bindgen-cli.override {
-          version = "0.2.91";
-          hash = "sha256-f/RK6s12ItqKJWJlA2WtOXtwX4Y0qa8bq/JHlLTAS3c=";
-          cargoHash = "sha256-3vxVI0BhNz/9m59b+P2YEIrwGwlp7K3pyPKt4VqQuHE=";
+        wasm-pack = pkgs.callPackage ./nix/wasm-pack.nix {
+          inherit rustPlatform;
         };
 
         commonArgs = {
@@ -88,7 +93,7 @@
 
           nativeBuildInputs = [
             wasm-pack
-            wasm-bindgen-cli
+            pkgs.wasm-bindgen-cli
             pkgs.binaryen
             pkgs.llvmPackages.lld
 
@@ -120,7 +125,7 @@
         };
 
         packages = {
-          inherit cjs esm;
+          inherit cargoArtifacts cjs esm;
         };
 
         formatter = pkgs.alejandra;

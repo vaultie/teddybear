@@ -1,0 +1,29 @@
+name: "Build and publish"
+on:
+  push:
+    tags:
+      - "*"
+jobs:
+  build-and-publish:
+    name: Build and publish ${{ matrix.package }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: [cjs, esm]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: latest
+          registry-url: https://npm.pkg.github.com
+      # FIXME: Cache Nix store
+      - name: Build ${{ matrix.package }} package
+        run: nix build .#${{ matrix.package }}
+      - name: Publish ${{ matrix.package }} package
+        run: npm publish
+        working-directory: ./result
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,6 +1,7 @@
 {
   fetchFromGitHub,
   lib,
+  rustPlatform,
   wasm-pack,
 }: let
   src = fetchFromGitHub {
@@ -10,7 +11,7 @@
     hash = "sha256-djGVseo907/qLkY78nLfnbQeQ3q05AvZg0ALalFXE+M=";
   };
 in
-  wasm-pack.overrideAttrs (prev: {
+  (wasm-pack.override { inherit rustPlatform; }).overrideAttrs (prev: {
     inherit src;
 
     cargoDeps = prev.cargoDeps.overrideAttrs (lib.const {
