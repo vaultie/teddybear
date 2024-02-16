@@ -102,23 +102,24 @@
           ];
         };
 
-        cargoArtifacts = craneLib.buildDepsOnly (commonArgs // {
-          pname = "teddybear";
+        cargoArtifacts = craneLib.buildDepsOnly (commonArgs
+          // {
+            pname = "teddybear";
 
-          doCheck = false;
+            doCheck = false;
 
-          cargoExtraArgs = "-p teddybear-js";
-        });
+            cargoExtraArgs = "-p teddybear-js";
+          });
 
-        esm = pkgs.callPackage ./nix/package.nix ({
+        esm = pkgs.callPackage ./nix/package.nix {
           inherit cargoArtifacts commonArgs craneLib;
-        });
+        };
 
-        cjs = pkgs.callPackage ./nix/package.nix ({
+        cjs = pkgs.callPackage ./nix/package.nix {
           inherit cargoArtifacts commonArgs craneLib;
 
           buildForNode = true;
-        });
+        };
       in {
         devShells.default = pkgs.mkShell {
           buildInputs = [rustToolchain];
@@ -126,6 +127,22 @@
 
         packages = {
           inherit cargoArtifacts cjs esm;
+        };
+
+        checks = {
+          inherit cjs esm;
+
+          my-crate-clippy = craneLib.cargoClippy (commonArgs
+            // {
+              inherit cargoArtifacts;
+
+              cargoClippyExtraArgs = "-- --deny warnings";
+            });
+
+          fmt = craneLib.cargoFmt (commonArgs
+            // {
+              inherit src;
+            });
         };
 
         formatter = pkgs.alejandra;

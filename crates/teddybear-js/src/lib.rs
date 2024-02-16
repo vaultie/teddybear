@@ -373,8 +373,7 @@ mod tests {
         )
         .unwrap_or_else(|_| panic!());
 
-        let decrypted = key.decrypt(encrypted)
-            .unwrap_or_else(|_| panic!());
+        let decrypted = key.decrypt(encrypted).unwrap_or_else(|_| panic!());
 
         let mut buf = [0; 12];
         decrypted.copy_to(&mut buf);
