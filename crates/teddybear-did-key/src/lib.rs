@@ -140,7 +140,7 @@ impl DIDMethod for DidKey {
     fn generate(&self, source: &Source) -> Option<String> {
         let jwk = match source {
             Source::Key(jwk) => jwk,
-            Source::KeyAndPattern(jwk, pattern) if pattern.is_empty() => jwk,
+            Source::KeyAndPattern(jwk, "") => jwk,
             _ => return None,
         };
 
