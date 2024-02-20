@@ -26,7 +26,7 @@ jobs:
       - name: Upload documentation artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './result/share/doc'
+          path: ./result/share/doc
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
@@ -44,7 +44,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: latest
-          registry-url: https://npm.pkg.github.com
+          registry-url: https://registry.npmjs.org
       # FIXME: Cache Nix store
       - name: Build ${{ matrix.package }} package
         run: nix build .#${{ matrix.package }}
@@ -52,4 +52,4 @@ jobs:
         run: npm publish
         working-directory: ./result
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}

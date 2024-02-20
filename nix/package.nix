@@ -3,14 +3,9 @@
   commonArgs,
   craneLib,
   lib,
-  writeText,
   # FIXME: Unify two separate packages into one.
   buildForNode ? false,
 }: let
-  npmrc = writeText "gh-registry" ''
-    @vaultie:registry=https://npm.pkg.github.com
-  '';
-
   target =
     if buildForNode
     then "nodejs"
@@ -45,6 +40,5 @@ in
 
       installPhaseCommand = ''
         mv crates/teddybear-js/build $out
-        cp ${npmrc} $out/.npmrc
       '';
     })
