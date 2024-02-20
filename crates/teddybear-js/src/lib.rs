@@ -79,6 +79,46 @@
 //! // Decrypt using any suitable recipient private key.
 //! console.log(firstKey.decrypt(jwe));
 //! ```
+//!
+//! ## Revocation/status list
+//!
+//! Teddybear also implements bitstring-encoded [W3C status lists](https://www.w3.org/TR/vc-bitstring-status-list/).
+//!
+//! Status lists can be used to track revoked credentials in a privacy-preserving manner, without disclosing any
+//! details about the credential itself.
+//!
+//! To start, create a new status list (all bits set to 0) and [publish it as a verifiable credential](https://www.w3.org/TR/vc-bitstring-status-list/#example-example-bitstringstatuslistcredential):
+//!
+//! ```ignore
+//! import { StatusListCredential } from "@vaultie/teddybear";
+//!
+//! const statusList = new StatusListCredential();
+//! const partialCredentialSubject = statusList.toJSON();
+//!
+//! // ...
+//! ```
+//!
+//! During credential issuance generate a random index number between 0 and 131072, unique to this new credential:
+//!
+//! ```ignore
+//! const idx = /* credential index */;
+//! ```
+//!
+//! Set this index as a [statusListIndex value](https://www.w3.org/TR/vc-bitstring-status-list/#example-example-statuslistcredential).
+//!
+//! If a situation occurs where you have to revoke a previously issued verifiable credential, set the bit corresponding
+//! to the credential index to 1 (thus revoking the corresponding verifiable credential) and re-publish the updated status list verifiable credential:
+//!
+//! ```ignore
+//! statusList.revoke(idx);
+//! const updatedPartialCredentialSubject = statusList.toJSON();
+//! ```
+//!
+//! Status lists can be queried for the index revocation status:
+//!
+//! ```ignore
+//! console.log(statusList.isRevoked(idx)); // true
+//! ```
 
 extern crate alloc;
 
@@ -358,6 +398,7 @@ impl StatusListCredential {
     }
 
     /// Check if a given index is revoked (bit set to 1).
+    #[wasm_bindgen(js_name = "isRevoked")]
     pub fn is_revoked(&self, idx: usize) -> bool {
         self.0.is_set(idx)
     }
