@@ -10,7 +10,9 @@ jobs:
     name: Generate and publish documentation
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       pages: write
+      packages: write
       id-token: write
     environment:
       name: github-pages
