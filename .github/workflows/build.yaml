@@ -3,7 +3,31 @@ on:
   push:
     tags:
       - "*"
+  workflow_dispatch:
+
 jobs:
+  generate-documentation:
+    name: Generate and publish documentation
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+      - name: Build documentation
+        run: nix build .#docs
+      - name: Upload documentation artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './result/share/doc'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
   build-and-publish:
     name: Build and publish ${{ matrix.package }}
     runs-on: ubuntu-latest

@@ -127,6 +127,15 @@
 
         packages = {
           inherit cargoArtifacts cjs esm;
+
+          docs = craneLib.cargoDoc (commonArgs // {
+            inherit cargoArtifacts;
+
+            # Fix incorrect doc directory location due to CARGO_BUILD_TARGET.
+            preInstall = ''
+              mv "target/''${CARGO_BUILD_TARGET}/doc" target/doc
+            '';
+          });
         };
 
         checks = {
