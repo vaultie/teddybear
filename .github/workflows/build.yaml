@@ -49,7 +49,7 @@ jobs:
       - name: Build ${{ matrix.package }} package
         run: nix build .#${{ matrix.package }}
       - name: Publish ${{ matrix.package }} package
-        run: npm publish
+        run: npm publish --access public
         working-directory: ./result
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
