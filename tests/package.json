@@ -1,0 +1,20 @@
+{
+  "name": "teddybear-tests",
+  "license": "MIT OR Apache-2.0",
+  "scripts": {
+    "pretty": "ts-standard --fix \"src/**/*.test.ts\"",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "ts-standard": "^12.0.2",
+    "typescript": "^5.3.3",
+    "vitest": "^1.3.1"
+  },
+  "dependencies": {
+    "@digitalbazaar/ed25519-verification-key-2020": "^4.1.0",
+    "@digitalbazaar/minimal-cipher": "^5.1.1",
+    "@digitalbazaar/x25519-key-agreement-key-2020": "^3.0.1",
+    "@vaultie/teddybear-node": "^0.8.5",
+    "jose": "^5.2.2"
+  }
+}

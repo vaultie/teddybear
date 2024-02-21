@@ -2,5 +2,8 @@
 /.direnv
 /result
 
+# TS/JS
+node_modules
+
 # Rust
 /target
