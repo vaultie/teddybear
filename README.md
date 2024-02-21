@@ -1,5 +1,9 @@
 # Teddybear
 
+![GHA Status](https://img.shields.io/github/actions/workflow/status/vaultie/teddybear/build.yaml)
+[![NPM Version](https://img.shields.io/npm/v/%40vaultie%2Fteddybear)](https://www.npmjs.com/package/@vaultie/teddybear)
+[![Documentation](https://img.shields.io/badge/documentation-blue)](https://vaultie.github.io/teddybear/teddybear_js/index.html)
+
 Verifiable credentials toolkit for JS-based platforms and Rust.
 
 ## Features
