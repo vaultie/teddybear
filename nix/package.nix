@@ -26,10 +26,7 @@ in
           --release
       '';
 
-      checkPhaseCargoCommand = ''
-        wasm-pack test --node \
-          crates/teddybear-js
-      '';
+      doCheck = false;
 
       doInstallCargoArtifacts = false;
 

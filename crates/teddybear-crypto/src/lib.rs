@@ -147,6 +147,11 @@ impl Ed25519<Public> {
 
 impl<T> Ed25519<T> {
     #[inline]
+    pub fn document(&self) -> &Document {
+        &self.document
+    }
+
+    #[inline]
     pub fn document_did(&self) -> &str {
         &self.document.id
     }

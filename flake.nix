@@ -96,9 +96,6 @@
             pkgs.wasm-bindgen-cli
             pkgs.binaryen
             pkgs.llvmPackages.lld
-
-            # Testing
-            pkgs.nodejs-slim
           ];
         };
 
@@ -122,7 +119,8 @@
         };
       in {
         devShells.default = pkgs.mkShell {
-          buildInputs = [rustToolchain];
+          buildInputs = [rustToolchain pkgs.nodejs pkgs.yarn];
+          inputsFrom = [esm];
         };
 
         packages = {
@@ -141,6 +139,23 @@
 
         checks = {
           inherit cjs esm;
+
+          node = pkgs.callPackage ./nix/node-testing.nix {
+            inherit cjs;
+
+            src = nix-filter.lib.filter {
+              root = ./tests;
+
+              include = [
+                "src"
+                "package.json"
+                "tsconfig.json"
+                "yarn.lock"
+              ];
+            };
+
+            yarnLockHash = "sha256-kZgDBjCQIkW4ylsJwMeUrEMVznU9rnrAW0Gs60U6nRE=";
+          };
 
           my-crate-clippy = craneLib.cargoClippy (commonArgs
             // {

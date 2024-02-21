@@ -9,7 +9,7 @@ use askar_crypto::{
     encrypt::{KeyAeadInPlace, KeyAeadMeta},
     jwk::{FromJwk, ToJwk},
     kdf::{ecdh_es::EcdhEs, FromKeyDerivation},
-    repr::{KeyGen, KeyPublicBytes, KeySecretBytes, ToPublicBytes, ToSecretBytes},
+    repr::{KeyGen, KeySecretBytes, ToPublicBytes, ToSecretBytes},
     Error, ErrorKind,
 };
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
@@ -55,17 +55,29 @@ pub fn encrypt(payload: &[u8], recipients: &[&JWK]) -> Result<GeneralJWE<'static
     let cek = AesKey::<A256Gcm>::random()?;
 
     let ephemeral_key_pair = X25519KeyPair::random()?;
+    let producer_info = ephemeral_key_pair.to_public_bytes()?;
 
     let recipients = recipients
         .iter()
         .map(|recipient| {
+            let consumer_info =
+                recipient
+                    .key_id
+                    .as_deref()
+                    .map(str::as_bytes)
+                    .ok_or_else(|| {
+                        Error::from_msg(
+                            ErrorKind::InvalidKeyData,
+                            "Key identifier (consumer info) is not present.",
+                        )
+                    })?;
+
             // FIXME: Remove unnecessary JWK conversion.
             let static_peer = X25519KeyPair::from_jwk(
                 &serde_json::to_string(recipient).expect("JWK serialization should always succeed"),
             )?;
 
-            let (kek, producer_info, consumer_info) =
-                create_kek(&ephemeral_key_pair, &static_peer, false)?;
+            let kek = create_kek(&ephemeral_key_pair, &static_peer, consumer_info, false)?;
 
             let mut cek_buffer = cek.to_secret_bytes()?;
 
@@ -82,8 +94,8 @@ pub fn encrypt(payload: &[u8], recipients: &[&JWK]) -> Result<GeneralJWE<'static
                         &ephemeral_key_pair.to_jwk_public(Some(KeyAlg::X25519))?,
                     )
                     .expect("JWK serialization should always succeed"),
-                    producer_info: Base64urlUInt(producer_info),
-                    consumer_info: Base64urlUInt(consumer_info),
+                    producer_info: Base64urlUInt(producer_info.to_vec()),
+                    consumer_info: Base64urlUInt(consumer_info.to_vec()),
                 },
                 encrypted_key: Base64urlUInt(cek_buffer.to_vec()),
             })
@@ -115,8 +127,19 @@ pub fn decrypt(jwe: &GeneralJWE<'_>, recipient: &JWK) -> Result<Vec<u8>, Error> 
         ));
     }
 
+    let consumer_info = recipient
+        .key_id
+        .as_deref()
+        .map(str::as_bytes)
+        .ok_or_else(|| {
+            Error::from_msg(
+                ErrorKind::InvalidKeyData,
+                "Key identifier (consumer info) is not present.",
+            )
+        })?;
+
     // FIXME: Remove unnecessary JWK conversion.
-    let recipient = X25519KeyPair::from_jwk(
+    let askar_recipient = X25519KeyPair::from_jwk(
         &serde_json::to_string(recipient).expect("JWK serialization should always succeed"),
     )?;
 
@@ -124,8 +147,7 @@ pub fn decrypt(jwe: &GeneralJWE<'_>, recipient: &JWK) -> Result<Vec<u8>, Error> 
         .recipients
         .iter()
         .find(|key| {
-            key.header.algorithm == "ECDH-ES+A256KW"
-                && recipient.with_public_bytes(|val| val == key.header.consumer_info.0)
+            key.header.algorithm == "ECDH-ES+A256KW" && consumer_info == key.header.consumer_info.0
         })
         .ok_or_else(|| Error::from_msg(ErrorKind::Encryption, "Recipient not found."))?;
 
@@ -134,7 +156,7 @@ pub fn decrypt(jwe: &GeneralJWE<'_>, recipient: &JWK) -> Result<Vec<u8>, Error> 
             .expect("JWK serialization should always succeed"),
     )?;
 
-    let (kek, _, _) = create_kek(&ephemeral_key_pair, &recipient, true)?;
+    let kek = create_kek(&ephemeral_key_pair, &askar_recipient, consumer_info, true)?;
 
     let mut cek_buffer = matching_recipient.encrypted_key.0.clone();
     kek.decrypt_in_place(&mut cek_buffer, &[], &[])?;
@@ -186,27 +208,26 @@ fn decrypt_with_cek(
     Ok(())
 }
 
-#[allow(clippy::type_complexity)]
 fn create_kek(
     ephemeral_key_pair: &X25519KeyPair,
     recipient: &X25519KeyPair,
+    consumer_info: &[u8],
     receive: bool,
-) -> Result<(AesKey<A256Kw>, Vec<u8>, Vec<u8>), Error> {
+) -> Result<AesKey<A256Kw>, Error> {
     let producer_info = ephemeral_key_pair.to_public_bytes()?;
-    let consumer_info = recipient.to_public_bytes()?;
 
     let key_info = EcdhEs::new(
         ephemeral_key_pair,
         recipient,
         b"ECDH-ES+A256KW",
         &producer_info,
-        &consumer_info,
+        consumer_info,
         receive,
     );
 
     let kek = AesKey::<A256Kw>::from_key_derivation(key_info)?;
 
-    Ok((kek, producer_info.to_vec(), consumer_info.to_vec()))
+    Ok(kek)
 }
 
 #[cfg(test)]
