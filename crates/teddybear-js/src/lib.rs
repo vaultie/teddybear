@@ -12,7 +12,6 @@ use teddybear_status_list::{
 };
 use uuid::Uuid;
 use wasm_bindgen::prelude::*;
-use wee_alloc::WeeAlloc;
 
 use teddybear_vc::{
     issue_vc, issue_vp,
@@ -21,9 +20,6 @@ use teddybear_vc::{
     },
     verify_credential, verify_presentation,
 };
-
-#[global_allocator]
-static ALLOC: WeeAlloc = WeeAlloc::INIT;
 
 const OBJECT_SERIALIZER: Serializer = Serializer::new().serialize_maps_as_objects(true);
 
