@@ -58,9 +58,9 @@ pub async fn issue_vc(
 #[inline]
 pub async fn issue_vp(
     key: &Ed25519<Private>,
-    folio_id: &str,
-    challenge: Option<String>,
     presentation: &mut Presentation,
+    domain: Option<String>,
+    challenge: Option<String>,
 ) -> Result<(), ssi_vc::Error> {
     presentation.holder = Some(URI::String(key.document_did().to_string()));
 
@@ -70,7 +70,7 @@ pub async fn issue_vp(
         type_: Some(ProofSuiteType::Ed25519Signature2020),
         verification_method: Some(URI::String(key.ed25519_did().to_string())),
         proof_purpose: Some(ProofPurpose::Authentication),
-        domain: Some(format!("https://vaultie.io/folio/{folio_id}")),
+        domain,
         challenge,
         ..Default::default()
     };

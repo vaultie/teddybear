@@ -132,7 +132,6 @@ use teddybear_status_list::{
     credential::{BitstringStatusListCredentialSubject, StatusPurpose},
     StatusList,
 };
-use uuid::Uuid;
 use wasm_bindgen::prelude::*;
 
 use teddybear_vc::{
@@ -252,15 +251,14 @@ impl PrivateEd25519 {
     /// The `vp` object should contain all the necessary information except
     /// for the holder and proof values, which will be filled automatically.
     #[wasm_bindgen(js_name = "issueVP")]
-    pub async fn issue_vp(&self, folio_id: &str, vp: Object) -> Result<Object, JsError> {
+    pub async fn issue_vp(
+        &self,
+        vp: Object,
+        domain: Option<String>,
+        challenge: Option<String>,
+    ) -> Result<Object, JsError> {
         let mut presentation = serde_wasm_bindgen::from_value(vp.into())?;
-        issue_vp(
-            &self.0,
-            folio_id,
-            Some(Uuid::new_v4().to_string()),
-            &mut presentation,
-        )
-        .await?;
+        issue_vp(&self.0, &mut presentation, domain, challenge).await?;
         Ok(presentation.serialize(&OBJECT_SERIALIZER)?.into())
     }
 }
