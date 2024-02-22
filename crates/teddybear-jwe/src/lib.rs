@@ -2,11 +2,13 @@ use std::borrow::Cow;
 
 use askar_crypto::{
     alg::{
-        aes::{A256Gcm, A256Kw, AesKey},
+        aes::{A256Kw, AesKey},
+        chacha20::Chacha20Key,
         x25519::X25519KeyPair,
         KeyAlg,
     },
     encrypt::{KeyAeadInPlace, KeyAeadMeta},
+    generic_array::GenericArray,
     jwk::{FromJwk, ToJwk},
     kdf::{ecdh_es::EcdhEs, FromKeyDerivation},
     repr::{KeyGen, KeySecretBytes, ToPublicBytes, ToSecretBytes},
@@ -16,7 +18,7 @@ use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use serde::{Deserialize, Serialize};
 use ssi_jwk::{Base64urlUInt, JWK};
 
-const A256GCM_SHARED_PROTECTED_HEADER_BASE64: &str = "eyJlbmMiOiJBMjU2R0NNIn0";
+pub use askar_crypto::alg::{aes::A256Gcm, chacha20::XC20P};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Recipient {
@@ -51,8 +53,29 @@ pub struct GeneralJWE<'a> {
     tag: String,
 }
 
-pub fn encrypt(payload: &[u8], recipients: &[&JWK]) -> Result<GeneralJWE<'static>, Error> {
-    let cek = AesKey::<A256Gcm>::random()?;
+pub trait SymmetricEncryptionAlgorithm {
+    const SHARED_PROTECTED_HEADER_BASE64: &'static str;
+
+    type ContentEncryptionKey: KeyAeadInPlace + KeyAeadMeta + KeySecretBytes + KeyGen;
+}
+
+impl SymmetricEncryptionAlgorithm for A256Gcm {
+    const SHARED_PROTECTED_HEADER_BASE64: &'static str = "eyJlbmMiOiJBMjU2R0NNIn0";
+
+    type ContentEncryptionKey = AesKey<A256Gcm>;
+}
+
+impl SymmetricEncryptionAlgorithm for XC20P {
+    const SHARED_PROTECTED_HEADER_BASE64: &'static str = "eyJlbmMiOiJYQzIwUCJ9";
+
+    type ContentEncryptionKey = Chacha20Key<XC20P>;
+}
+
+pub fn encrypt<T: SymmetricEncryptionAlgorithm>(
+    payload: &[u8],
+    recipients: &[&JWK],
+) -> Result<GeneralJWE<'static>, Error> {
+    let cek = <T::ContentEncryptionKey>::random()?;
 
     let ephemeral_key_pair = X25519KeyPair::random()?;
     let producer_info = ephemeral_key_pair.to_public_bytes()?;
@@ -104,14 +127,10 @@ pub fn encrypt(payload: &[u8], recipients: &[&JWK]) -> Result<GeneralJWE<'static
 
     let mut payload_buf = payload.to_vec();
 
-    let (iv, ciphertext, tag) = encrypt_with_cek(
-        &cek,
-        &mut payload_buf,
-        A256GCM_SHARED_PROTECTED_HEADER_BASE64.as_bytes(),
-    )?;
+    let (iv, ciphertext, tag) = encrypt_with_cek::<T>(&cek, &mut payload_buf)?;
 
     Ok(GeneralJWE {
-        protected: Cow::Borrowed(A256GCM_SHARED_PROTECTED_HEADER_BASE64),
+        protected: Cow::Borrowed(T::SHARED_PROTECTED_HEADER_BASE64),
         recipients,
         iv: URL_SAFE_NO_PAD.encode(iv),
         ciphertext: URL_SAFE_NO_PAD.encode(ciphertext),
@@ -119,8 +138,11 @@ pub fn encrypt(payload: &[u8], recipients: &[&JWK]) -> Result<GeneralJWE<'static
     })
 }
 
-pub fn decrypt(jwe: &GeneralJWE<'_>, recipient: &JWK) -> Result<Vec<u8>, Error> {
-    if jwe.protected != A256GCM_SHARED_PROTECTED_HEADER_BASE64 {
+pub fn decrypt<T: SymmetricEncryptionAlgorithm>(
+    jwe: &GeneralJWE<'_>,
+    recipient: &JWK,
+) -> Result<Vec<u8>, Error> {
+    if jwe.protected != T::SHARED_PROTECTED_HEADER_BASE64 {
         return Err(Error::from_msg(
             ErrorKind::Encryption,
             "Invalid shared protected header value.",
@@ -161,13 +183,13 @@ pub fn decrypt(jwe: &GeneralJWE<'_>, recipient: &JWK) -> Result<Vec<u8>, Error> 
     let mut cek_buffer = matching_recipient.encrypted_key.0.clone();
     kek.decrypt_in_place(&mut cek_buffer, &[], &[])?;
 
-    let cek = AesKey::<A256Gcm>::from_secret_bytes(&cek_buffer)?;
+    let cek = T::ContentEncryptionKey::from_secret_bytes(&cek_buffer)?;
 
     let mut ciphertext_buf = URL_SAFE_NO_PAD
         .decode(&jwe.ciphertext)
         .map_err(|_| Error::from_msg(ErrorKind::Invalid, "Unable to deserialize ciphertext."))?;
 
-    decrypt_with_cek(
+    decrypt_with_cek::<T>(
         &cek,
         &mut ciphertext_buf,
         &URL_SAFE_NO_PAD
@@ -176,34 +198,39 @@ pub fn decrypt(jwe: &GeneralJWE<'_>, recipient: &JWK) -> Result<Vec<u8>, Error> 
         &URL_SAFE_NO_PAD
             .decode(&jwe.tag)
             .map_err(|_| Error::from_msg(ErrorKind::Invalid, "Unable to deserialize tag."))?,
-        A256GCM_SHARED_PROTECTED_HEADER_BASE64.as_bytes(),
     )?;
 
     Ok(ciphertext_buf)
 }
 
 #[allow(clippy::type_complexity)]
-fn encrypt_with_cek<'a>(
-    cek: &AesKey<A256Gcm>,
+fn encrypt_with_cek<'a, T: SymmetricEncryptionAlgorithm>(
+    cek: &T::ContentEncryptionKey,
     payload: &'a mut Vec<u8>,
-    aad: &[u8],
-) -> Result<([u8; 12], &'a [u8], &'a [u8]), Error> {
-    let iv = AesKey::<A256Gcm>::random_nonce();
-    let ciphertext_len = cek.encrypt_in_place(payload, &iv, aad)?;
+) -> Result<
+    (
+        GenericArray<u8, <T::ContentEncryptionKey as KeyAeadMeta>::NonceSize>,
+        &'a [u8],
+        &'a [u8],
+    ),
+    Error,
+> {
+    let iv = T::ContentEncryptionKey::random_nonce();
+    let ciphertext_len =
+        cek.encrypt_in_place(payload, &iv, T::SHARED_PROTECTED_HEADER_BASE64.as_bytes())?;
     let (ciphertext, tag) = payload.split_at(ciphertext_len);
 
-    Ok((iv.into(), ciphertext, tag))
+    Ok((iv, ciphertext, tag))
 }
 
-fn decrypt_with_cek(
-    cek: &AesKey<A256Gcm>,
+fn decrypt_with_cek<T: SymmetricEncryptionAlgorithm>(
+    cek: &T::ContentEncryptionKey,
     ciphertext: &mut Vec<u8>,
     iv: &[u8],
     tag: &[u8],
-    aad: &[u8],
 ) -> Result<(), Error> {
     ciphertext.extend_from_slice(tag);
-    cek.decrypt_in_place(ciphertext, iv, aad)?;
+    cek.decrypt_in_place(ciphertext, iv, T::SHARED_PROTECTED_HEADER_BASE64.as_bytes())?;
 
     Ok(())
 }
@@ -232,60 +259,70 @@ fn create_kek(
 
 #[cfg(test)]
 mod tests {
+    use askar_crypto::alg::{aes::A256Gcm, chacha20::XC20P};
     use teddybear_crypto::Ed25519;
 
     use crate::{decrypt, encrypt};
 
-    #[tokio::test]
-    async fn single_recipient() {
-        let value = b"Hello, world";
-        let key = Ed25519::generate().await.unwrap();
-        let jwe = encrypt(value, &[&key.to_x25519_public_jwk()]).unwrap();
-        let decrypted = decrypt(&jwe, key.as_x25519_private_jwk()).unwrap();
-        assert_eq!(decrypted, value);
+    macro_rules! generate_tests {
+        ($name:ident, $symmetric_algorithm:ty) => {
+            ::paste::paste! {
+                #[tokio::test]
+                async fn [<single_recipient_ $name>]() {
+                    let value = b"Hello, world";
+                    let key = Ed25519::generate().await.unwrap();
+                    let jwe = encrypt::<$symmetric_algorithm>(value, &[&key.to_x25519_public_jwk()]).unwrap();
+                    let decrypted = decrypt::<$symmetric_algorithm>(&jwe, key.as_x25519_private_jwk()).unwrap();
+                    assert_eq!(decrypted, value);
+                }
+
+                #[tokio::test]
+                async fn [<multiple_recipients_ $name>]() {
+                    let value = b"Hello, world";
+
+                    let key = Ed25519::generate().await.unwrap();
+                    let key2 = Ed25519::generate().await.unwrap();
+                    let key3 = Ed25519::generate().await.unwrap();
+
+                    let jwe = encrypt::<$symmetric_algorithm>(
+                        value,
+                        &[
+                            &key.to_x25519_public_jwk(),
+                            &key2.to_x25519_public_jwk(),
+                            &key3.to_x25519_public_jwk(),
+                        ],
+                    )
+                    .unwrap();
+
+                    let decrypted = decrypt::<$symmetric_algorithm>(&jwe, key2.as_x25519_private_jwk()).unwrap();
+
+                    assert_eq!(decrypted, value);
+                }
+
+                #[tokio::test]
+                async fn [<unknown_key_ $name>]() {
+                    let value = b"Hello, world";
+                    let key = Ed25519::generate().await.unwrap();
+                    let jwe = encrypt::<$symmetric_algorithm>(value, &[&key.to_x25519_public_jwk()]).unwrap();
+                    assert!(decrypt::<$symmetric_algorithm>(
+                        &jwe,
+                        Ed25519::generate().await.unwrap().as_x25519_private_jwk()
+                    )
+                    .is_err());
+                }
+
+                #[tokio::test]
+                async fn [<large_payload_ $name>]() {
+                    let value = vec![0; 4096];
+                    let key = Ed25519::generate().await.unwrap();
+                    let jwe = encrypt::<$symmetric_algorithm>(&value, &[&key.to_x25519_public_jwk()]).unwrap();
+                    let decrypted = decrypt::<$symmetric_algorithm>(&jwe, key.as_x25519_private_jwk()).unwrap();
+                    assert_eq!(decrypted, value);
+                }
+            }
+        };
     }
 
-    #[tokio::test]
-    async fn multiple_recipients() {
-        let value = b"Hello, world";
-
-        let key = Ed25519::generate().await.unwrap();
-        let key2 = Ed25519::generate().await.unwrap();
-        let key3 = Ed25519::generate().await.unwrap();
-
-        let jwe = encrypt(
-            value,
-            &[
-                &key.to_x25519_public_jwk(),
-                &key2.to_x25519_public_jwk(),
-                &key3.to_x25519_public_jwk(),
-            ],
-        )
-        .unwrap();
-
-        let decrypted = decrypt(&jwe, key2.as_x25519_private_jwk()).unwrap();
-
-        assert_eq!(decrypted, value);
-    }
-
-    #[tokio::test]
-    async fn unknown_key() {
-        let value = b"Hello, world";
-        let key = Ed25519::generate().await.unwrap();
-        let jwe = encrypt(value, &[&key.to_x25519_public_jwk()]).unwrap();
-        assert!(decrypt(
-            &jwe,
-            Ed25519::generate().await.unwrap().as_x25519_private_jwk()
-        )
-        .is_err());
-    }
-
-    #[tokio::test]
-    async fn large_payload() {
-        let value = vec![0; 4096];
-        let key = Ed25519::generate().await.unwrap();
-        let jwe = encrypt(&value, &[&key.to_x25519_public_jwk()]).unwrap();
-        let decrypted = decrypt(&jwe, key.as_x25519_private_jwk()).unwrap();
-        assert_eq!(decrypted, value);
-    }
+    generate_tests!(aes, A256Gcm);
+    generate_tests!(chacha, XC20P);
 }

@@ -1,4 +1,4 @@
-import { PrivateEd25519, PublicEd25519, encrypt } from '@vaultie/teddybear-node'
+import { PrivateEd25519, PublicEd25519, encryptAES, encryptChaCha20 } from '@vaultie/teddybear-node'
 import { describe, it, expect } from 'vitest'
 
 // @ts-expect-error Library without TS definitions
@@ -15,8 +15,8 @@ describe('can execute JWE operations', () => {
     const key = await PrivateEd25519.generate()
 
     const value = new TextEncoder().encode('Hello, world')
-    const encrypted = encrypt(value, [key.toX25519PublicJWK()])
-    expect(key.decrypt(encrypted)).toStrictEqual(value)
+    const encrypted = encryptAES(value, [key.toX25519PublicJWK()])
+    expect(key.decryptAES(encrypted)).toStrictEqual(value)
   })
 
   it('can encrypt and decrypt for multiple keys', async () => {
@@ -25,13 +25,13 @@ describe('can execute JWE operations', () => {
     const thirdKey = await PrivateEd25519.generate()
 
     const value = new TextEncoder().encode('Hello, world')
-    const encrypted = encrypt(value, [
+    const encrypted = encryptAES(value, [
       firstKey.toX25519PublicJWK(),
       secondKey.toX25519PublicJWK(),
       thirdKey.toX25519PublicJWK()
     ])
 
-    expect(thirdKey.decrypt(encrypted)).toStrictEqual(value)
+    expect(thirdKey.decryptAES(encrypted)).toStrictEqual(value)
   })
 
   it('other libraries can decrypt JWEs', async () => {
@@ -47,16 +47,16 @@ describe('can execute JWE operations', () => {
     const firstKey = await PublicEd25519.fromDID(did)
     const secondKey = await PrivateEd25519.generate()
 
-    const jwe = encrypt(data, [
+    const jwe = encryptChaCha20(data, [
       firstKey.toX25519PublicJWK(),
       secondKey.toX25519PublicJWK()
     ])
 
-    const cipher = new Cipher({
-      version: 'fips'
-    })
+    const cipher = new Cipher()
 
-    expect(await cipher.decrypt({ jwe, keyAgreementKey })).toStrictEqual(data)
+    const decrypted = new Uint8Array(await cipher.decrypt({ jwe, keyAgreementKey }))
+
+    expect(decrypted).toStrictEqual(data)
   })
 
   it('can decrypt JWEs from other libraries', async () => {
@@ -77,12 +77,10 @@ describe('can execute JWE operations', () => {
 
     const keyResolver = async ({ id }: { id: string }) => documents[id]
 
-    const cipher = new Cipher({
-      version: 'fips'
-    })
+    const cipher = new Cipher()
 
     const jwe = await cipher.encrypt({ data, recipients, keyResolver })
 
-    expect(secondKey.decrypt(jwe)).toStrictEqual(data)
+    expect(secondKey.decryptChaCha20(jwe)).toStrictEqual(data)
   })
 })

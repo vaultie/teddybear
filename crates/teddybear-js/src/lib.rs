@@ -61,7 +61,7 @@
 //! Additionally, you can convert Ed25519 keys to X25519 keys, allowing you to publish just a single DID value for both signing and encryption purposes.
 //!
 //! ```ignore
-//! import { PrivateEd25519, PublicEd25519, encrypt } from "@vaultie/teddybear";
+//! import { PrivateEd25519, PublicEd25519, encryptAES } from "@vaultie/teddybear";
 //!
 //! const firstKey = await PrivateEd25519.generate();
 //! const secondKey = await PublicEd25519.fromDID(
@@ -69,7 +69,7 @@
 //! );
 //!
 //! // Encrypt using recipient public keys.
-//! const jwe = encrypt(new Uint8Array([0, 1, 2, 3], [
+//! const jwe = encryptAES(new Uint8Array([0, 1, 2, 3], [
 //!     firstKey.toX25519PublicJWK(),
 //!     secondKey.toX25519PublicJWK(),
 //! ]));
@@ -77,7 +77,7 @@
 //! console.log(jwe);
 //!
 //! // Decrypt using any suitable recipient private key.
-//! console.log(firstKey.decrypt(jwe));
+//! console.log(firstKey.decryptAES(jwe));
 //! ```
 //!
 //! ## Revocation/status list
@@ -127,7 +127,7 @@ use serde::Serialize;
 use serde_json::json;
 use serde_wasm_bindgen::Serializer;
 use teddybear_crypto::{Ed25519, Private, Public, JWK as InnerJWK};
-use teddybear_jwe::decrypt;
+use teddybear_jwe::{decrypt, A256Gcm, XC20P};
 use teddybear_status_list::{
     credential::{BitstringStatusListCredentialSubject, StatusPurpose},
     StatusList,
@@ -214,10 +214,19 @@ impl PrivateEd25519 {
         self.0.x25519_did().to_string()
     }
 
-    /// Decrypt the provided JWE object using the X25519 key.
-    pub fn decrypt(&self, jwe: Object) -> Result<Uint8Array, JsError> {
+    /// Decrypt the provided JWE object using the X25519 key and the A256GCM algorithm.
+    #[wasm_bindgen(js_name = "decryptAES")]
+    pub fn decrypt_aes(&self, jwe: Object) -> Result<Uint8Array, JsError> {
         let jwe = serde_wasm_bindgen::from_value(jwe.into())?;
-        let payload = &*decrypt(&jwe, self.0.as_x25519_private_jwk())?;
+        let payload = &*decrypt::<A256Gcm>(&jwe, self.0.as_x25519_private_jwk())?;
+        Ok(payload.into())
+    }
+
+    /// Decrypt the provided JWE object using the X25519 key and the XC20P algorithm.
+    #[wasm_bindgen(js_name = "decryptChaCha20")]
+    pub fn decrypt_chacha20(&self, jwe: Object) -> Result<Uint8Array, JsError> {
+        let jwe = serde_wasm_bindgen::from_value(jwe.into())?;
+        let payload = &*decrypt::<XC20P>(&jwe, self.0.as_x25519_private_jwk())?;
         Ok(payload.into())
     }
 
@@ -468,14 +477,29 @@ impl Constraint {
     }
 }
 
-/// Encrypt the provided payload for the provided recipient array.
+/// Encrypt the provided payload for the provided recipient array using A256GCM algorithm.
 ///
 /// The provided recipients array must contain only wrapped X25519 JWK values.
 ///
 /// You may acquire X25519 JWK values using the `toX25519PublicJWK` method on the keypair structs.
-#[wasm_bindgen]
-pub fn encrypt(payload: Uint8Array, recipients: Vec<JWK>) -> Result<Object, JsError> {
-    let jwe = teddybear_jwe::encrypt(
+#[wasm_bindgen(js_name = "encryptAES")]
+pub fn encrypt_aes(payload: Uint8Array, recipients: Vec<JWK>) -> Result<Object, JsError> {
+    let jwe = teddybear_jwe::encrypt::<A256Gcm>(
+        &payload.to_vec(),
+        &recipients.iter().map(|val| &val.0).collect::<Vec<_>>(),
+    )?;
+
+    Ok(jwe.serialize(&OBJECT_SERIALIZER)?.into())
+}
+
+/// Encrypt the provided payload for the provided recipient array using XC20P algorithm.
+///
+/// The provided recipients array must contain only wrapped X25519 JWK values.
+///
+/// You may acquire X25519 JWK values using the `toX25519PublicJWK` method on the keypair structs.
+#[wasm_bindgen(js_name = "encryptChaCha20")]
+pub fn encrypt_chacha20(payload: Uint8Array, recipients: Vec<JWK>) -> Result<Object, JsError> {
+    let jwe = teddybear_jwe::encrypt::<XC20P>(
         &payload.to_vec(),
         &recipients.iter().map(|val| &val.0).collect::<Vec<_>>(),
     )?;
