@@ -83,27 +83,11 @@ pub fn encrypt<T: SymmetricEncryptionAlgorithm>(
     let recipients = recipients
         .iter()
         .map(|recipient| {
-            let consumer_info =
-                recipient
-                    .key_id
-                    .as_deref()
-                    .map(str::as_bytes)
-                    .ok_or_else(|| {
-                        Error::from_msg(
-                            ErrorKind::InvalidKeyData,
-                            "Key identifier (consumer info) is not present.",
-                        )
-                    })?;
+            let (consumer_info, askar_recipient) = extract_jwk_data(recipient)?;
 
-            // FIXME: Remove unnecessary JWK conversion.
-            let static_peer = X25519KeyPair::from_jwk(
-                &serde_json::to_string(recipient).expect("JWK serialization should always succeed"),
-            )?;
-
-            let kek = create_kek(&ephemeral_key_pair, &static_peer, consumer_info, false)?;
+            let kek = create_kek(&ephemeral_key_pair, &askar_recipient, consumer_info, false)?;
 
             let mut cek_buffer = cek.to_secret_bytes()?;
-
             kek.encrypt_in_place(&mut cek_buffer, &[], &[])?;
 
             Ok(Recipient {
@@ -149,21 +133,7 @@ pub fn decrypt<T: SymmetricEncryptionAlgorithm>(
         ));
     }
 
-    let consumer_info = recipient
-        .key_id
-        .as_deref()
-        .map(str::as_bytes)
-        .ok_or_else(|| {
-            Error::from_msg(
-                ErrorKind::InvalidKeyData,
-                "Key identifier (consumer info) is not present.",
-            )
-        })?;
-
-    // FIXME: Remove unnecessary JWK conversion.
-    let askar_recipient = X25519KeyPair::from_jwk(
-        &serde_json::to_string(recipient).expect("JWK serialization should always succeed"),
-    )?;
+    let (consumer_info, askar_recipient) = extract_jwk_data(recipient)?;
 
     let matching_recipient = jwe
         .recipients
@@ -201,6 +171,74 @@ pub fn decrypt<T: SymmetricEncryptionAlgorithm>(
     )?;
 
     Ok(ciphertext_buf)
+}
+
+pub fn add_recipient<T: SymmetricEncryptionAlgorithm>(
+    jwe: &GeneralJWE<'_>,
+    existing_recipient: &JWK,
+    new_recipient: &JWK,
+) -> Result<Recipient, Error> {
+    if jwe.protected != T::SHARED_PROTECTED_HEADER_BASE64 {
+        return Err(Error::from_msg(
+            ErrorKind::Encryption,
+            "Invalid shared protected header value.",
+        ));
+    }
+
+    let (existing_consumer_info, existing_askar_recipient) = extract_jwk_data(existing_recipient)?;
+    let (new_consumer_info, new_askar_recipient) = extract_jwk_data(new_recipient)?;
+
+    let matching_recipient = jwe
+        .recipients
+        .iter()
+        .find(|key| {
+            key.header.algorithm == "ECDH-ES+A256KW"
+                && existing_consumer_info == key.header.consumer_info.0
+        })
+        .ok_or_else(|| Error::from_msg(ErrorKind::Encryption, "Recipient not found."))?;
+
+    let existing_ephemeral_key_pair = X25519KeyPair::from_jwk(
+        &serde_json::to_string(&matching_recipient.header.ephemeral_key_pair)
+            .expect("JWK serialization should always succeed"),
+    )?;
+
+    let existing_kek = create_kek(
+        &existing_ephemeral_key_pair,
+        &existing_askar_recipient,
+        existing_consumer_info,
+        true,
+    )?;
+
+    let mut cek_buffer = matching_recipient.encrypted_key.0.clone();
+    existing_kek.decrypt_in_place(&mut cek_buffer, &[], &[])?;
+
+    let new_ephemeral_key_pair = X25519KeyPair::random()?;
+    let new_producer_info = new_ephemeral_key_pair.to_public_bytes()?;
+
+    let kek = create_kek(
+        &new_ephemeral_key_pair,
+        &new_askar_recipient,
+        new_consumer_info,
+        false,
+    )?;
+    kek.encrypt_in_place(&mut cek_buffer, &[], &[])?;
+
+    Ok(Recipient {
+        header: Header {
+            key_id: new_recipient
+                .key_id
+                .clone()
+                .expect("recipient JWK values should always contain a key id"),
+            algorithm: "ECDH-ES+A256KW".to_string(),
+            ephemeral_key_pair: serde_json::from_str(
+                &new_ephemeral_key_pair.to_jwk_public(Some(KeyAlg::X25519))?,
+            )
+            .expect("JWK serialization should always succeed"),
+            producer_info: Base64urlUInt(new_producer_info.to_vec()),
+            consumer_info: Base64urlUInt(new_consumer_info.to_vec()),
+        },
+        encrypted_key: Base64urlUInt(cek_buffer.to_vec()),
+    })
 }
 
 #[allow(clippy::type_complexity)]
@@ -257,12 +295,28 @@ fn create_kek(
     Ok(kek)
 }
 
+fn extract_jwk_data(jwk: &JWK) -> Result<(&[u8], X25519KeyPair), Error> {
+    let consumer_info = jwk.key_id.as_deref().map(str::as_bytes).ok_or_else(|| {
+        Error::from_msg(
+            ErrorKind::InvalidKeyData,
+            "Key identifier (consumer info) is not present.",
+        )
+    })?;
+
+    // FIXME: Remove unnecessary JWK conversion.
+    let askar_recipient = X25519KeyPair::from_jwk(
+        &serde_json::to_string(jwk).expect("JWK serialization should always succeed"),
+    )?;
+
+    Ok((consumer_info, askar_recipient))
+}
+
 #[cfg(test)]
 mod tests {
     use askar_crypto::alg::{aes::A256Gcm, chacha20::XC20P};
     use teddybear_crypto::Ed25519;
 
-    use crate::{decrypt, encrypt};
+    use crate::{add_recipient, decrypt, encrypt};
 
     macro_rules! generate_tests {
         ($name:ident, $symmetric_algorithm:ty) => {
@@ -318,6 +372,35 @@ mod tests {
                     let jwe = encrypt::<$symmetric_algorithm>(&value, &[&key.to_x25519_public_jwk()]).unwrap();
                     let decrypted = decrypt::<$symmetric_algorithm>(&jwe, key.as_x25519_private_jwk()).unwrap();
                     assert_eq!(decrypted, value);
+                }
+
+                #[tokio::test]
+                async fn [<add_recipient_ $name>]() {
+                    let value = b"Hello, world";
+
+                    let key = Ed25519::generate().await.unwrap();
+                    let key2 = Ed25519::generate().await.unwrap();
+
+                    let mut jwe = encrypt::<$symmetric_algorithm>(
+                        value,
+                        &[
+                            &key.to_x25519_public_jwk(),
+                            &key2.to_x25519_public_jwk(),
+                        ],
+                    )
+                    .unwrap();
+
+                    let key3 = Ed25519::generate().await.unwrap();
+
+                    let recipient = add_recipient::<$symmetric_algorithm>(&mut jwe, key.as_x25519_private_jwk(), &key3.to_x25519_public_jwk())
+                        .unwrap();
+
+                    jwe.recipients.push(recipient);
+
+                    let decrypted_one = decrypt::<$symmetric_algorithm>(&jwe, key2.as_x25519_private_jwk()).unwrap();
+                    let decrypted_two = decrypt::<$symmetric_algorithm>(&jwe, key3.as_x25519_private_jwk()).unwrap();
+
+                    assert_eq!(decrypted_one, decrypted_two);
                 }
             }
         };

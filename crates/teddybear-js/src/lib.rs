@@ -127,7 +127,7 @@ use serde::Serialize;
 use serde_json::json;
 use serde_wasm_bindgen::Serializer;
 use teddybear_crypto::{Ed25519, Private, Public, JWK as InnerJWK};
-use teddybear_jwe::{decrypt, A256Gcm, XC20P};
+use teddybear_jwe::{add_recipient, decrypt, A256Gcm, XC20P};
 use teddybear_status_list::{
     credential::{BitstringStatusListCredentialSubject, StatusPurpose},
     StatusList,
@@ -227,6 +227,21 @@ impl PrivateEd25519 {
         let jwe = serde_wasm_bindgen::from_value(jwe.into())?;
         let payload = &*decrypt::<XC20P>(&jwe, self.0.as_x25519_private_jwk())?;
         Ok(payload.into())
+    }
+
+    #[wasm_bindgen(js_name = "addAESRecipient")]
+    pub fn add_aes_recipient(&self, jwe: Object, recipient: JWK) -> Result<Object, JsError> {
+        let jwe = serde_wasm_bindgen::from_value(jwe.into())?;
+        let recipient =
+            add_recipient::<A256Gcm>(&jwe, self.0.as_x25519_private_jwk(), &recipient.0)?;
+        Ok(recipient.serialize(&OBJECT_SERIALIZER)?.into())
+    }
+
+    #[wasm_bindgen(js_name = "addChaCha20Recipient")]
+    pub fn add_chacha20_recipient(&self, jwe: Object, recipient: JWK) -> Result<Object, JsError> {
+        let jwe = serde_wasm_bindgen::from_value(jwe.into())?;
+        let recipient = add_recipient::<XC20P>(&jwe, self.0.as_x25519_private_jwk(), &recipient.0)?;
+        Ok(recipient.serialize(&OBJECT_SERIALIZER)?.into())
     }
 
     /// Sign the provided payload using the Ed25519 key.
