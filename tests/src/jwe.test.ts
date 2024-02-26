@@ -92,14 +92,14 @@ describe('can execute JWE operations', () => {
 
     const encrypted = encryptAES(value, [
       firstKey.toX25519PublicJWK(),
-      secondKey.toX25519PublicJWK(),
+      secondKey.toX25519PublicJWK()
     ])
 
     const thirdKey = await PrivateEd25519.generate()
 
-    const recipient = firstKey.addAESRecipient(encrypted, thirdKey.toX25519PublicJWK());
+    const recipient = firstKey.addAESRecipient(encrypted, thirdKey.toX25519PublicJWK())
 
-    encrypted.recipients.push(recipient);
+    encrypted.recipients.push(recipient)
 
     expect(thirdKey.decryptAES(encrypted)).toStrictEqual(value)
   })

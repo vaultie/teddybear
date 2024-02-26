@@ -122,6 +122,8 @@
 
 extern crate alloc;
 
+use std::collections::HashMap;
+
 use js_sys::{Object, Uint8Array};
 use serde::Serialize;
 use serde_json::json;
@@ -139,7 +141,7 @@ use teddybear_vc::{
     validation::{
         Constraint as InnerConstraint, PresentationDefinition as InnerPresentationDefinition,
     },
-    verify_credential, verify_presentation,
+    verify_credential, verify_presentation, ContextLoader as InnerContextLoader,
 };
 
 const OBJECT_SERIALIZER: Serializer = Serializer::new().serialize_maps_as_objects(true);
@@ -255,9 +257,13 @@ impl PrivateEd25519 {
     /// The `vc` object should contain all the necessary information except
     /// for the issuer and proof values, which will be filled automatically.
     #[wasm_bindgen(js_name = "issueVC")]
-    pub async fn issue_vc(&self, vc: Object) -> Result<Object, JsError> {
+    pub async fn issue_vc(
+        &self,
+        vc: Object,
+        context_loader: &mut ContextLoader,
+    ) -> Result<Object, JsError> {
         let mut credential = serde_wasm_bindgen::from_value(vc.into())?;
-        issue_vc(&self.0, &mut credential).await?;
+        issue_vc(&self.0, &mut credential, &mut context_loader.0).await?;
         Ok(credential.serialize(&OBJECT_SERIALIZER)?.into())
     }
 
@@ -269,11 +275,19 @@ impl PrivateEd25519 {
     pub async fn issue_vp(
         &self,
         vp: Object,
+        context_loader: &mut ContextLoader,
         domain: Option<String>,
         challenge: Option<String>,
     ) -> Result<Object, JsError> {
         let mut presentation = serde_wasm_bindgen::from_value(vp.into())?;
-        issue_vp(&self.0, &mut presentation, domain, challenge).await?;
+        issue_vp(
+            &self.0,
+            &mut presentation,
+            domain,
+            challenge,
+            &mut context_loader.0,
+        )
+        .await?;
         Ok(presentation.serialize(&OBJECT_SERIALIZER)?.into())
     }
 }
@@ -343,9 +357,33 @@ impl PublicEd25519 {
 /// See the `ErrorBag` documentation for more details on how to handle errors
 /// that may occur during the validation process.
 #[wasm_bindgen(js_name = "verifyCredential")]
-pub async fn js_verify_credential(document: Object) -> Result<(), JsError> {
+pub async fn js_verify_credential(
+    document: Object,
+    context_loader: &mut ContextLoader,
+) -> Result<(), JsError> {
     let credential = serde_wasm_bindgen::from_value(document.into())?;
-    Ok(verify_credential(&credential).await?)
+    Ok(verify_credential(&credential, &mut context_loader.0).await?)
+}
+
+#[wasm_bindgen]
+pub struct ContextLoader(InnerContextLoader);
+
+#[wasm_bindgen]
+impl ContextLoader {
+    #[wasm_bindgen(constructor)]
+    pub fn new(contexts: Option<Object>) -> Result<ContextLoader, JsError> {
+        let context_loader = InnerContextLoader::default();
+
+        let contexts: Option<HashMap<String, String>> = contexts
+            .map(|obj| serde_wasm_bindgen::from_value(obj.into()))
+            .transpose()?;
+
+        Ok(ContextLoader(if let Some(contexts) = contexts {
+            context_loader.with_context_map_from(contexts)?
+        } else {
+            context_loader
+        }))
+    }
 }
 
 #[wasm_bindgen]
@@ -372,10 +410,11 @@ impl PresentationVerificationResult {
 #[wasm_bindgen(js_name = "verifyPresentation")]
 pub async fn js_verify_presentation(
     document: Object,
+    context_loader: &mut ContextLoader,
 ) -> Result<PresentationVerificationResult, JsError> {
     let presentation = serde_wasm_bindgen::from_value(document.into())?;
 
-    let (key, challenge) = verify_presentation(&presentation).await?;
+    let (key, challenge) = verify_presentation(&presentation, &mut context_loader.0).await?;
 
     Ok(PresentationVerificationResult {
         key: PublicEd25519(key),

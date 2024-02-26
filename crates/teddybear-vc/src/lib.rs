@@ -3,11 +3,12 @@ pub mod query;
 pub mod validation;
 
 use chrono::{DateTime, FixedOffset, Utc};
-use ssi_json_ld::ContextLoader;
 use ssi_ldp::{LinkedDataProofOptions, ProofSuiteType};
 use ssi_vc::{Credential, CredentialOrJWT, Issuer, OneOrMany, Presentation, ProofPurpose, URI};
 use teddybear_crypto::{DidKey, Ed25519, Private, Public};
 use thiserror::Error;
+
+pub use ssi_json_ld::ContextLoader;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -28,6 +29,7 @@ pub enum Error {
 pub async fn issue_vc(
     key: &Ed25519<Private>,
     credential: &mut Credential,
+    context_loader: &mut ContextLoader,
 ) -> Result<(), ssi_vc::Error> {
     credential.issuer = Some(Issuer::URI(URI::String(key.document_did().to_string())));
 
@@ -39,14 +41,12 @@ pub async fn issue_vc(
         ..Default::default()
     };
 
-    let mut context_loader = ContextLoader::default();
-
     let proof = credential
         .generate_proof(
             key.as_ed25519_private_jwk(),
             &proof_options,
             &DidKey,
-            &mut context_loader,
+            context_loader,
         )
         .await?;
 
@@ -61,6 +61,7 @@ pub async fn issue_vp(
     presentation: &mut Presentation,
     domain: Option<String>,
     challenge: Option<String>,
+    context_loader: &mut ContextLoader,
 ) -> Result<(), ssi_vc::Error> {
     presentation.holder = Some(URI::String(key.document_did().to_string()));
 
@@ -75,14 +76,12 @@ pub async fn issue_vp(
         ..Default::default()
     };
 
-    let mut context_loader = ContextLoader::default();
-
     let proof = presentation
         .generate_proof(
             key.as_ed25519_private_jwk(),
             &proof_options,
             &DidKey,
-            &mut context_loader,
+            context_loader,
         )
         .await?;
 
@@ -92,7 +91,10 @@ pub async fn issue_vp(
 }
 
 #[inline]
-pub async fn verify_credential(credential: &Credential) -> Result<(), Error> {
+pub async fn verify_credential(
+    credential: &Credential,
+    context_loader: &mut ContextLoader,
+) -> Result<(), Error> {
     credential.validate()?;
 
     let proof_options = LinkedDataProofOptions {
@@ -102,7 +104,7 @@ pub async fn verify_credential(credential: &Credential) -> Result<(), Error> {
     };
 
     let credential_valid = credential
-        .verify(Some(proof_options), &DidKey, &mut ContextLoader::default())
+        .verify(Some(proof_options), &DidKey, context_loader)
         .await
         .errors
         .is_empty();
@@ -125,9 +127,10 @@ pub async fn verify_credential(credential: &Credential) -> Result<(), Error> {
 }
 
 #[inline]
-pub async fn verify_presentation(
-    presentation: &Presentation,
-) -> Result<(Ed25519<Public>, Option<&str>), Error> {
+pub async fn verify_presentation<'a>(
+    presentation: &'a Presentation,
+    context_loader: &mut ContextLoader,
+) -> Result<(Ed25519<Public>, Option<&'a str>), Error> {
     presentation.validate()?;
 
     let holder = Ed25519::from_did(
@@ -147,7 +150,7 @@ pub async fn verify_presentation(
     };
 
     let presentation_valid = presentation
-        .verify(Some(proof_options), &DidKey, &mut ContextLoader::default())
+        .verify(Some(proof_options), &DidKey, context_loader)
         .await
         .errors
         .is_empty();
@@ -158,7 +161,7 @@ pub async fn verify_presentation(
 
     match &presentation.verifiable_credential {
         Some(OneOrMany::One(CredentialOrJWT::Credential(credential))) => {
-            verify_credential(credential).await?;
+            verify_credential(credential, context_loader).await?;
 
             if let Some(subject) = credential
                 .credential_subject
