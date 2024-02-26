@@ -154,7 +154,7 @@
               ];
             };
 
-            yarnLockHash = "sha256-SqK86t906Z1ZWFd5hP1eXiBXaPqUJwfVHs5IdfhtJb0=";
+            yarnLockHash = "sha256-F9NTbhs0zKi+A+eXFh3rpZrmicADy3c+rgxMaevDY4s=";
           };
 
           my-crate-clippy = craneLib.cargoClippy (commonArgs
