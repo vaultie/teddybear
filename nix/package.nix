@@ -1,8 +1,11 @@
 {
-  cargoArtifacts,
-  commonArgs,
   craneLib,
   lib,
+  binaryen,
+  cargoArtifacts,
+  commonArgs,
+  wasm-bindgen-cli,
+  wasm-pack,
   # FIXME: Unify two separate packages into one.
   buildForNode ? false,
 }: let
@@ -14,6 +17,12 @@ in
   craneLib.buildPackage (commonArgs
     // {
       inherit cargoArtifacts;
+
+      nativeBuildInputs = [
+        binaryen
+        wasm-bindgen-cli
+        wasm-pack
+      ];
 
       buildPhaseCargoCommand = ''
         HOME=$(mktemp -d)

@@ -89,14 +89,6 @@
           RUSTFLAGS = "-Ctarget-feature=+simd128";
           CARGO_BUILD_TARGET = "wasm32-unknown-unknown";
           CARGO_NET_GIT_FETCH_WITH_CLI = "true";
-          CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_LINKER = "wasm-ld";
-
-          nativeBuildInputs = [
-            wasm-pack
-            pkgs.wasm-bindgen-cli
-            pkgs.binaryen
-            pkgs.llvmPackages.lld
-          ];
         };
 
         cargoArtifacts = craneLib.buildDepsOnly (commonArgs
@@ -109,11 +101,11 @@
           });
 
         esm = pkgs.callPackage ./nix/package.nix {
-          inherit cargoArtifacts commonArgs craneLib;
+          inherit cargoArtifacts commonArgs craneLib wasm-pack;
         };
 
         cjs = pkgs.callPackage ./nix/package.nix {
-          inherit cargoArtifacts commonArgs craneLib;
+          inherit cargoArtifacts commonArgs craneLib wasm-pack;
 
           buildForNode = true;
         };
