@@ -6,7 +6,7 @@
   nodejs,
   prefetch-yarn-deps,
   yarn,
-  yarnLockHash
+  yarnLockHash,
 }:
 stdenvNoCC.mkDerivation {
   inherit src;
