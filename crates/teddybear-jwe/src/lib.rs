@@ -77,12 +77,12 @@ pub fn encrypt<T: SymmetricEncryptionAlgorithm>(
 ) -> Result<GeneralJWE<'static>, Error> {
     let cek = <T::ContentEncryptionKey>::random()?;
 
-    let ephemeral_key_pair = X25519KeyPair::random()?;
-    let producer_info = ephemeral_key_pair.to_public_bytes()?;
-
     let recipients = recipients
         .iter()
         .map(|recipient| {
+            let ephemeral_key_pair = X25519KeyPair::random()?;
+            let producer_info = ephemeral_key_pair.to_public_bytes()?;
+
             let (consumer_info, askar_recipient) = extract_jwk_data(recipient)?;
 
             let kek = create_kek(&ephemeral_key_pair, &askar_recipient, consumer_info, false)?;
