@@ -1,6 +1,5 @@
 #[cfg(feature = "query")]
 pub mod query;
-pub mod validation;
 
 use chrono::{DateTime, FixedOffset, Utc};
 use ssi_ldp::{LinkedDataProofOptions, ProofSuiteType};
