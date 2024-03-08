@@ -132,6 +132,8 @@
           docs = craneLib.cargoDoc (nativeArgs
             // {
               inherit cargoArtifacts;
+
+              RUSTDOCFLAGS = "-D warnings";
             });
         };
 
