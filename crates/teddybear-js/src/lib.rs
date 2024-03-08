@@ -137,11 +137,7 @@ use teddybear_status_list::{
 use wasm_bindgen::prelude::*;
 
 use teddybear_vc::{
-    issue_vc, issue_vp,
-    validation::{
-        Constraint as InnerConstraint, PresentationDefinition as InnerPresentationDefinition,
-    },
-    verify_credential, verify_presentation, ContextLoader as InnerContextLoader,
+    issue_vc, issue_vp, verify_credential, verify_presentation, ContextLoader as InnerContextLoader,
 };
 
 const OBJECT_SERIALIZER: Serializer = Serializer::new().serialize_maps_as_objects(true);
@@ -490,42 +486,6 @@ impl StatusListCredential {
 impl Default for StatusListCredential {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-#[wasm_bindgen]
-pub struct PresentationDefinition(InnerPresentationDefinition);
-
-#[wasm_bindgen]
-impl PresentationDefinition {
-    /// Create a new presentation definition from the provided object.
-    #[wasm_bindgen(constructor)]
-    pub fn from_object(object: &Object) -> Result<PresentationDefinition, JsError> {
-        Ok(Self(serde_wasm_bindgen::from_value(object.into())?))
-    }
-
-    /// Validate the provided object against the presentation definition.
-    pub fn validate(&self, object: &Object) -> Result<bool, JsError> {
-        let value = serde_wasm_bindgen::from_value(object.into())?;
-        Ok(self.0.validate(&value))
-    }
-}
-
-#[wasm_bindgen]
-pub struct Constraint(InnerConstraint);
-
-#[wasm_bindgen]
-impl Constraint {
-    /// Create a new constraint from the provided object.
-    #[wasm_bindgen(constructor)]
-    pub fn from_object(object: &Object) -> Result<Constraint, JsError> {
-        Ok(Self(serde_wasm_bindgen::from_value(object.into())?))
-    }
-
-    /// Validate the provided object against the constraint.
-    pub fn validate(&self, object: &Object) -> Result<bool, JsError> {
-        let value = serde_wasm_bindgen::from_value(object.into())?;
-        Ok(self.0.validate(&value))
     }
 }
 
