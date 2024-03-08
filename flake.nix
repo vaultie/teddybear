@@ -86,26 +86,37 @@
 
           strictDeps = true;
 
-          RUSTFLAGS = "-Ctarget-feature=+simd128";
-          CARGO_BUILD_TARGET = "wasm32-unknown-unknown";
           CARGO_NET_GIT_FETCH_WITH_CLI = "true";
         };
 
-        cargoArtifacts = craneLib.buildDepsOnly (commonArgs
+        nativeArgs =
+          commonArgs
           // {
-            pname = "teddybear";
+            cargoExtraArgs = "--all-features --locked";
+          };
 
+        cargoArtifacts = craneLib.buildDepsOnly nativeArgs;
+
+        wasmArgs =
+          commonArgs
+          // {
+            RUSTFLAGS = "-Ctarget-feature=+simd128";
+            CARGO_BUILD_TARGET = "wasm32-unknown-unknown";
+          };
+
+        wasmCargoArtifacts = craneLib.buildDepsOnly (wasmArgs
+          // {
             doCheck = false;
 
-            cargoExtraArgs = "-p teddybear-js";
+            cargoExtraArgs = "-p teddybear-js --locked";
           });
 
         esm = pkgs.callPackage ./nix/package.nix {
-          inherit cargoArtifacts commonArgs craneLib wasm-pack;
+          inherit craneLib wasmArgs wasmCargoArtifacts wasm-pack;
         };
 
         cjs = pkgs.callPackage ./nix/package.nix {
-          inherit cargoArtifacts commonArgs craneLib wasm-pack;
+          inherit craneLib wasmArgs wasmCargoArtifacts wasm-pack;
 
           buildForNode = true;
         };
@@ -116,16 +127,11 @@
         };
 
         packages = {
-          inherit cargoArtifacts cjs esm;
+          inherit cjs esm;
 
-          docs = craneLib.cargoDoc (commonArgs
+          docs = craneLib.cargoDoc (nativeArgs
             // {
               inherit cargoArtifacts;
-
-              # Fix incorrect doc directory location due to CARGO_BUILD_TARGET.
-              preInstall = ''
-                mv "target/''${CARGO_BUILD_TARGET}/doc" target/doc
-              '';
             });
         };
 
@@ -149,17 +155,19 @@
             yarnLockHash = "sha256-F9NTbhs0zKi+A+eXFh3rpZrmicADy3c+rgxMaevDY4s=";
           };
 
-          my-crate-clippy = craneLib.cargoClippy (commonArgs
+          test = craneLib.cargoTest (nativeArgs
+            // {
+              inherit cargoArtifacts;
+            });
+
+          clippy = craneLib.cargoClippy (nativeArgs
             // {
               inherit cargoArtifacts;
 
-              cargoClippyExtraArgs = "-- --deny warnings";
+              cargoClippyExtraArgs = "--all-targets -- --deny warnings";
             });
 
-          fmt = craneLib.cargoFmt (commonArgs
-            // {
-              inherit src;
-            });
+          fmt = craneLib.cargoFmt commonArgs;
         };
 
         formatter = pkgs.alejandra;

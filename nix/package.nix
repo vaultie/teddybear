@@ -2,8 +2,8 @@
   craneLib,
   lib,
   binaryen,
-  cargoArtifacts,
-  commonArgs,
+  wasmArgs,
+  wasmCargoArtifacts,
   wasm-bindgen-cli,
   wasm-pack,
   # FIXME: Unify two separate packages into one.
@@ -14,9 +14,9 @@
     then "nodejs"
     else "bundler";
 in
-  craneLib.buildPackage (commonArgs
+  craneLib.buildPackage (wasmArgs
     // {
-      inherit cargoArtifacts;
+      cargoArtifacts = wasmCargoArtifacts;
 
       nativeBuildInputs = [
         binaryen

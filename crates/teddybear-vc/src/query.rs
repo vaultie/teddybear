@@ -46,6 +46,8 @@ impl<'a> ValidationRequest<'a> {
         )
     }
 
+    // FIXME
+    #[allow(clippy::result_large_err)]
     pub fn validate<'b>(
         &self,
         dataset: &QueryableDataset<'b>,
@@ -149,7 +151,7 @@ mod tests {
             .await
             .unwrap();
 
-        let queryable_dataset = QueryableDataset::try_from(&dataset).unwrap();
+        let queryable_dataset = QueryableDataset::from(&dataset);
 
         ValidationRequest::new(iri!("http://university.example/credentials/3732"))
             .validate_issuer(Iri::from_str("https://example.com/issuer/123").unwrap())
