@@ -128,7 +128,7 @@ use js_sys::{Object, Uint8Array};
 use serde::Serialize;
 use serde_json::json;
 use serde_wasm_bindgen::Serializer;
-use teddybear_crypto::{Ed25519, Private, Public, JWK as InnerJWK};
+use teddybear_crypto::{verify_jws_with_embedded_jwk, Ed25519, Private, Public, JWK as InnerJWK};
 use teddybear_jwe::{add_recipient, decrypt, A256Gcm, XC20P};
 use teddybear_status_list::{
     credential::{BitstringStatusListCredentialSubject, StatusPurpose},
@@ -517,4 +517,35 @@ pub fn encrypt_chacha20(payload: Uint8Array, recipients: Vec<JWK>) -> Result<Obj
     )?;
 
     Ok(jwe.serialize(&OBJECT_SERIALIZER)?.into())
+}
+
+/// JWS verification result.
+#[wasm_bindgen(js_name = "JWSVerificationResult")]
+pub struct JwsVerificationResult(InnerJWK, Uint8Array);
+
+#[wasm_bindgen(js_class = "JWSVerificationResult")]
+impl JwsVerificationResult {
+    /// Embedded JWK key.
+    ///
+    /// Corresponds to the `jwk` field within the JWS header.
+    #[wasm_bindgen(getter)]
+    pub fn jwk(&self) -> JWK {
+        JWK(self.0.clone())
+    }
+
+    /// JWS payload.
+    #[wasm_bindgen(getter)]
+    pub fn payload(&self) -> Uint8Array {
+        self.1.clone()
+    }
+}
+
+/// Verify JWS signature against the embedded JWK key.
+///
+/// Returns both the signed payload and the embedded JWK key used to sign the payload.
+#[wasm_bindgen(js_name = "verifyJWS")]
+pub fn verify_jws(jws: &str) -> Result<JwsVerificationResult, JsError> {
+    let (jwk, payload) = verify_jws_with_embedded_jwk(jws)?;
+
+    Ok(JwsVerificationResult(jwk, payload.as_slice().into()))
 }

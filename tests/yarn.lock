@@ -476,10 +476,10 @@
   resolved "https://registry.yarnpkg.com/@ungap/structured-clone/-/structured-clone-1.2.0.tgz#756641adb587851b5ccb3e095daf27ae581c8406"
   integrity sha512-zuVdFrMJiuCDQUMCzQaD6KL28MjnqqN8XnAqiEq9PNm/hCPTSGfrXCOfwj1ow4LFb/tNymJPwsNbVePc1xFqrQ==
 
-"@vaultie/teddybear-node@^0.10.1":
-  version "0.10.1"
-  resolved "https://registry.yarnpkg.com/@vaultie/teddybear-node/-/teddybear-node-0.10.1.tgz#a09e1152144a44f70cd56d4e435c9e0b121e4b74"
-  integrity sha512-/J9E97R/6Ua+GUqxqtbjlHi0dYp6uu7tbvk6B41g2ZxEL9JD5UzGsycHi2AlSj0jK3cojx0leVGDRjuaSiuEKA==
+"@vaultie/teddybear-node@^0.12.0":
+  version "0.12.0"
+  resolved "https://registry.yarnpkg.com/@vaultie/teddybear-node/-/teddybear-node-0.12.0.tgz#0730f6dc14acf9542de8b68573bda082ccc0e877"
+  integrity sha512-jAA+82Seay+1wYsMe7hZ3I57mWwTBh0XkxUTyOVIKCLBTeHc4ZAOcQYaFD5Ft3E5B2obrT+f4qLqP4VuFP37Rg==
 
 "@vitest/expect@1.3.1":
   version "1.3.1"
