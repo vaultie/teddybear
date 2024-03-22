@@ -1,6 +1,7 @@
-use std::collections::HashMap;
+use std::{borrow::Borrow, collections::HashMap};
 
 use iref::Iri;
+use itertools::Itertools;
 use rdf_types::{TermRef, Triple};
 use ssi_json_ld::rdf::DataSet;
 use static_iref::iri;
@@ -51,10 +52,10 @@ impl<'a> ValidationRequest<'a> {
     pub fn validate<'b>(
         &self,
         dataset: &QueryableDataset<'b>,
-    ) -> Result<(), (Iri<'a>, Iri<'a>, TermRef<'a>, Option<TermRef<'b>>)> {
+    ) -> Result<(), (Iri<'a>, Iri<'a>, TermRef<'a>)> {
         for (subject, predicate, expected) in &self.request {
-            if let Err(actual) = dataset.validate(*subject, *predicate, *expected) {
-                return Err((*subject, *predicate, *expected, actual));
+            if !dataset.validate(*subject, *predicate, *expected) {
+                return Err((*subject, *predicate, *expected));
             }
         }
 
@@ -62,32 +63,40 @@ impl<'a> ValidationRequest<'a> {
     }
 }
 
+// FIXME: https://github.com/rust-lang/rust/issues/89265
+#[derive(PartialEq, Eq, Hash)]
+struct FirstTuple<'a>(SecondTuple<'a>);
+
+#[derive(PartialEq, Eq, Hash)]
+struct SecondTuple<'a>(Iri<'a>, Iri<'a>);
+
+impl<'a, 'b: 'a> Borrow<SecondTuple<'a>> for FirstTuple<'b> {
+    #[inline]
+    fn borrow(&self) -> &SecondTuple<'a> {
+        &self.0
+    }
+}
+
 pub struct QueryableDataset<'a> {
-    default_graph_triples: HashMap<(Iri<'a>, Iri<'a>), TermRef<'a>>,
+    default_graph_triples: HashMap<FirstTuple<'a>, Vec<TermRef<'a>>>,
 }
 
 impl<'a> QueryableDataset<'a> {
-    pub fn query(&self, subject: Iri<'_>, predicate: Iri<'_>) -> Option<TermRef<'a>> {
-        self.default_graph_triples
-            .get(&(subject, predicate))
-            .copied()
-    }
-
-    pub fn validate(
+    pub fn query(
         &self,
         subject: Iri<'_>,
         predicate: Iri<'_>,
-        expected: TermRef<'_>,
-    ) -> Result<(), Option<TermRef<'a>>> {
-        let Some(current_entry) = self.query(subject, predicate) else {
-            return Err(None);
-        };
+    ) -> impl Iterator<Item = &TermRef<'a>> + '_ {
+        let val = self
+            .default_graph_triples
+            .get(&SecondTuple(subject, predicate));
 
-        if current_entry == expected {
-            Ok(())
-        } else {
-            Err(Some(current_entry))
-        }
+        val.into_iter().flat_map(move |val| val.iter())
+    }
+
+    pub fn validate(&self, subject: Iri<'_>, predicate: Iri<'_>, expected: TermRef<'_>) -> bool {
+        self.query(subject, predicate)
+            .any(|object| object == &expected)
     }
 }
 
@@ -104,9 +113,9 @@ impl<'a> From<&'a DataSet> for QueryableDataset<'a> {
                     let predicate = predicate.as_iri();
                     let object = object.as_term_ref();
 
-                    Some(((subject, predicate), object))
+                    Some((FirstTuple(SecondTuple(subject, predicate)), object))
                 })
-                .collect(),
+                .into_group_map(),
         }
     }
 }
@@ -124,6 +133,44 @@ mod tests {
     use crate::query::{QueryableDataset, ValidationRequest};
 
     #[tokio::test]
+    async fn query_types() {
+        let credential: Credential = serde_json::from_value(json!({
+            "@context": [
+              "https://www.w3.org/ns/credentials/v2",
+              "https://www.w3.org/ns/credentials/examples/v2"
+            ],
+            "id": "http://university.example/credentials/3732",
+            "type": ["VerifiableCredential", "ExampleAlumniCredential"],
+            "issuer": "https://example.com/issuer/123",
+            "validFrom": "2010-01-01T00:00:00Z",
+            "credentialSubject": {
+                "id": "https://example.com/credentialSubject/123"
+            }
+        }))
+        .unwrap();
+
+        let dataset = credential
+            .to_dataset_for_signing(None, &mut ContextLoader::default())
+            .await
+            .unwrap();
+
+        let queryable_dataset = QueryableDataset::from(&dataset);
+
+        let types = queryable_dataset
+            .query(
+                iri!("http://university.example/credentials/3732"),
+                iri!("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
+            )
+            .map(|val| val.as_iri().unwrap().as_str())
+            .collect::<Vec<_>>();
+
+        assert!(types.contains(&"https://www.w3.org/2018/credentials#VerifiableCredential"));
+        assert!(
+            types.contains(&"https://www.w3.org/ns/credentials/examples#ExampleAlumniCredential")
+        );
+    }
+
+    #[tokio::test]
     async fn basic_validation() {
         let credential: Credential = serde_json::from_value(json!({
             "@context": [
@@ -131,7 +178,7 @@ mod tests {
               "https://www.w3.org/ns/credentials/examples/v2"
             ],
             "id": "http://university.example/credentials/3732",
-            "type": ["VerifiableCredential"],
+            "type": ["VerifiableCredential", "ExampleAlumniCredential"],
             "issuer": "https://example.com/issuer/123",
             "validFrom": "2010-01-01T00:00:00Z",
             "credentialSubject": [{
@@ -158,6 +205,10 @@ mod tests {
             .validate_type(
                 Iri::from_str("https://www.w3.org/2018/credentials#VerifiableCredential").unwrap(),
             )
+            .validate_type(
+                Iri::from_str("https://www.w3.org/ns/credentials/examples#ExampleAlumniCredential")
+                    .unwrap(),
+            )
             .validate_custom(
                 Iri::from_str("did:example:ebfeb1f712ebc6f1c276e12ec21").unwrap(),
                 Iri::from_str("https://www.w3.org/ns/credentials/examples#spouse").unwrap(),
@@ -174,5 +225,42 @@ mod tests {
             )
             .validate(&queryable_dataset)
             .unwrap();
+    }
+
+    #[tokio::test]
+    async fn missing_type() {
+        let credential: Credential = serde_json::from_value(json!({
+            "@context": [
+              "https://www.w3.org/ns/credentials/v2",
+              "https://www.w3.org/ns/credentials/examples/v2"
+            ],
+            "id": "http://university.example/credentials/3732",
+            "type": ["VerifiableCredential"],
+            "issuer": "https://example.com/issuer/123",
+            "validFrom": "2010-01-01T00:00:00Z",
+            "credentialSubject": {
+                "id": "https://example.com/credentialSubject/123"
+            }
+        }))
+        .unwrap();
+
+        let dataset = credential
+            .to_dataset_for_signing(None, &mut ContextLoader::default())
+            .await
+            .unwrap();
+
+        let queryable_dataset = QueryableDataset::from(&dataset);
+
+        let result = ValidationRequest::new(iri!("http://university.example/credentials/3732"))
+            .validate_type(
+                Iri::from_str("https://www.w3.org/2018/credentials#VerifiableCredential").unwrap(),
+            )
+            .validate_type(
+                Iri::from_str("https://www.w3.org/ns/credentials/examples#ExampleAlumniCredential")
+                    .unwrap(),
+            )
+            .validate(&queryable_dataset);
+
+        assert!(result.is_err());
     }
 }

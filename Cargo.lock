@@ -802,7 +802,7 @@ dependencies = [
  "clap",
  "criterion-plot",
  "is-terminal",
- "itertools",
+ "itertools 0.10.5",
  "num-traits",
  "once_cell",
  "oorandom",
@@ -823,7 +823,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6b50826342786a51a89e2da3a28f1c32b06e387201bc2d19791f622c673706b1"
 dependencies = [
  "cast",
- "itertools",
+ "itertools 0.10.5",
 ]
 
 [[package]]
@@ -1885,6 +1885,15 @@ name = "itertools"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
+dependencies = [
+ "either",
+]
+
+[[package]]
+name = "itertools"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba291022dbbd398a455acf126c1e341954079855bc60dfdda641363bd6922569"
 dependencies = [
  "either",
 ]
@@ -3842,7 +3851,7 @@ checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 
 [[package]]
 name = "teddybear-crypto"
-version = "0.12.1"
+version = "0.13.0"
 dependencies = [
  "ed25519-dalek",
  "multibase 0.9.1",
@@ -3855,7 +3864,7 @@ dependencies = [
 
 [[package]]
 name = "teddybear-did-key"
-version = "0.12.1"
+version = "0.13.0"
 dependencies = [
  "async-trait",
  "ed25519-dalek",
@@ -3869,7 +3878,7 @@ dependencies = [
 
 [[package]]
 name = "teddybear-js"
-version = "0.12.1"
+version = "0.13.0"
 dependencies = [
  "js-sys",
  "serde",
@@ -3885,7 +3894,7 @@ dependencies = [
 
 [[package]]
 name = "teddybear-jwe"
-version = "0.12.1"
+version = "0.13.0"
 dependencies = [
  "askar-crypto",
  "base64 0.21.7",
@@ -3899,7 +3908,7 @@ dependencies = [
 
 [[package]]
 name = "teddybear-status-list"
-version = "0.12.1"
+version = "0.13.0"
 dependencies = [
  "base64 0.21.7",
  "bitvec 1.0.1",
@@ -3917,11 +3926,12 @@ dependencies = [
 
 [[package]]
 name = "teddybear-vc"
-version = "0.12.1"
+version = "0.13.0"
 dependencies = [
  "chrono",
  "grdf",
  "iref",
+ "itertools 0.12.1",
  "rdf-types",
  "serde_json",
  "ssi-json-ld",
