@@ -12,7 +12,7 @@ pub use ssi_json_ld::ContextLoader;
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("Failed credential verification.")]
-    VerificationFailed,
+    VerificationFailed(Vec<String>),
 
     #[error("Credential expired.")]
     CredentialExpired,
@@ -102,14 +102,13 @@ pub async fn verify_credential(
         ..Default::default()
     };
 
-    let credential_valid = credential
+    let credential_errors = credential
         .verify(Some(proof_options), &DidKey, context_loader)
         .await
-        .errors
-        .is_empty();
+        .errors;
 
-    if !credential_valid {
-        return Err(Error::VerificationFailed);
+    if !credential_errors.is_empty() {
+        return Err(Error::VerificationFailed(credential_errors));
     }
 
     let valid_expiration_date = credential
@@ -148,14 +147,13 @@ pub async fn verify_presentation<'a>(
         ..Default::default()
     };
 
-    let presentation_valid = presentation
+    let presentation_errors = presentation
         .verify(Some(proof_options), &DidKey, context_loader)
         .await
-        .errors
-        .is_empty();
+        .errors;
 
-    if !presentation_valid {
-        return Err(Error::VerificationFailed);
+    if !presentation_errors.is_empty() {
+        return Err(Error::VerificationFailed(presentation_errors));
     }
 
     match &presentation.verifiable_credential {
@@ -186,9 +184,9 @@ pub async fn verify_presentation<'a>(
     let challenge = presentation
         .proof
         .as_ref()
-        .ok_or(Error::VerificationFailed)?
+        .ok_or(ssi_vc::Error::MissingProof)?
         .to_single()
-        .ok_or(Error::VerificationFailed)?
+        .ok_or(ssi_vc::Error::MissingProof)?
         .challenge
         .as_deref();
 
