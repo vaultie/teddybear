@@ -475,8 +475,8 @@ impl StatusListCredential {
     #[wasm_bindgen(js_name = "toJSON")]
     pub fn to_json(&self) -> Result<Object, JsError> {
         Ok(json!({
-            "status_purpose": StatusPurpose::Revocation,
-            "encoded_list": self.0,
+            "statusPurpose": StatusPurpose::Revocation,
+            "encodedList": self.0,
         })
         .serialize(&OBJECT_SERIALIZER)?
         .into())

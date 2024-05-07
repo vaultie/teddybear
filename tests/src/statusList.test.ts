@@ -6,8 +6,8 @@ describe('can execute status list operations', () => {
     const statusList = new StatusListCredential()
     const serialized = statusList.toJSON()
 
-    expect(serialized).toHaveProperty('encoded_list')
-    expect(serialized).toHaveProperty('status_purpose', 'revocation')
+    expect(serialized).toHaveProperty('encodedList')
+    expect(serialized).toHaveProperty('statusPurpose', 'revocation')
   })
 
   it('can revoke a credential', async () => {
@@ -29,7 +29,7 @@ describe('can execute status list operations', () => {
 
     const serialized = statusList.toJSON()
 
-    expect(serialized).toHaveProperty('encoded_list')
-    expect(serialized).toHaveProperty('status_purpose', 'revocation')
+    expect(serialized).toHaveProperty('encodedList')
+    expect(serialized).toHaveProperty('statusPurpose', 'revocation')
   })
 })
