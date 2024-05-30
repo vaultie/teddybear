@@ -4,7 +4,8 @@ use ed25519_dalek::SigningKey;
 use ssi_dids::{did_resolve::easy_resolve, DIDMethod, Document, Source, VerificationMethod};
 use ssi_jwk::{Algorithm, Base64urlUInt, OctetParams, Params};
 use ssi_jws::{
-    decode_jws_parts, encode_sign_custom_header, split_jws, verify_bytes, DecodedJWS, Header,
+    decode_jws_parts, decode_verify, encode_sign_custom_header, split_jws, verify_bytes,
+    DecodedJWS, Header,
 };
 use thiserror::Error;
 
@@ -85,11 +86,15 @@ impl Ed25519<Private> {
     }
 
     #[inline]
-    pub fn sign(&self, payload: &str) -> Result<String, ssi_jws::Error> {
+    pub fn sign(&self, payload: &str, embed_signing_key: bool) -> Result<String, ssi_jws::Error> {
         let header = Header {
             algorithm: Algorithm::EdDSA,
-            key_id: self.ed25519.jwk.key_id.clone(),
-            jwk: Some(self.to_ed25519_public_jwk()),
+            key_id: if embed_signing_key {
+                self.ed25519.jwk.key_id.clone()
+            } else {
+                None
+            },
+            jwk: embed_signing_key.then(|| self.to_ed25519_public_jwk()),
             ..Default::default()
         };
 
@@ -221,6 +226,12 @@ impl<T> PartialEq<JWK> for Ed25519<T> {
     }
 }
 
+#[inline]
+pub fn verify_jws(jws: &str, key: &JWK) -> Result<Vec<u8>, Error> {
+    Ok(decode_verify(jws, key)?.1)
+}
+
+#[inline]
 pub fn verify_jws_with_embedded_jwk(jws: &str) -> Result<(JWK, Vec<u8>), Error> {
     let (header_b64, payload_enc, signature_b64) = split_jws(jws)?;
 
