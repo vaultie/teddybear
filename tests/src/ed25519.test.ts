@@ -26,7 +26,7 @@ describe('can execute common private key operations', () => {
   it('can sign JWS values', async () => {
     const key = await PrivateEd25519.generate()
 
-    const jws = key.signJWS('testvalue')
+    const jws = key.signJWS('testvalue', true)
     const { payload } = await compactVerify(jws, await importJWK(key.toEd25519PublicJWK().toJSON() as JWK))
     expect(new TextDecoder().decode(payload)).toStrictEqual('testvalue')
   })
@@ -34,10 +34,20 @@ describe('can execute common private key operations', () => {
   it('can extract JWS payload', async () => {
     const key = await PrivateEd25519.generate()
 
-    const jws = key.signJWS('testvalue')
+    const jws = key.signJWS('testvalue', true)
 
     const { jwk, payload } = verifyJWS(jws)
     expect(jwk.toJSON()).toStrictEqual(key.toEd25519PublicJWK().toJSON())
+    expect(new TextDecoder().decode(payload)).toStrictEqual('testvalue')
+  })
+
+  it('can sign JWS values without embedded keys', async () => {
+    const key = await PrivateEd25519.generate()
+
+    const jws = key.signJWS('testvalue', false)
+
+    const { jwk, payload } = verifyJWS(jws, key.toEd25519PublicJWK())
+    expect(jwk).toBeUndefined()
     expect(new TextDecoder().decode(payload)).toStrictEqual('testvalue')
   })
 

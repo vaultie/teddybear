@@ -128,7 +128,7 @@ use js_sys::{Object, Uint8Array};
 use serde::Serialize;
 use serde_json::json;
 use serde_wasm_bindgen::Serializer;
-use teddybear_crypto::{verify_jws_with_embedded_jwk, Ed25519, Private, Public, JWK as InnerJWK};
+use teddybear_crypto::{Ed25519, Private, Public, JWK as InnerJWK};
 use teddybear_jwe::{add_recipient, decrypt, A256Gcm, XC20P};
 use teddybear_status_list::{
     credential::{BitstringStatusListCredentialSubject, StatusPurpose},
@@ -244,8 +244,8 @@ impl PrivateEd25519 {
 
     /// Sign the provided payload using the Ed25519 key.
     #[wasm_bindgen(js_name = "signJWS")]
-    pub fn sign_jws(&self, payload: &str) -> Result<String, JsError> {
-        Ok(self.0.sign(payload)?)
+    pub fn sign_jws(&self, payload: &str, embed_signing_key: bool) -> Result<String, JsError> {
+        Ok(self.0.sign(payload, embed_signing_key)?)
     }
 
     /// Create a new verifiable credential.
@@ -521,16 +521,18 @@ pub fn encrypt_chacha20(payload: Uint8Array, recipients: Vec<JWK>) -> Result<Obj
 
 /// JWS verification result.
 #[wasm_bindgen(js_name = "JWSVerificationResult")]
-pub struct JwsVerificationResult(InnerJWK, Uint8Array);
+pub struct JwsVerificationResult(Option<InnerJWK>, Uint8Array);
 
 #[wasm_bindgen(js_class = "JWSVerificationResult")]
 impl JwsVerificationResult {
     /// Embedded JWK key.
     ///
     /// Corresponds to the `jwk` field within the JWS header.
+    ///
+    /// [`None`] if the JWS verification process was not using the embedded key.
     #[wasm_bindgen(getter)]
-    pub fn jwk(&self) -> JWK {
-        JWK(self.0.clone())
+    pub fn jwk(&self) -> Option<JWK> {
+        self.0.clone().map(JWK)
     }
 
     /// JWS payload.
@@ -544,8 +546,13 @@ impl JwsVerificationResult {
 ///
 /// Returns both the signed payload and the embedded JWK key used to sign the payload.
 #[wasm_bindgen(js_name = "verifyJWS")]
-pub fn verify_jws(jws: &str) -> Result<JwsVerificationResult, JsError> {
-    let (jwk, payload) = verify_jws_with_embedded_jwk(jws)?;
+pub fn verify_jws(jws: &str, key: Option<JWK>) -> Result<JwsVerificationResult, JsError> {
+    let (jwk, payload) = if let Some(key) = key {
+        (None, teddybear_crypto::verify_jws(jws, &key.0)?)
+    } else {
+        let (jwk, payload) = teddybear_crypto::verify_jws_with_embedded_jwk(jws)?;
+        (Some(jwk), payload)
+    };
 
     Ok(JwsVerificationResult(jwk, payload.as_slice().into()))
 }
