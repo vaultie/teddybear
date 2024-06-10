@@ -68,7 +68,7 @@
             targets.wasm32-unknown-unknown.stable.rust-std
           ];
 
-        craneLib = crane.lib.${system}.overrideToolchain rustToolchain;
+        craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
 
         rustPlatform = pkgs.makeRustPlatform {
           cargo = rustToolchain;

@@ -16,12 +16,12 @@ wasm-opt = ["--enable-simd", "-Oz"]
 teddybear-crypto = { workspace = true }
 teddybear-jwe = { workspace = true }
 teddybear-status-list = { workspace = true }
-teddybear-vc = { workspace = true }
+teddybear-vc = { workspace = true, features = ["query"] }
 
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde-wasm-bindgen = "0.6.1"
 
 js-sys = "0.3.68"
-wasm-bindgen = "=0.2.91"
+wasm-bindgen = "=0.2.92"
 wasm-bindgen-futures = "0.4.41"
