@@ -3,7 +3,7 @@
   fetchYarnDeps,
   src,
   stdenvNoCC,
-  nodejs,
+  nodejs-slim,
   prefetch-yarn-deps,
   yarn,
   yarnLockHash,
@@ -20,7 +20,7 @@ stdenvNoCC.mkDerivation {
   };
 
   nativeBuildInputs = [
-    nodejs
+    nodejs-slim
     yarn
     prefetch-yarn-deps
   ];
