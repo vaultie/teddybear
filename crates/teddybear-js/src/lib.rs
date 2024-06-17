@@ -120,6 +120,9 @@
 //! console.log(statusList.isRevoked(idx)); // true
 //! ```
 
+// FIXME: https://github.com/rustwasm/wasm-bindgen/issues/3945
+#![allow(clippy::empty_docs)]
+
 extern crate alloc;
 
 use std::collections::HashMap;
@@ -141,6 +144,41 @@ use teddybear_vc::{
 };
 
 const OBJECT_SERIALIZER: Serializer = Serializer::new().serialize_maps_as_objects(true);
+
+#[wasm_bindgen(typescript_custom_section)]
+const TYPESCRIPT_SECTION: &'static str = r#"
+export type JWERecipient = {
+    header: {
+        kid: string;
+        alg: "ECDH-ES+A256KW";
+        epk: {
+            kty: "OKP";
+            crv: "X25519";
+            x: string;
+        };
+        apu: string;
+        apv: string;
+    };
+    encrypted_key: string;
+};
+
+export type JWE = {
+    protected: string;
+    recipients: JWERecipient[];
+    iv: string;
+    ciphertext: string;
+    tag: string;
+};
+"#;
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "JWERecipient")]
+    pub type JweRecipient;
+
+    #[wasm_bindgen(typescript_type = "JWE")]
+    pub type Jwe;
+}
 
 /// A public/private Ed25519/X25519 keypair.
 #[wasm_bindgen]
@@ -213,7 +251,7 @@ impl PrivateEd25519 {
 
     /// Decrypt the provided JWE object using the X25519 key and the A256GCM algorithm.
     #[wasm_bindgen(js_name = "decryptAES")]
-    pub fn decrypt_aes(&self, jwe: Object) -> Result<Uint8Array, JsError> {
+    pub fn decrypt_aes(&self, jwe: Jwe) -> Result<Uint8Array, JsError> {
         let jwe = serde_wasm_bindgen::from_value(jwe.into())?;
         let payload = &*decrypt::<A256Gcm>(&jwe, self.0.as_x25519_private_jwk())?;
         Ok(payload.into())
@@ -221,14 +259,14 @@ impl PrivateEd25519 {
 
     /// Decrypt the provided JWE object using the X25519 key and the XC20P algorithm.
     #[wasm_bindgen(js_name = "decryptChaCha20")]
-    pub fn decrypt_chacha20(&self, jwe: Object) -> Result<Uint8Array, JsError> {
+    pub fn decrypt_chacha20(&self, jwe: Jwe) -> Result<Uint8Array, JsError> {
         let jwe = serde_wasm_bindgen::from_value(jwe.into())?;
         let payload = &*decrypt::<XC20P>(&jwe, self.0.as_x25519_private_jwk())?;
         Ok(payload.into())
     }
 
     #[wasm_bindgen(js_name = "addAESRecipient")]
-    pub fn add_aes_recipient(&self, jwe: Object, recipient: JWK) -> Result<Object, JsError> {
+    pub fn add_aes_recipient(&self, jwe: Jwe, recipient: JWK) -> Result<JweRecipient, JsError> {
         let jwe = serde_wasm_bindgen::from_value(jwe.into())?;
         let recipient =
             add_recipient::<A256Gcm>(&jwe, self.0.as_x25519_private_jwk(), &recipient.0)?;
@@ -236,7 +274,11 @@ impl PrivateEd25519 {
     }
 
     #[wasm_bindgen(js_name = "addChaCha20Recipient")]
-    pub fn add_chacha20_recipient(&self, jwe: Object, recipient: JWK) -> Result<Object, JsError> {
+    pub fn add_chacha20_recipient(
+        &self,
+        jwe: Jwe,
+        recipient: JWK,
+    ) -> Result<JweRecipient, JsError> {
         let jwe = serde_wasm_bindgen::from_value(jwe.into())?;
         let recipient = add_recipient::<XC20P>(&jwe, self.0.as_x25519_private_jwk(), &recipient.0)?;
         Ok(recipient.serialize(&OBJECT_SERIALIZER)?.into())
@@ -495,7 +537,7 @@ impl Default for StatusListCredential {
 ///
 /// You may acquire X25519 JWK values using the `toX25519PublicJWK` method on the keypair structs.
 #[wasm_bindgen(js_name = "encryptAES")]
-pub fn encrypt_aes(payload: Uint8Array, recipients: Vec<JWK>) -> Result<Object, JsError> {
+pub fn encrypt_aes(payload: Uint8Array, recipients: Vec<JWK>) -> Result<Jwe, JsError> {
     let jwe = teddybear_jwe::encrypt::<A256Gcm>(
         &payload.to_vec(),
         &recipients.iter().map(|val| &val.0).collect::<Vec<_>>(),
@@ -510,7 +552,7 @@ pub fn encrypt_aes(payload: Uint8Array, recipients: Vec<JWK>) -> Result<Object, 
 ///
 /// You may acquire X25519 JWK values using the `toX25519PublicJWK` method on the keypair structs.
 #[wasm_bindgen(js_name = "encryptChaCha20")]
-pub fn encrypt_chacha20(payload: Uint8Array, recipients: Vec<JWK>) -> Result<Object, JsError> {
+pub fn encrypt_chacha20(payload: Uint8Array, recipients: Vec<JWK>) -> Result<Jwe, JsError> {
     let jwe = teddybear_jwe::encrypt::<XC20P>(
         &payload.to_vec(),
         &recipients.iter().map(|val| &val.0).collect::<Vec<_>>(),
