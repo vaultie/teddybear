@@ -1,10 +1,10 @@
 {
   cjs,
-  fetchYarnDeps,
   src,
   stdenvNoCC,
+  fetchYarnDeps,
+  fixup-yarn-lock,
   nodejs-slim,
-  prefetch-yarn-deps,
   yarn,
   yarnLockHash,
 }:
@@ -22,7 +22,7 @@ stdenvNoCC.mkDerivation {
   nativeBuildInputs = [
     nodejs-slim
     yarn
-    prefetch-yarn-deps
+    fixup-yarn-lock
   ];
 
   postPatch = ''
