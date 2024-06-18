@@ -1,6 +1,10 @@
 import { PrivateEd25519, verifyJWS } from '@vaultie/teddybear-node'
 import { CompactSign, JWK, compactVerify, exportJWK, generateKeyPair, importJWK } from 'jose'
 import { describe, it, expect } from 'vitest'
+import { randomBytes } from 'node:crypto';
+
+// @ts-expect-error Library without TS definitions
+import { Ed25519VerificationKey2020 } from '@digitalbazaar/ed25519-verification-key-2020'
 
 describe('can execute common private key operations', () => {
   it('can generate a new key', async () => await PrivateEd25519.generate())
@@ -77,5 +81,17 @@ describe('can execute common private key operations', () => {
 
   it('can reject invalid JWS values', async () => {
     expect(() => verifyJWS('123')).toThrow()
+  })
+
+  it('can restore the private key from seed', async () => {
+    const seed = new Uint8Array(randomBytes(32));
+
+    const thirdPartyKey = await Ed25519VerificationKey2020.generate({ seed })
+    const thirdPartyDid = `did:key:${thirdPartyKey.fingerprint()}`;
+
+    const key = await PrivateEd25519.fromBytes(seed);
+    const did = key.documentDID();
+
+    expect(thirdPartyDid).toStrictEqual(did)
   })
 })

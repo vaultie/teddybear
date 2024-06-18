@@ -68,21 +68,19 @@ impl Ed25519<Private> {
 
         let key = SigningKey::try_from(&*private_key.ok_or(Error::MissingPrivateKey)?.0)?;
 
-        let (document, ed25519, mut x25519) = Ed25519::<()>::parts_from_jwk(jwk).await?;
+        Self::from_signing_key(key, jwk).await
+    }
 
-        match &mut x25519.jwk.params {
-            Params::OKP(okp) => {
-                okp.private_key = Some(Base64urlUInt(key.to_scalar_bytes().to_vec()))
-            }
-            _ => unreachable!("X25519 keys should always have OKP params"),
-        }
+    pub async fn from_bytes(value: [u8; 32]) -> Result<Self, Error> {
+        let key = SigningKey::from_bytes(&value);
 
-        Ok(Self {
-            document,
-            ed25519,
-            x25519,
-            __type: PhantomData,
-        })
+        let jwk = JWK::from(Params::OKP(OctetParams {
+            curve: "Ed25519".to_string(),
+            public_key: Base64urlUInt(key.verifying_key().as_bytes().to_vec()),
+            private_key: Some(Base64urlUInt(value.to_vec())),
+        }));
+
+        Self::from_signing_key(key, jwk).await
     }
 
     #[inline]
@@ -109,6 +107,24 @@ impl Ed25519<Private> {
     #[inline]
     pub fn as_x25519_private_jwk(&self) -> &JWK {
         &self.x25519.jwk
+    }
+
+    async fn from_signing_key(key: SigningKey, jwk: JWK) -> Result<Self, Error> {
+        let (document, ed25519, mut x25519) = Ed25519::<()>::parts_from_jwk(jwk).await?;
+
+        match &mut x25519.jwk.params {
+            Params::OKP(okp) => {
+                okp.private_key = Some(Base64urlUInt(key.to_scalar_bytes().to_vec()))
+            }
+            _ => unreachable!("X25519 keys should always have OKP params"),
+        }
+
+        Ok(Self {
+            document,
+            ed25519,
+            x25519,
+            __type: PhantomData,
+        })
     }
 }
 

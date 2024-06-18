@@ -197,6 +197,14 @@ impl PrivateEd25519 {
         Ok(PrivateEd25519(Ed25519::from_private_jwk(jwk.0).await?))
     }
 
+    /// Convert private key bytes into a public/private Ed25519 keypair.
+    #[wasm_bindgen(js_name = "fromBytes")]
+    pub async fn from_bytes(value: Uint8Array) -> Result<PrivateEd25519, JsError> {
+        let mut dst = [0; 32];
+        value.copy_to(&mut dst);
+        Ok(PrivateEd25519(Ed25519::from_bytes(dst).await?))
+    }
+
     /// Get the JWK value (with the private key) of the Ed25519 key within the current keypair.
     #[wasm_bindgen(js_name = "toEd25519PrivateJWK")]
     pub fn to_ed25519_private_jwk(&self) -> JWK {
