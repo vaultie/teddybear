@@ -121,15 +121,15 @@
           buildForNode = true;
         };
       in {
-        devShells.default = pkgs.mkShell {
-          buildInputs = [
-            rustToolchain
-            pkgs.cargo-edit
+        devShells = {
+          default = pkgs.mkShell {
+            buildInputs = [rustToolchain pkgs.nodejs pkgs.yarn];
+            inputsFrom = [esm];
+          };
 
-            pkgs.nodejs
-            pkgs.yarn
-          ];
-          inputsFrom = [esm];
+          ci = pkgs.mkShell {
+            buildInputs = [rustToolchain pkgs.cargo-edit];
+          };
         };
 
         packages = {
