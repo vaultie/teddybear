@@ -8,7 +8,7 @@ on:
 
 jobs:
   generate-documentation:
-    if: github.event.pull_request.merged && startsWith(github.event.pull_request.head.ref, "bump-")
+    if: ${{ github.event.pull_request.merged && startsWith(github.event.pull_request.head.ref, 'bump-') }}
     name: Generate and publish documentation
     runs-on: ubuntu-latest
     permissions:
@@ -39,7 +39,7 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
   build-and-publish:
-    if: github.event.pull_request.merged && startsWith(github.event.pull_request.head.ref, "bump-")
+    if: ${{ github.event.pull_request.merged && startsWith(github.event.pull_request.head.ref, 'bump-') }}
     name: Build and publish ${{ matrix.package }}
     runs-on: ubuntu-latest
     strategy:
