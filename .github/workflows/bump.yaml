@@ -25,7 +25,7 @@ jobs:
           restore-prefixes-first-match: nix-${{ runner.os }}-
           gc-max-store-size: 2684354560 # 2.5 GB
       - name: Bump version
-        run: nix develop --command cargo set-version ${{ inputs.version }}
+        run: nix develop .#ci --command cargo set-version ${{ inputs.version }}
       - name: Create PR
         uses: peter-evans/create-pull-request@v6
         with:
