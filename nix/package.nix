@@ -4,6 +4,7 @@
   binaryen,
   wasmArgs,
   wasmCargoArtifacts,
+  wabt,
   wasm-bindgen-cli,
   wasm-pack,
   # FIXME: Unify two separate packages into one.
@@ -20,6 +21,7 @@ in
 
       nativeBuildInputs = [
         binaryen
+        wabt
         wasm-bindgen-cli
         wasm-pack
       ];
@@ -33,9 +35,13 @@ in
           --out-name index \
           --target ${target} \
           --release
+
+        wasm-strip crates/teddybear-js/build/index_bg.wasm
       '';
 
-      doCheck = false;
+      checkPhaseCargoCommand = ''
+        wasm-validate crates/teddybear-js/build/index_bg.wasm
+      '';
 
       doInstallCargoArtifacts = false;
 

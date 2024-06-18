@@ -154,7 +154,7 @@
               ];
             };
 
-            yarnLockHash = "sha256-Jy0eHVrn8A6Qardt9BnMiwRHKVEkgDbKxygb2r8+VVI=";
+            yarnLockHash = "sha256-AE13eTQkwPvlMb4csouxjfwxbjSyDMkFwS5NQZjDG4M=";
           };
 
           test = craneLib.cargoTest (nativeArgs
