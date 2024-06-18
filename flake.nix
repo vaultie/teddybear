@@ -122,7 +122,13 @@
         };
       in {
         devShells.default = pkgs.mkShell {
-          buildInputs = [rustToolchain pkgs.nodejs pkgs.yarn];
+          buildInputs = [
+            rustToolchain
+            pkgs.cargo-edit
+
+            pkgs.nodejs
+            pkgs.yarn
+          ];
           inputsFrom = [esm];
         };
 
