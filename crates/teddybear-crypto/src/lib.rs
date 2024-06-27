@@ -1,12 +1,15 @@
-use std::marker::PhantomData;
+use std::{borrow::Cow, marker::PhantomData, sync::Arc};
 
 use ed25519_dalek::SigningKey;
-use ssi_dids::{did_resolve::easy_resolve, DIDMethod, Document, Source, VerificationMethod};
+use ssi_dids_core::{
+    document::DIDVerificationMethod, method_resolver::VerificationMethodDIDResolver,
+    resolution::Options, DIDResolver, Document, Unexpected, DID,
+};
 use ssi_jwk::{Algorithm, Base64urlUInt, OctetParams, Params};
 use ssi_jws::{
-    decode_jws_parts, decode_verify, encode_sign_custom_header, split_jws, verify_bytes,
-    DecodedJWS, Header,
+    decode_jws_parts, decode_verify, encode_sign_custom_header, split_jws, verify_bytes, Header,
 };
+use ssi_verification_methods::{Ed25519VerificationKey2020, MethodWithSecret, Signer};
 use thiserror::Error;
 
 pub use ssi_jwk::JWK;
@@ -30,7 +33,10 @@ pub enum Error {
     MultibaseError(#[from] multibase::Error),
 
     #[error(transparent)]
-    DidResolve(#[from] ssi_dids::Error),
+    InvalidDid(#[from] Unexpected),
+
+    #[error(transparent)]
+    DidResolve(#[from] ssi_dids_core::resolution::Error),
 }
 
 #[derive(Clone, Debug)]
@@ -141,19 +147,29 @@ impl Ed25519<Public> {
     }
 
     pub async fn from_did(did: &str) -> Result<Self, Error> {
-        let document = easy_resolve(did, &DidKey).await?;
+        let did = DID::new(did).map_err(|e| e.1)?;
+
+        let document = VerificationMethodDIDResolver::<_, Ed25519VerificationKey2020>::new(DidKey)
+            .resolve_with(did, Options::default())
+            .await?
+            .document
+            .into_document();
 
         let ed25519 = extract_key_info(
             String::from("Ed25519"),
-            &document,
-            first_verification_method(document.verification_method.as_deref())
+            document
+                .verification_method
+                .first()
                 .expect("teddybear-did-key should provide at least one ed25519 key"),
         )?;
 
         let x25519 = extract_key_info(
             String::from("X25519"),
-            &document,
-            first_verification_method(document.key_agreement.as_deref())
+            document
+                .verification_relationships
+                .key_agreement
+                .first()
+                .and_then(|val| val.as_value())
                 .expect("teddybear-did-key should provide at least one x25519 key"),
         )?;
 
@@ -207,23 +223,33 @@ impl<T> Ed25519<T> {
 
     async fn parts_from_jwk(mut jwk: JWK) -> Result<(Document, KeyInfo, KeyInfo), Error> {
         let did = DidKey
-            .generate(&Source::Key(&jwk))
+            .generate(&jwk)
             .expect("ed25519 key should produce a correct did document");
 
-        let document = easy_resolve(&did, &DidKey).await?;
+        let document = VerificationMethodDIDResolver::<_, Ed25519VerificationKey2020>::new(DidKey)
+            .resolve_with(did.as_did(), Options::default())
+            .await?
+            .document
+            .into_document();
 
         jwk.key_id = Some(
-            first_verification_method(document.verification_method.as_deref())
+            document
+                .verification_method
+                .first()
                 .expect("at least one key is expected")
-                .get_id(&document.id),
+                .id
+                .to_string(),
         );
         jwk.algorithm = Some(Algorithm::EdDSA);
 
         let x25519 = extract_key_info(
             String::from("X25519"),
-            &document,
-            first_verification_method(document.key_agreement.as_deref())
-                .expect("at least one key is expected"),
+            document
+                .verification_relationships
+                .key_agreement
+                .first()
+                .and_then(|val| val.as_value())
+                .expect("teddybear-did-key should provide at least one x25519 key"),
         )?;
 
         Ok((document, KeyInfo { jwk }, x25519))
@@ -242,6 +268,24 @@ impl<T> PartialEq<JWK> for Ed25519<T> {
     }
 }
 
+impl Signer<Ed25519VerificationKey2020> for Ed25519<Private> {
+    type MessageSigner = MethodWithSecret<Ed25519VerificationKey2020, JWK>;
+
+    async fn for_method(
+        &self,
+        method: Cow<'_, Ed25519VerificationKey2020>,
+    ) -> Option<Self::MessageSigner> {
+        if method.id.as_str() != self.ed25519_did() {
+            return None;
+        }
+
+        Some(MethodWithSecret::new(
+            method.into_owned(),
+            Arc::new(self.ed25519.jwk.clone()),
+        ))
+    }
+}
+
 #[inline]
 pub fn verify_jws(jws: &str, key: &JWK) -> Result<Vec<u8>, Error> {
     Ok(decode_verify(jws, key)?.1)
@@ -251,36 +295,26 @@ pub fn verify_jws(jws: &str, key: &JWK) -> Result<Vec<u8>, Error> {
 pub fn verify_jws_with_embedded_jwk(jws: &str) -> Result<(JWK, Vec<u8>), Error> {
     let (header_b64, payload_enc, signature_b64) = split_jws(jws)?;
 
-    let DecodedJWS {
-        header,
-        signing_input,
-        payload,
-        signature,
-    } = decode_jws_parts(header_b64, payload_enc.as_bytes(), signature_b64)?;
+    let (jws, signing_bytes) = decode_jws_parts(header_b64, payload_enc.as_bytes(), signature_b64)?
+        .into_jws_and_signing_bytes();
 
-    let key = header.jwk.ok_or(ssi_jws::Error::InvalidSignature)?;
+    let key = jws.header.jwk.ok_or(ssi_jws::Error::InvalidJWS)?;
 
-    verify_bytes(header.algorithm, &signing_input, &key, &signature)?;
+    verify_bytes(jws.header.algorithm, &signing_bytes, &key, &jws.signature)?;
 
-    Ok((key, payload))
+    Ok((key, jws.payload))
 }
 
 #[inline]
 fn extract_key_info(
     curve: String,
-    document: &Document,
-    verification_method: &VerificationMethod,
+    verification_method: &DIDVerificationMethod,
 ) -> Result<KeyInfo, Error> {
-    let id = verification_method.get_id(&document.id);
-
-    let public_key_multibase = match verification_method {
-        VerificationMethod::Map(map) => map
-            .property_set
-            .as_ref()
-            .and_then(|val| val.get("publicKeyMultibase").and_then(|val| val.as_str()))
-            .expect("publicKeyMultibase should always be present"),
-        _ => unreachable!(),
-    };
+    let public_key_multibase = verification_method
+        .properties
+        .get("publicKeyMultibase")
+        .and_then(|val| val.as_str())
+        .expect("publicKeyMultibase should always be present");
 
     let public_key = multibase::decode(public_key_multibase)?.1;
 
@@ -290,15 +324,8 @@ fn extract_key_info(
         private_key: None,
     }));
 
-    jwk.key_id = Some(id);
+    jwk.key_id = Some(verification_method.id.to_string());
     jwk.algorithm = Some(Algorithm::EdDSA);
 
     Ok(KeyInfo { jwk })
-}
-
-#[inline]
-fn first_verification_method(
-    verification_methods: Option<&[VerificationMethod]>,
-) -> Option<&VerificationMethod> {
-    verification_methods.and_then(|methods| methods.first())
 }

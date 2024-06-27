@@ -129,18 +129,14 @@ use std::collections::HashMap;
 
 use js_sys::{Object, Uint8Array};
 use serde::Serialize;
-use serde_json::json;
 use serde_wasm_bindgen::Serializer;
 use teddybear_crypto::{Ed25519, Private, Public, JWK as InnerJWK};
 use teddybear_jwe::{add_recipient, decrypt, A256Gcm, XC20P};
-use teddybear_status_list::{
-    credential::{BitstringStatusListCredentialSubject, StatusPurpose},
-    StatusList,
-};
 use wasm_bindgen::prelude::*;
 
 use teddybear_vc::{
-    issue_vc, issue_vp, verify_credential, verify_presentation, ContextLoader as InnerContextLoader,
+    issue_vc, present_vp, verify, ContextLoader as InnerContextLoader, JsonCredential,
+    JsonPresentation, DI,
 };
 
 const OBJECT_SERIALIZER: Serializer = Serializer::new().serialize_maps_as_objects(true);
@@ -308,9 +304,11 @@ impl PrivateEd25519 {
         vc: Object,
         context_loader: &mut ContextLoader,
     ) -> Result<Object, JsError> {
-        let mut credential = serde_wasm_bindgen::from_value(vc.into())?;
-        issue_vc(&self.0, &mut credential, &mut context_loader.0).await?;
-        Ok(credential.serialize(&OBJECT_SERIALIZER)?.into())
+        let credential = serde_wasm_bindgen::from_value(vc.into())?;
+        Ok(issue_vc(&self.0, &credential, &mut context_loader.0)
+            .await?
+            .serialize(&OBJECT_SERIALIZER)?
+            .into())
     }
 
     /// Create a new verifiable presentation.
@@ -325,16 +323,17 @@ impl PrivateEd25519 {
         domain: Option<String>,
         challenge: Option<String>,
     ) -> Result<Object, JsError> {
-        let mut presentation = serde_wasm_bindgen::from_value(vp.into())?;
-        issue_vp(
+        let presentation = serde_wasm_bindgen::from_value(vp.into())?;
+        Ok(present_vp(
             &self.0,
-            &mut presentation,
+            &presentation,
             domain,
             challenge,
             &mut context_loader.0,
         )
-        .await?;
-        Ok(presentation.serialize(&OBJECT_SERIALIZER)?.into())
+        .await?
+        .serialize(&OBJECT_SERIALIZER)?
+        .into())
     }
 }
 
@@ -398,19 +397,6 @@ impl PublicEd25519 {
     }
 }
 
-/// Verify the provided verifiable credential.
-///
-/// See the `ErrorBag` documentation for more details on how to handle errors
-/// that may occur during the validation process.
-#[wasm_bindgen(js_name = "verifyCredential")]
-pub async fn js_verify_credential(
-    document: Object,
-    context_loader: &mut ContextLoader,
-) -> Result<(), JsError> {
-    let credential = serde_wasm_bindgen::from_value(document.into())?;
-    Ok(verify_credential(&credential, &mut context_loader.0).await?)
-}
-
 #[wasm_bindgen]
 pub struct ContextLoader(InnerContextLoader);
 
@@ -433,13 +419,13 @@ impl ContextLoader {
 }
 
 #[wasm_bindgen]
-pub struct PresentationVerificationResult {
+pub struct VerificationResult {
     key: PublicEd25519,
     challenge: Option<String>,
 }
 
 #[wasm_bindgen]
-impl PresentationVerificationResult {
+impl VerificationResult {
     pub fn key(self) -> PublicEd25519 {
         self.key
     }
@@ -449,20 +435,33 @@ impl PresentationVerificationResult {
     }
 }
 
-/// Verify the provided verifiable presentation against the current keypair.
-///
-/// See the `ErrorBag` documentation for more details on how to handle errors
-/// that may occur during the validation process.
+/// Verify the provided verifiable credential.
+#[wasm_bindgen(js_name = "verifyCredential")]
+pub async fn js_verify_credential(
+    document: Object,
+    context_loader: &mut ContextLoader,
+) -> Result<VerificationResult, JsError> {
+    let credential: DI<JsonCredential> = serde_wasm_bindgen::from_value(document.into())?;
+
+    let (key, challenge) = verify(&credential, &mut context_loader.0).await?;
+
+    Ok(VerificationResult {
+        key: PublicEd25519(key),
+        challenge: challenge.map(ToString::to_string),
+    })
+}
+
+/// Verify the provided verifiable presentation.
 #[wasm_bindgen(js_name = "verifyPresentation")]
 pub async fn js_verify_presentation(
     document: Object,
     context_loader: &mut ContextLoader,
-) -> Result<PresentationVerificationResult, JsError> {
-    let presentation = serde_wasm_bindgen::from_value(document.into())?;
+) -> Result<VerificationResult, JsError> {
+    let presentation: DI<JsonPresentation> = serde_wasm_bindgen::from_value(document.into())?;
 
-    let (key, challenge) = verify_presentation(&presentation, &mut context_loader.0).await?;
+    let (key, challenge) = verify(&presentation, &mut context_loader.0).await?;
 
-    Ok(PresentationVerificationResult {
+    Ok(VerificationResult {
         key: PublicEd25519(key),
         challenge: challenge.map(ToString::to_string),
     })
@@ -484,58 +483,6 @@ impl JWK {
     #[wasm_bindgen(js_name = "toJSON")]
     pub fn to_json(&self) -> Result<Object, JsError> {
         Ok(self.0.serialize(&OBJECT_SERIALIZER)?.into())
-    }
-}
-
-/// Encoded W3C-compatible status list credential.
-#[wasm_bindgen]
-pub struct StatusListCredential(StatusList);
-
-#[wasm_bindgen]
-impl StatusListCredential {
-    /// Create new StatusListCredential with all bits set to 0.
-    #[wasm_bindgen(constructor)]
-    pub fn new() -> Self {
-        StatusListCredential(StatusList::default())
-    }
-
-    /// Create new StatusListCredential from a credential subject object.
-    #[wasm_bindgen(js_name = "fromCredentialSubject")]
-    pub fn from_credential_subject(
-        credential_subject: &Object,
-    ) -> Result<StatusListCredential, JsError> {
-        let credential: BitstringStatusListCredentialSubject =
-            serde_wasm_bindgen::from_value(credential_subject.into())?;
-
-        Ok(StatusListCredential(credential.encoded_list))
-    }
-
-    /// Check if a given index is revoked (bit set to 1).
-    #[wasm_bindgen(js_name = "isRevoked")]
-    pub fn is_revoked(&self, idx: usize) -> bool {
-        self.0.is_set(idx)
-    }
-
-    /// Revoke a given index (set bit to 1).
-    pub fn revoke(&mut self, idx: usize) {
-        self.0.set(idx);
-    }
-
-    /// Serialize the current status list as an object.
-    #[wasm_bindgen(js_name = "toJSON")]
-    pub fn to_json(&self) -> Result<Object, JsError> {
-        Ok(json!({
-            "statusPurpose": StatusPurpose::Revocation,
-            "encodedList": self.0,
-        })
-        .serialize(&OBJECT_SERIALIZER)?
-        .into())
-    }
-}
-
-impl Default for StatusListCredential {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
