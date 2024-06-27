@@ -1,69 +1,81 @@
-use std::collections::BTreeMap;
+use std::{array::TryFromSliceError, collections::BTreeMap};
 
-use async_trait::async_trait;
 use ed25519_dalek::VerifyingKey;
-use iref::Iri;
+use iref::IriRef;
 use multibase::Base;
 use serde_json::Value;
-use ssi_dids::{
-    did_resolve::{
-        DIDResolver, DocumentMetadata, ResolutionInputMetadata, ResolutionMetadata,
-        ERROR_INVALID_DID, ERROR_NOT_FOUND,
+use ssi_dids_core::{
+    document::{
+        self,
+        representation::{self, json_ld},
+        verification_method::ValueOrReference,
+        DIDVerificationMethod,
     },
-    Context, Contexts, DIDMethod, Document, Source, VerificationMethod, VerificationMethodMap,
-    DEFAULT_CONTEXT, DIDURL,
+    resolution::{self, Error},
+    DIDBuf, DIDMethod, DIDMethodResolver, DIDURLBuf, Document,
 };
-use ssi_jwk::Params;
-use static_iref::iri;
+use ssi_jwk::{Params, JWK};
+use static_iref::iri_ref;
 
 // https://www.w3.org/community/reports/credentials/CG-FINAL-di-eddsa-2020-20220724/#ed25519verificationkey2020
-const ED25519_CONTEXT: Iri = iri!("https://w3id.org/security/suites/ed25519-2020/v1");
+const ED25519_CONTEXT: &IriRef = iri_ref!("https://w3id.org/security/suites/ed25519-2020/v1");
 const ED25519_TYPE: &str = "Ed25519VerificationKey2020";
 const ED25519_PREFIX: &[u8] = &[0xed, 0x01];
 
-const X25519_CONTEXT: Iri = iri!("https://w3id.org/security/suites/x25519-2020/v1");
+const X25519_CONTEXT: &IriRef = iri_ref!("https://w3id.org/security/suites/x25519-2020/v1");
 const X25519_TYPE: &str = "X25519KeyAgreementKey2020";
 const X25519_PREFIX: &[u8] = &[0xec, 0x01];
 
-macro_rules! bail {
-    ($error:expr) => {
-        return (ResolutionMetadata::from_error($error), None, None)
-    };
-}
-
 pub struct DidKey;
 
-#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
-#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
-impl DIDResolver for DidKey {
-    async fn resolve(
-        &self,
-        did: &str,
-        _: &ResolutionInputMetadata,
-    ) -> (
-        ResolutionMetadata,
-        Option<Document>,
-        Option<DocumentMetadata>,
-    ) {
-        let Some(key) = did.strip_prefix("did:key:") else {
-            bail!(ERROR_INVALID_DID);
-        };
+impl DidKey {
+    pub fn generate(&self, source: &JWK) -> Option<DIDBuf> {
+        match &source.params {
+            Params::OKP(params) if params.curve == "Ed25519" => Some(
+                DIDBuf::from_string(
+                    [
+                        "did:key:",
+                        &multibase::encode(
+                            Base::Base58Btc,
+                            [ED25519_PREFIX, &params.public_key.0].concat(),
+                        ),
+                    ]
+                    .concat(),
+                )
+                .expect("DidKey is expected to generate a valid did"),
+            ),
+            _ => None,
+        }
+    }
+}
 
-        let Ok((_, data)) = multibase::decode(key) else {
-            bail!(ERROR_INVALID_DID);
-        };
+impl DIDMethod for DidKey {
+    const DID_METHOD_NAME: &'static str = "key";
+}
+
+impl DIDMethodResolver for DidKey {
+    async fn resolve_method_representation<'a>(
+        &'a self,
+        key: &'a str,
+        options: resolution::Options,
+    ) -> Result<resolution::Output<Vec<u8>>, Error> {
+        let (_, data) =
+            multibase::decode(key).map_err(|e| Error::InvalidMethodSpecificId(e.to_string()))?;
+
+        if data.len() < 2 {
+            return Err(Error::NotFound);
+        }
 
         let (ED25519_PREFIX, value) = data.split_at(2) else {
-            bail!(ERROR_NOT_FOUND);
+            return Err(Error::NotFound);
         };
 
-        let Ok(bytes) = value.try_into() else {
-            bail!(ERROR_INVALID_DID);
-        };
+        let bytes = value
+            .try_into()
+            .map_err(|e: TryFromSliceError| Error::InvalidMethodSpecificId(e.to_string()))?;
 
-        let Ok(public_key) = VerifyingKey::from_bytes(bytes) else {
-            bail!(ERROR_INVALID_DID)
-        };
+        let public_key = VerifyingKey::from_bytes(bytes)
+            .map_err(|e| Error::InvalidMethodSpecificId(e.to_string()))?;
 
         let x25519_key = public_key.to_montgomery();
         let encoded_x25519 = multibase::encode(
@@ -71,91 +83,56 @@ impl DIDResolver for DidKey {
             [X25519_PREFIX, x25519_key.as_bytes()].concat(),
         );
 
-        let ed25519_url = DIDURL {
-            did: did.to_string(),
-            fragment: Some(key.to_string()),
-            ..Default::default()
-        };
+        let document_did = DIDBuf::from_string(format!("did:key:{}", key))
+            .expect("the provided document did:key string is expected to always be valid");
 
-        let ed25519_url_ref = VerificationMethod::DIDURL(ed25519_url.clone());
+        let ed25519_did = DIDURLBuf::from_string(format!("did:key:{}#{}", key, key))
+            .expect("the provided ed25519 did:key string is expected to always be valid");
 
-        let x25519_url = DIDURL {
-            did: did.to_string(),
-            fragment: Some(encoded_x25519.clone()),
-            ..Default::default()
-        };
+        let x25519_did = DIDURLBuf::from_string(format!("did:key:{}#{}", key, encoded_x25519))
+            .expect("the provided x25519 did:key string is expected to always be valid");
 
-        let doc = Document {
-            context: Contexts::Many(vec![
-                Context::URI(DEFAULT_CONTEXT.into()),
-                Context::URI(ED25519_CONTEXT.into()),
-                Context::URI(X25519_CONTEXT.into()),
-            ]),
-            id: did.to_string(),
-            verification_method: Some(vec![VerificationMethod::Map(VerificationMethodMap {
-                id: ed25519_url.to_string(),
-                type_: ED25519_TYPE.to_string(),
-                controller: did.to_string(),
-                property_set: Some(BTreeMap::from_iter([(
-                    String::from("publicKeyMultibase"),
-                    Value::String(key.to_string()),
-                )])),
-                ..Default::default()
-            })]),
-            authentication: Some(vec![ed25519_url_ref.clone()]),
-            assertion_method: Some(vec![ed25519_url_ref.clone()]),
-            capability_delegation: Some(vec![ed25519_url_ref.clone()]),
-            capability_invocation: Some(vec![ed25519_url_ref]),
-            key_agreement: Some(vec![VerificationMethod::Map(VerificationMethodMap {
-                id: x25519_url.to_string(),
-                type_: X25519_TYPE.to_string(),
-                controller: did.to_string(),
-                property_set: Some(BTreeMap::from_iter([(
+        let mut doc = Document::new(document_did.clone());
+
+        doc.verification_method = vec![DIDVerificationMethod::new(
+            ed25519_did,
+            ED25519_TYPE.to_string(),
+            document_did.clone(),
+            BTreeMap::from_iter([(
+                String::from("publicKeyMultibase"),
+                Value::String(key.to_string()),
+            )]),
+        )];
+
+        doc.verification_relationships.key_agreement =
+            vec![ValueOrReference::Value(DIDVerificationMethod::new(
+                x25519_did,
+                X25519_TYPE.to_string(),
+                document_did,
+                BTreeMap::from_iter([(
                     String::from("publicKeyMultibase"),
                     Value::String(encoded_x25519),
-                )])),
-                ..Default::default()
-            })]),
-            ..Default::default()
-        };
+                )]),
+            ))];
 
-        (
-            ResolutionMetadata::default(),
-            Some(doc),
-            Some(DocumentMetadata::default()),
-        )
-    }
-}
+        let content_type = options.accept.unwrap_or(representation::MediaType::JsonLd);
+        let representation = doc.into_representation(representation::Options::from_media_type(
+            content_type,
+            move || json_ld::Options {
+                context: json_ld::Context::array(
+                    json_ld::DIDContext::V1,
+                    vec![
+                        json_ld::ContextEntry::IriRef(ED25519_CONTEXT.to_owned()),
+                        json_ld::ContextEntry::IriRef(X25519_CONTEXT.to_owned()),
+                    ],
+                ),
+            },
+        ));
 
-#[async_trait]
-impl DIDMethod for DidKey {
-    fn name(&self) -> &'static str {
-        "key"
-    }
-
-    fn to_resolver(&self) -> &dyn DIDResolver {
-        self
-    }
-
-    fn generate(&self, source: &Source) -> Option<String> {
-        let jwk = match source {
-            Source::Key(jwk) => jwk,
-            Source::KeyAndPattern(jwk, "") => jwk,
-            _ => return None,
-        };
-
-        match &jwk.params {
-            Params::OKP(params) if params.curve == "Ed25519" => Some(
-                [
-                    "did:key:",
-                    &multibase::encode(
-                        Base::Base58Btc,
-                        [ED25519_PREFIX, &params.public_key.0].concat(),
-                    ),
-                ]
-                .concat(),
-            ),
-            _ => None,
-        }
+        Ok(resolution::Output::new(
+            representation.to_bytes(),
+            document::Metadata::default(),
+            resolution::Metadata::from_content_type(Some(content_type.to_string())),
+        ))
     }
 }

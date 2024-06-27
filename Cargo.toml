@@ -10,26 +10,27 @@ repository = "https://github.com/vaultie/teddybear"
 categories = ["cryptography", "wasm"]
 
 [workspace.dependencies]
-ssi-dids = { git = "https://github.com/vaultie/ssi", branch = "ssi-jws-features" }
-ssi-json-ld = { git = "https://github.com/vaultie/ssi", branch = "ssi-jws-features" }
-ssi-jwk = { git = "https://github.com/vaultie/ssi", branch = "ssi-jws-features", default-features = false, features = ["ed25519"] }
-ssi-jws = { git = "https://github.com/vaultie/ssi", branch = "ssi-jws-features", default-features = false, features = ["ed25519"] }
-ssi-ldp = { git = "https://github.com/vaultie/ssi", branch = "ssi-jws-features", default-features = false, features = ["ed25519"] }
-ssi-vc = { git = "https://github.com/vaultie/ssi", branch = "ssi-jws-features" }
+ssi-claims = { git = "https://github.com/vaultie/ssi", branch = "ed25519-from-type", features = ["w3c", "ed25519"] }
+ssi-dids-core = { git = "https://github.com/vaultie/ssi", branch = "ed25519-from-type" }
+ssi-json-ld = { git = "https://github.com/vaultie/ssi", branch = "ed25519-from-type" }
+ssi-jwk = { git = "https://github.com/vaultie/ssi", branch = "ed25519-from-type", default-features = false, features = ["ed25519"] }
+ssi-jws = { git = "https://github.com/vaultie/ssi", branch = "ed25519-from-type", default-features = false, features = ["ed25519"] }
+ssi-vc = { git = "https://github.com/vaultie/ssi", branch = "ed25519-from-type" }
+ssi-verification-methods = { git = "https://github.com/vaultie/ssi", branch = "ed25519-from-type", default-features = false, features = ["ed25519"] }
 
 base64 = "0.21.7"
 ed25519-dalek = "2.1.0"
-iref = "2.1.1"
+iref = "3.1.4"
 multibase = { version = "0.9.1", default-features = false }
 serde = { version = "1.0.195", features = ["derive"] }
 serde_json = "1.0.111"
+static-iref = "3.0.0"
 thiserror = "1.0.56"
 tokio = { version = "1.35.1", features = ["macros"] }
 
 teddybear-crypto = { path = "crates/teddybear-crypto" }
 teddybear-did-key = { path = "crates/teddybear-did-key" }
 teddybear-jwe = { path = "crates/teddybear-jwe" }
-teddybear-status-list = { path = "crates/teddybear-status-list" }
 teddybear-vc = { path = "crates/teddybear-vc" }
 
 [profile.release]

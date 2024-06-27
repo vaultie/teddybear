@@ -7,10 +7,12 @@ repository.workspace = true
 categories.workspace = true
 
 [dependencies]
-ed25519-dalek = { workspace = true }
-ssi-dids = { workspace = true }
+ssi-dids-core = { workspace = true }
 ssi-jwk = { workspace = true }
 ssi-jws = { workspace = true }
+ssi-verification-methods = { workspace = true }
+
+ed25519-dalek = { workspace = true }
 teddybear-did-key = { workspace = true }
 multibase = { workspace = true }
 thiserror = { workspace = true }

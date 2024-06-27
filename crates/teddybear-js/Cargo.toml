@@ -15,7 +15,6 @@ wasm-opt = ["--enable-simd", "-Oz"]
 [dependencies]
 teddybear-crypto = { workspace = true }
 teddybear-jwe = { workspace = true }
-teddybear-status-list = { workspace = true }
 teddybear-vc = { workspace = true }
 
 serde = { workspace = true }
