@@ -1,4 +1,4 @@
-import { StatusListCredential } from '@vaultie/teddybear-node'
+import { StatusListCredential } from '@vaultie/teddybear'
 import { describe, expect, it } from 'vitest'
 
 describe('can execute status list operations', () => {

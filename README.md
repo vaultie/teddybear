@@ -16,32 +16,16 @@ Verifiable credentials toolkit for JS-based platforms and Rust.
 
 ## Installation
 
-### Browser
-
 ```sh
 yarn add @vaultie/teddybear
-```
-
-### Node
-
-```sh
-yarn add @vaultie/teddybear-node
 ```
 
 ## Build from source
 
 Ensure that you have Nix installed with flakes support enabled.
 
-### ESM version
-
 ```sh
-nix build .#esm
-```
-
-### CommonJS version
-
-```sh
-nix build .#cjs
+nix build
 ```
 
 ## License

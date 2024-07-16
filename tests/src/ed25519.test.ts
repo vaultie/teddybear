@@ -1,4 +1,4 @@
-import { PrivateEd25519, verifyJWS } from '@vaultie/teddybear-node'
+import { PrivateEd25519, verifyJWS } from '@vaultie/teddybear'
 import { CompactSign, JWK, compactVerify, exportJWK, generateKeyPair, importJWK } from 'jose'
 import { describe, it, expect } from 'vitest'
 import { randomBytes } from 'node:crypto';
