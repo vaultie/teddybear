@@ -137,7 +137,9 @@
         };
 
         packages = {
-          inherit cjs esm uni;
+          inherit cjs esm;
+
+          default = uni;
 
           docs = craneLib.cargoDoc (nativeArgs
             // {
