@@ -1,4 +1,4 @@
-import { ContextLoader } from '@vaultie/teddybear-node'
+import { ContextLoader } from '@vaultie/teddybear'
 import { describe, it } from 'vitest'
 
 describe('can execute verifiable credentials operations', () => {

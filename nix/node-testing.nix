@@ -1,5 +1,4 @@
 {
-  cjs,
   src,
   stdenvNoCC,
   fetchYarnDeps,
@@ -7,10 +6,11 @@
   nodejs-slim,
   yarn,
   yarnLockHash,
+  uni,
 }:
 stdenvNoCC.mkDerivation {
   inherit src;
-  inherit (cjs) version;
+  inherit (uni) version;
 
   pname = "teddybear-tests";
 
@@ -37,8 +37,8 @@ stdenvNoCC.mkDerivation {
     # Teddybear version that is meant to be tested, so we dynamically replace it here.
     #
     # This will only work if Teddybear continues to not require any third-party dependencies.
-    yarn remove @vaultie/teddybear-node
-    yarn add file:${cjs}
+    yarn remove @vaultie/teddybear
+    yarn add file:${uni}
 
     yarn install \
       --offline \

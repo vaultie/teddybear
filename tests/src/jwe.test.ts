@@ -1,4 +1,4 @@
-import { PrivateEd25519, PublicEd25519, encryptAES, encryptChaCha20 } from '@vaultie/teddybear-node'
+import { PrivateEd25519, PublicEd25519, encryptAES, encryptChaCha20 } from '@vaultie/teddybear'
 import { describe, it, expect } from 'vitest'
 
 // @ts-expect-error Library without TS definitions
