@@ -120,6 +120,10 @@
 
           buildForNode = true;
         };
+
+        uni = pkgs.callPackage ./nix/uni.nix {
+          inherit cjs esm;
+        };
       in {
         devShells = {
           default = pkgs.mkShell {
@@ -135,6 +139,8 @@
         packages = {
           inherit cjs esm;
 
+          default = uni;
+
           docs = craneLib.cargoDoc (nativeArgs
             // {
               inherit cargoArtifacts;
@@ -144,10 +150,10 @@
         };
 
         checks = {
-          inherit cjs esm;
+          inherit cjs esm uni;
 
           node = pkgs.callPackage ./nix/node-testing.nix {
-            inherit cjs;
+            inherit uni;
 
             src = nix-filter.lib.filter {
               root = ./tests;
@@ -160,7 +166,7 @@
               ];
             };
 
-            yarnLockHash = "sha256-AE13eTQkwPvlMb4csouxjfwxbjSyDMkFwS5NQZjDG4M=";
+            yarnLockHash = "sha256-7+Etaq5jYvEEBpeGLZfXEq17pWYn4yuShq3MdMiwlvA=";
           };
 
           test = craneLib.cargoTest (nativeArgs

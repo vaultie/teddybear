@@ -7,7 +7,6 @@
   wabt,
   wasm-bindgen-cli,
   wasm-pack,
-  # FIXME: Unify two separate packages into one.
   buildForNode ? false,
 }: let
   target =
@@ -46,8 +45,8 @@ in
       doInstallCargoArtifacts = false;
 
       preInstall = ''
-        sed -i "s/teddybear-js/\@vaultie\/teddybear${lib.optionalString buildForNode "-node"}/g" \
-          crates/teddybear-js/build/package.json
+        substituteInPlace crates/teddybear-js/build/package.json \
+          --replace-fail "teddybear-js" "@vaultie/teddybear${lib.optionalString buildForNode "-node"}"
       '';
 
       installPhaseCommand = ''

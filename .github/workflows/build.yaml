@@ -40,11 +40,8 @@ jobs:
         uses: actions/deploy-pages@v4
   build-and-publish:
     if: ${{ github.event.pull_request.merged && startsWith(github.event.pull_request.head.ref, 'bump-') }}
-    name: Build and publish ${{ matrix.package }}
+    name: Build and publish unified package
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        package: [cjs, esm]
     steps:
       - uses: actions/checkout@v4
       - name: Install Nix
@@ -60,9 +57,9 @@ jobs:
         with:
           node-version: latest
           registry-url: https://registry.npmjs.org
-      - name: Build ${{ matrix.package }} package
-        run: nix build .#${{ matrix.package }}
-      - name: Publish ${{ matrix.package }} package
+      - name: Build unified package
+        run: nix build
+      - name: Publish unified package
         run: npm publish --access public
         working-directory: ./result
         env:
