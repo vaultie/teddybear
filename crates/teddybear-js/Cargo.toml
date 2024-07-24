@@ -13,6 +13,7 @@ crate-type = ["cdylib", "rlib"]
 wasm-opt = ["--enable-simd", "-Oz"]
 
 [dependencies]
+teddybear-c2pa = { workspace = true }
 teddybear-crypto = { workspace = true }
 teddybear-jwe = { workspace = true }
 teddybear-status-list = { workspace = true }

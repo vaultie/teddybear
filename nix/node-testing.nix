@@ -1,6 +1,7 @@
 {
   src,
   stdenvNoCC,
+  fetchurl,
   fetchYarnDeps,
   fixup-yarn-lock,
   nodejs-slim,
@@ -24,6 +25,13 @@ stdenvNoCC.mkDerivation {
     yarn
     fixup-yarn-lock
   ];
+
+  placeholderImage = fetchurl {
+    url = "https://placehold.co/4/jpg";
+    hash = "sha256-2PSe5tyaj6dmakMkZGGJq/HZhCqtvb2KHPFKvEcZkq4=";
+  };
+
+  certificate = ./data/crt.der;
 
   postPatch = ''
     export HOME=$(mktemp -d)
