@@ -27,8 +27,8 @@ stdenvNoCC.mkDerivation {
   ];
 
   placeholderImage = fetchurl {
-    url = "https://placehold.co/4/jpg";
-    hash = "sha256-2PSe5tyaj6dmakMkZGGJq/HZhCqtvb2KHPFKvEcZkq4=";
+    url = "https:/picsum.photos/id/0/200/300";
+    hash = "sha256-tpipFiATKzL4Q7dtB+0wLygdDPoAp5bF6X095Xk++GI=";
   };
 
   certificate = ./data/crt.der;
