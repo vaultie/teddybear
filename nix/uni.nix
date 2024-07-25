@@ -4,11 +4,12 @@
   jq,
   moreutils,
   stdenvNoCC,
+  wabt,
 }:
 stdenvNoCC.mkDerivation {
   inherit (esm) pname version;
 
-  nativeBuildInputs = [jq moreutils];
+  nativeBuildInputs = [jq moreutils wabt];
 
   dontUnpack = true;
 
@@ -50,5 +51,25 @@ stdenvNoCC.mkDerivation {
     cp ${esm}/index_bg.js $out
 
     runHook postInstall
+  '';
+
+  doCheck = true;
+
+  # Check that ESM and CJS WASM blobs are equivalent in everything
+  # when ignoring "__wbindgen_placeholder__" and "./index_bg.js",
+  # which are target-specific.
+  checkPhase = ''
+    runHook preCheck
+
+    wasm2wat ${esm}/index_bg.wasm > esm.wat
+    wasm2wat ${cjs}/index_bg.wasm > cjs.wat
+
+    diff -b \
+      -I "^.*__wbindgen_placeholder__.*$" \
+      -I "^.*\.\/index_bg\.js.*$" \
+      --suppress-common-lines \
+      esm.wat cjs.wat
+
+    runHook postCheck
   '';
 }
