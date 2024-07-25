@@ -3,7 +3,7 @@
   "license": "MIT OR Apache-2.0",
   "scripts": {
     "pretty": "ts-standard --fix \"src/**/*.test.ts\"",
-    "test": "vitest run"
+    "test": "vitest run --reporter=basic"
   },
   "devDependencies": {
     "@types/node": "^20.14.5",

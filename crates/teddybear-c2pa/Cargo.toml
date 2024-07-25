@@ -1,0 +1,11 @@
+[package]
+name = "teddybear-c2pa"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+categories.workspace = true
+
+[dependencies]
+c2pa = { git = "https://github.com/vaultie/c2pa-rs", features = ["unstable_api"] }
+ed25519-dalek = { workspace = true }

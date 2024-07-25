@@ -10,12 +10,12 @@ repository = "https://github.com/vaultie/teddybear"
 categories = ["cryptography", "wasm"]
 
 [workspace.dependencies]
-ssi-dids = { git = "https://github.com/vaultie/ssi", branch = "ssi-jws-features" }
-ssi-json-ld = { git = "https://github.com/vaultie/ssi", branch = "ssi-jws-features" }
-ssi-jwk = { git = "https://github.com/vaultie/ssi", branch = "ssi-jws-features", default-features = false, features = ["ed25519"] }
-ssi-jws = { git = "https://github.com/vaultie/ssi", branch = "ssi-jws-features", default-features = false, features = ["ed25519"] }
-ssi-ldp = { git = "https://github.com/vaultie/ssi", branch = "ssi-jws-features", default-features = false, features = ["ed25519"] }
-ssi-vc = { git = "https://github.com/vaultie/ssi", branch = "ssi-jws-features" }
+ssi-dids = { git = "https://github.com/vaultie/ssi", rev = "7ff8a7713e9394002ccdd23520ac51caf554d7c3" }
+ssi-json-ld = { git = "https://github.com/vaultie/ssi", rev = "7ff8a7713e9394002ccdd23520ac51caf554d7c3" }
+ssi-jwk = { git = "https://github.com/vaultie/ssi", rev = "7ff8a7713e9394002ccdd23520ac51caf554d7c3", default-features = false, features = ["ed25519"] }
+ssi-jws = { git = "https://github.com/vaultie/ssi", rev = "7ff8a7713e9394002ccdd23520ac51caf554d7c3", default-features = false, features = ["ed25519"] }
+ssi-ldp = { git = "https://github.com/vaultie/ssi", rev = "7ff8a7713e9394002ccdd23520ac51caf554d7c3", default-features = false, features = ["ed25519"] }
+ssi-vc = { git = "https://github.com/vaultie/ssi", rev = "7ff8a7713e9394002ccdd23520ac51caf554d7c3" }
 
 base64 = "0.21.7"
 ed25519-dalek = "2.1.0"
@@ -26,6 +26,7 @@ serde_json = "1.0.111"
 thiserror = "1.0.56"
 tokio = { version = "1.35.1", features = ["macros"] }
 
+teddybear-c2pa = { path = "crates/teddybear-c2pa" }
 teddybear-crypto = { path = "crates/teddybear-crypto" }
 teddybear-did-key = { path = "crates/teddybear-did-key" }
 teddybear-jwe = { path = "crates/teddybear-jwe" }
