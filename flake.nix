@@ -141,12 +141,9 @@
 
           default = uni;
 
-          docs = craneLib.cargoDoc (nativeArgs
-            // {
-              inherit cargoArtifacts;
-
-              RUSTDOCFLAGS = "-D warnings";
-            });
+          docs = pkgs.callPackage ./nix/docs.nix {
+            src = uni;
+          };
         };
 
         checks = {
