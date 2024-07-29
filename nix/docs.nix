@@ -1,7 +1,7 @@
 {
   deno,
   stdenvNoCC,
-  src
+  src,
 }:
 stdenvNoCC.mkDerivation {
   inherit src;
