@@ -16,6 +16,6 @@ stdenvNoCC.mkDerivation {
       --html \
       --output="$out" \
       --name="Teddybear" \
-      ${src}/index.d.ts
+      $src/index.d.ts
   '';
 }
