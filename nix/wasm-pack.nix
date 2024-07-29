@@ -1,4 +1,5 @@
 {
+  cmake,
   fetchFromGitHub,
   lib,
   rustPlatform,
@@ -7,17 +8,19 @@
   src = fetchFromGitHub {
     owner = "rustwasm";
     repo = "wasm-pack";
-    rev = "77b8ced6bcaac42376d198c968b46f0d3bdbd359";
-    hash = "sha256-djGVseo907/qLkY78nLfnbQeQ3q05AvZg0ALalFXE+M=";
+    rev = "62ab39cf82ec4d358c1f08f348cd0dc44768f412";
+    hash = "sha256-tShJXrz9HHZVweNjMKi2JuatsORicWdkJzvQmFvFCrw=";
   };
 in
   (wasm-pack.override {inherit rustPlatform;}).overrideAttrs (prev: {
     inherit src;
 
+    version = "0.13.0";
+
     cargoDeps = prev.cargoDeps.overrideAttrs (lib.const {
       inherit src;
 
       name = "${prev.pname}-vendor.tar.gz";
-      outputHash = "sha256-aQdehtSaNtz7BvvOX+XqqfNDbVVa6/1VEPkiPbcqmL4=";
+      outputHash = "sha256-7qPtB1I71DKr58wBk04fSdxOTMdBEeP287XvNR7vjJs=";
     });
   })
