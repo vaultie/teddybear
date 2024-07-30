@@ -17,12 +17,12 @@ stdenvNoCC.mkDerivation {
     runHook preBuild
 
     jq '.files = ["index_bg.js", "index_bg.wasm", "index.cjs", "index.mjs", "index.d.ts"]' \
-      ${esm}/package.json \
-      > package.json
+      ${esm}/package.json > package.json
 
-    jq '.main = "index.cjs"' package.json | sponge package.json
-    jq '.module = "index.mjs"' package.json | sponge package.json
-    jq '.sideEffects = ["./index.js", "./snippets/*"]' package.json | sponge package.json
+    jq '.main = "index.cjs"' package.json \
+      | jq '.module = "index.mjs"' \
+      | jq '.sideEffects = ["./index.cjs", "./index.mjs"]' \
+      | sponge package.json
 
     # CJS
     cp ${cjs}/index.js index.cjs
