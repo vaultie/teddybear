@@ -1,13 +1,13 @@
 {
+  binaryen,
+  buildForNode,
   craneLib,
   lib,
-  binaryen,
+  wabt,
   wasmArgs,
   wasmCargoArtifacts,
-  wabt,
   wasm-bindgen-cli,
   wasm-pack,
-  buildForNode ? false,
 }: let
   target =
     if buildForNode
