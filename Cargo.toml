@@ -3,7 +3,7 @@ members = ["crates/*"]
 resolver = "2"
 
 [workspace.package]
-version = "0.14.4"
+version = "0.14.7"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/vaultie/teddybear"
@@ -28,6 +28,7 @@ static-iref = "3.0.0"
 thiserror = "1.0.56"
 tokio = { version = "1.35.1", features = ["macros"] }
 
+teddybear-c2pa = { path = "crates/teddybear-c2pa" }
 teddybear-crypto = { path = "crates/teddybear-crypto" }
 teddybear-did-key = { path = "crates/teddybear-did-key" }
 teddybear-jwe = { path = "crates/teddybear-jwe" }

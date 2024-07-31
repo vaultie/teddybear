@@ -1,135 +1,14 @@
-//! # Teddybear JS/WASM wrapper.
-//!
-//! `teddybear-js` is a JavaScript/TypeScript library designed to make working with W3C verifiable credentials easier and more accessible.
-//! It provides a collection of tools and utilities to issue, validate and query verifiable credentials, and to execute common cryptographic operations.
-//!
-//! ## Key management
-//!
-//! Teddybear's [`PrivateEd25519`] structure provides a central access point for Ed25519 key management and cryptographic operations.
-//!
-//! It allows you to:
-//! * Generate new key pairs
-//! * Import existing keys from JSON Web Key (JWK) or Decentralized Identifier (DID) formats
-//! * Extract DID values for both Ed25519 and X25519 public keys
-//! * Generate JWKs for Ed25519 and X25519 public and private keys
-//! * Sign JSON Web Signatures (JWS)
-//! * Encrypt and decrypt JSON Web Encryption (JWE) values
-//!
-//! ```ignore
-//! import { PrivateEd25519 } from "@vaultie/teddybear";
-//!
-//! const key = await PrivateEd25519.generate();
-//!
-//! // Extract document DID value
-//! console.log(key.documentDID());
-//!
-//! // Extract public key JWK value
-//! console.log(JSON.stringify(key.toEd25519PublicJWK()));
-//! //          ^^^^^^^^^^^^^^ Important for correct serialization
-//!
-//! // Produce a JWS value
-//! console.log(key.signJWS("Value to sign"));
-//!
-//! // Issue a verifiable credential
-//! // https://www.w3.org/TR/vc-data-model-2.0/#example-usage-of-the-context-property
-//! const credential = {
-//!     "@context": [
-//!         "https://www.w3.org/ns/credentials/v2",
-//!         "https://www.w3.org/ns/credentials/examples/v2"
-//!     ],
-//!     "id": "http://university.example/credentials/58473",
-//!     "type": ["VerifiableCredential", "ExampleAlumniCredential"],
-//!     "issuer": "https://university.example/issuers/565049",
-//!     "issuanceDate": "2024-01-01T00:00:00Z",
-//!     "validFrom": "2024-01-01T00:00:00Z",
-//!     "credentialSubject": {
-//!         "id": "did:example:ebfeb1f712ebc6f1c276e12ec21",
-//!         "alumniOf": {
-//!             "id": "did:example:c276e12ec21ebfeb1f712ebc6f1",
-//!             "name": "Example University"
-//!         }
-//!     }
-//! };
-//!
-//! console.log(await key.issueVC(credential))
-//! ```
-//!
-//! ## JWE encryption and decryption
-//!
-//! Teddybear supports JWE encryption and decryption using X25519 keys.
-//!
-//! Additionally, you can convert Ed25519 keys to X25519 keys, allowing you to publish just a single DID value for both signing and encryption purposes.
-//!
-//! ```ignore
-//! import { PrivateEd25519, PublicEd25519, encryptAES } from "@vaultie/teddybear";
-//!
-//! const firstKey = await PrivateEd25519.generate();
-//! const secondKey = await PublicEd25519.fromDID(
-//!     "did:key:z6MkmpNwNTy4ATx87tZWHqSwNf1ZdeQrBHFWyhtvUwqrt32R"
-//! );
-//!
-//! // Encrypt using recipient public keys.
-//! const jwe = encryptAES(new Uint8Array([0, 1, 2, 3], [
-//!     firstKey.toX25519PublicJWK(),
-//!     secondKey.toX25519PublicJWK(),
-//! ]));
-//!
-//! console.log(jwe);
-//!
-//! // Decrypt using any suitable recipient private key.
-//! console.log(firstKey.decryptAES(jwe));
-//! ```
-//!
-//! ## Revocation/status list
-//!
-//! Teddybear also implements bitstring-encoded [W3C status lists](https://www.w3.org/TR/vc-bitstring-status-list/).
-//!
-//! Status lists can be used to track revoked credentials in a privacy-preserving manner, without disclosing any
-//! details about the credential itself.
-//!
-//! To start, create a new status list (all bits set to 0) and [publish it as a verifiable credential](https://www.w3.org/TR/vc-bitstring-status-list/#example-example-bitstringstatuslistcredential):
-//!
-//! ```ignore
-//! import { StatusListCredential } from "@vaultie/teddybear";
-//!
-//! const statusList = new StatusListCredential();
-//! const partialCredentialSubject = statusList.toJSON();
-//!
-//! // ...
-//! ```
-//!
-//! During credential issuance generate a random index number between 0 and 131072, unique to this new credential:
-//!
-//! ```ignore
-//! const idx = /* credential index */;
-//! ```
-//!
-//! Set this index as a [statusListIndex value](https://www.w3.org/TR/vc-bitstring-status-list/#example-example-statuslistcredential).
-//!
-//! If a situation occurs where you have to revoke a previously issued verifiable credential, set the bit corresponding
-//! to the credential index to 1 (thus revoking the corresponding verifiable credential) and re-publish the updated status list verifiable credential:
-//!
-//! ```ignore
-//! statusList.revoke(idx);
-//! const updatedPartialCredentialSubject = statusList.toJSON();
-//! ```
-//!
-//! Status lists can be queried for the index revocation status:
-//!
-//! ```ignore
-//! console.log(statusList.isRevoked(idx)); // true
-//! ```
-
 // FIXME: https://github.com/rustwasm/wasm-bindgen/issues/3945
 #![allow(clippy::empty_docs)]
 
 extern crate alloc;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, io::Cursor};
 
 use js_sys::{Object, Uint8Array};
 use serde::Serialize;
 use serde_wasm_bindgen::Serializer;
+use teddybear_c2pa::{Ed25519Signer, ManifestDefinition};
 use teddybear_crypto::{Ed25519, Private, Public, JWK as InnerJWK};
 use teddybear_jwe::{add_recipient, decrypt, A256Gcm, XC20P};
 use wasm_bindgen::prelude::*;
@@ -174,6 +53,24 @@ extern "C" {
 
     #[wasm_bindgen(typescript_type = "JWE")]
     pub type Jwe;
+}
+
+#[wasm_bindgen]
+pub struct C2PASignatureResult(Vec<u8>, Vec<u8>);
+
+#[wasm_bindgen(js_class = "C2PASignatureResult")]
+impl C2PASignatureResult {
+    /// Payload with C2PA manifest embedded within.
+    #[wasm_bindgen(getter, js_name = "signedPayload")]
+    pub fn signed_payload(&self) -> Uint8Array {
+        self.0.as_slice().into()
+    }
+
+    /// C2PA manifest value.
+    #[wasm_bindgen(getter)]
+    pub fn manifest(&self) -> Uint8Array {
+        self.1.as_slice().into()
+    }
 }
 
 /// A public/private Ed25519/X25519 keypair.
@@ -334,6 +231,33 @@ impl PrivateEd25519 {
         .await?
         .serialize(&OBJECT_SERIALIZER)?
         .into())
+    }
+
+    #[wasm_bindgen(js_name = "embedC2PAManifest")]
+    pub fn embed_c2pa_manifest(
+        &self,
+        certificate: Uint8Array,
+        source: Uint8Array,
+        format: &str,
+        manifest_definition: Object,
+    ) -> Result<C2PASignatureResult, JsError> {
+        let manifest_definition: ManifestDefinition =
+            serde_wasm_bindgen::from_value(manifest_definition.into())?;
+
+        let mut source = Cursor::new(source.to_vec());
+        let mut dest = source.clone();
+
+        let signer = Ed25519Signer::new(self.0.raw_signing_key().clone(), certificate.to_vec());
+
+        let manifest = teddybear_c2pa::embed_manifest(
+            &mut source,
+            &mut dest,
+            format,
+            manifest_definition,
+            &signer,
+        )?;
+
+        Ok(C2PASignatureResult(dest.into_inner(), manifest))
     }
 }
 

@@ -1,4 +1,4 @@
-use std::{borrow::Cow, marker::PhantomData, sync::Arc};
+use std::{borrow::Cow, sync::Arc};
 
 use ed25519_dalek::SigningKey;
 use ssi_dids_core::{
@@ -44,18 +44,20 @@ pub struct KeyInfo {
     jwk: JWK,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct Public;
 
-#[derive(Copy, Clone, Debug)]
-pub struct Private;
+#[derive(Clone, Debug)]
+pub struct Private {
+    signing_key: SigningKey,
+}
 
 #[derive(Clone, Debug)]
 pub struct Ed25519<T> {
+    raw: T,
     document: Document,
     pub ed25519: KeyInfo,
     pub x25519: KeyInfo,
-    __type: PhantomData<T>,
 }
 
 impl Ed25519<Private> {
@@ -106,6 +108,11 @@ impl Ed25519<Private> {
     }
 
     #[inline]
+    pub fn raw_signing_key(&self) -> &SigningKey {
+        &self.raw.signing_key
+    }
+
+    #[inline]
     pub fn as_ed25519_private_jwk(&self) -> &JWK {
         &self.ed25519.jwk
     }
@@ -115,12 +122,12 @@ impl Ed25519<Private> {
         &self.x25519.jwk
     }
 
-    async fn from_signing_key(key: SigningKey, jwk: JWK) -> Result<Self, Error> {
+    async fn from_signing_key(signing_key: SigningKey, jwk: JWK) -> Result<Self, Error> {
         let (document, ed25519, mut x25519) = Ed25519::<()>::parts_from_jwk(jwk).await?;
 
         match &mut x25519.jwk.params {
             Params::OKP(okp) => {
-                okp.private_key = Some(Base64urlUInt(key.to_scalar_bytes().to_vec()))
+                okp.private_key = Some(Base64urlUInt(signing_key.to_scalar_bytes().to_vec()))
             }
             _ => unreachable!("X25519 keys should always have OKP params"),
         }
@@ -129,7 +136,7 @@ impl Ed25519<Private> {
             document,
             ed25519,
             x25519,
-            __type: PhantomData,
+            raw: Private { signing_key },
         })
     }
 }
@@ -142,7 +149,7 @@ impl Ed25519<Public> {
             document,
             ed25519,
             x25519,
-            __type: PhantomData,
+            raw: Public,
         })
     }
 
@@ -177,7 +184,7 @@ impl Ed25519<Public> {
             document,
             ed25519,
             x25519,
-            __type: PhantomData,
+            raw: Public,
         })
     }
 }

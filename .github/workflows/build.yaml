@@ -1,4 +1,5 @@
 name: "Build and publish"
+
 on:
   pull_request:
     types:
@@ -7,9 +8,9 @@ on:
       - main
 
 jobs:
-  generate-documentation:
+  build-and-publish:
     if: ${{ github.event.pull_request.merged && startsWith(github.event.pull_request.head.ref, 'bump-') }}
-    name: Generate and publish documentation
+    name: Build and publish unified package
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -19,29 +20,6 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install Nix
-        uses: nixbuild/nix-quick-install-action@v28
-      - name: Activate Nix cache
-        uses: nix-community/cache-nix-action@v5
-        with:
-          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', 'flake.lock', '**/Cargo.lock', '**/yarn.lock') }}
-          restore-prefixes-first-match: nix-${{ runner.os }}-
-          gc-max-store-size: 2684354560 # 2.5 GB
-      - name: Build documentation
-        run: nix build .#docs
-      - name: Upload documentation artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./result/share/doc
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-  build-and-publish:
-    if: ${{ github.event.pull_request.merged && startsWith(github.event.pull_request.head.ref, 'bump-') }}
-    name: Build and publish unified package
-    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install Nix
@@ -64,3 +42,12 @@ jobs:
         working-directory: ./result
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
+      - name: Build documentation
+        run: nix build .#docs
+      - name: Upload documentation artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./result
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

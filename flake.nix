@@ -11,6 +11,7 @@
       type = "github";
       owner = "ipetkov";
       repo = "crane";
+      ref = "v0.18.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -97,10 +98,23 @@
 
         cargoArtifacts = craneLib.buildDepsOnly nativeArgs;
 
+        # https://webassembly.org/features
+        # https://github.com/rust-lang/rust/blob/master/compiler/rustc_target/src/target_features.rs#L323-L337
+        enabledWasmFeatures = [
+          "bulk-memory"
+          "mutable-globals"
+          "nontrapping-fptoint"
+          "sign-ext"
+          "simd128"
+        ];
+
         wasmArgs =
           commonArgs
           // {
-            RUSTFLAGS = "-Ctarget-feature=+simd128";
+            RUSTFLAGS = let
+              fmt = pkgs.lib.concatMapStringsSep "," (f: "+${f}") enabledWasmFeatures;
+            in "-C target-feature=${fmt}";
+
             CARGO_BUILD_TARGET = "wasm32-unknown-unknown";
           };
 
@@ -111,15 +125,19 @@
             cargoExtraArgs = "-p teddybear-js --locked";
           });
 
-        esm = pkgs.callPackage ./nix/package.nix {
-          inherit craneLib wasmArgs wasmCargoArtifacts wasm-pack;
-        };
+        mkPackage = buildForNode:
+          pkgs.callPackage ./nix/package.nix {
+            inherit
+              buildForNode
+              craneLib
+              wasmArgs
+              wasmCargoArtifacts
+              wasm-pack
+              ;
+          };
 
-        cjs = pkgs.callPackage ./nix/package.nix {
-          inherit craneLib wasmArgs wasmCargoArtifacts wasm-pack;
-
-          buildForNode = true;
-        };
+        esm = mkPackage false;
+        cjs = mkPackage true;
 
         uni = pkgs.callPackage ./nix/uni.nix {
           inherit cjs esm;
@@ -141,18 +159,15 @@
 
           default = uni;
 
-          docs = craneLib.cargoDoc (nativeArgs
-            // {
-              inherit cargoArtifacts;
-
-              RUSTDOCFLAGS = "-D warnings";
-            });
+          docs = pkgs.callPackage ./nix/docs.nix {
+            src = uni;
+          };
         };
 
         checks = {
           inherit cjs esm uni;
 
-          node = pkgs.callPackage ./nix/node-testing.nix {
+          e2e-test = pkgs.callPackage ./nix/node-testing.nix {
             inherit uni;
 
             src = nix-filter.lib.filter {
@@ -166,10 +181,10 @@
               ];
             };
 
-            yarnLockHash = "sha256-7+Etaq5jYvEEBpeGLZfXEq17pWYn4yuShq3MdMiwlvA=";
+            yarnLockHash = "sha256-LTKJdshmknuSy2hC3SfYRBR5SfDamoMVH+aeC/aKwyA=";
           };
 
-          test = craneLib.cargoTest (nativeArgs
+          unit-test = craneLib.cargoTest (nativeArgs
             // {
               inherit cargoArtifacts;
             });

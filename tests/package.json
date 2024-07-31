@@ -3,7 +3,7 @@
   "license": "MIT OR Apache-2.0",
   "scripts": {
     "pretty": "ts-standard --fix \"src/**/*.test.ts\"",
-    "test": "vitest run"
+    "test": "vitest run --reporter=basic"
   },
   "devDependencies": {
     "@types/node": "^20.14.5",
@@ -15,7 +15,7 @@
     "@digitalbazaar/ed25519-verification-key-2020": "^4.1.0",
     "@digitalbazaar/minimal-cipher": "^5.1.1",
     "@digitalbazaar/x25519-key-agreement-key-2020": "^3.0.1",
-    "@vaultie/teddybear": "^0.14.2",
+    "@vaultie/teddybear": "^0.14.4",
     "jose": "^5.4.1"
   }
 }
