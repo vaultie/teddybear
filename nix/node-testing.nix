@@ -31,6 +31,8 @@ stdenvNoCC.mkDerivation {
     hash = "sha256-tpipFiATKzL4Q7dtB+0wLygdDPoAp5bF6X095Xk++GI=";
   };
 
+  placeholderPdf = ./data/blank.pdf;
+
   certificate = ./data/crt.der;
 
   postPatch = ''
