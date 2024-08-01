@@ -9,7 +9,7 @@ use js_sys::{Object, Uint8Array};
 use serde::Serialize;
 use serde_json::json;
 use serde_wasm_bindgen::Serializer;
-use teddybear_c2pa::{Ed25519Signer, ManifestDefinition};
+use teddybear_c2pa::{signer::Ed25519Signer, Builder, ManifestDefinition};
 use teddybear_crypto::{Ed25519, Private, Public, JWK as InnerJWK};
 use teddybear_jwe::{add_recipient, decrypt, A256Gcm, XC20P};
 use teddybear_status_list::{
@@ -57,24 +57,6 @@ extern "C" {
 
     #[wasm_bindgen(typescript_type = "JWE")]
     pub type Jwe;
-}
-
-#[wasm_bindgen]
-pub struct C2PASignatureResult(Vec<u8>, Vec<u8>);
-
-#[wasm_bindgen(js_class = "C2PASignatureResult")]
-impl C2PASignatureResult {
-    /// Payload with C2PA manifest embedded within.
-    #[wasm_bindgen(getter, js_name = "signedPayload")]
-    pub fn signed_payload(&self) -> Uint8Array {
-        self.0.as_slice().into()
-    }
-
-    /// C2PA manifest value.
-    #[wasm_bindgen(getter)]
-    pub fn manifest(&self) -> Uint8Array {
-        self.1.as_slice().into()
-    }
 }
 
 /// A public/private Ed25519/X25519 keypair.
@@ -232,33 +214,6 @@ impl PrivateEd25519 {
         )
         .await?;
         Ok(presentation.serialize(&OBJECT_SERIALIZER)?.into())
-    }
-
-    #[wasm_bindgen(js_name = "embedC2PAManifest")]
-    pub fn embed_c2pa_manifest(
-        &self,
-        certificate: Uint8Array,
-        source: Uint8Array,
-        format: &str,
-        manifest_definition: Object,
-    ) -> Result<C2PASignatureResult, JsError> {
-        let manifest_definition: ManifestDefinition =
-            serde_wasm_bindgen::from_value(manifest_definition.into())?;
-
-        let mut source = Cursor::new(source.to_vec());
-        let mut dest = source.clone();
-
-        let signer = Ed25519Signer::new(self.0.raw_signing_key().clone(), certificate.to_vec());
-
-        let manifest = teddybear_c2pa::embed_manifest(
-            &mut source,
-            &mut dest,
-            format,
-            manifest_definition,
-            &signer,
-        )?;
-
-        Ok(C2PASignatureResult(dest.into_inner(), manifest))
     }
 }
 
@@ -529,4 +484,79 @@ pub fn verify_jws(jws: &str, key: Option<JWK>) -> Result<JwsVerificationResult, 
     };
 
     Ok(JwsVerificationResult(jwk, payload.as_slice().into()))
+}
+
+#[wasm_bindgen(js_name = "C2PASignatureResult")]
+pub struct C2paSignatureResult(Vec<u8>, Vec<u8>);
+
+#[wasm_bindgen(js_class = "C2PASignatureResult")]
+impl C2paSignatureResult {
+    /// Payload with C2PA manifest embedded within.
+    #[wasm_bindgen(getter, js_name = "signedPayload")]
+    pub fn signed_payload(&self) -> Uint8Array {
+        self.0.as_slice().into()
+    }
+
+    /// C2PA manifest value.
+    #[wasm_bindgen(getter)]
+    pub fn manifest(&self) -> Uint8Array {
+        self.1.as_slice().into()
+    }
+}
+
+#[wasm_bindgen(js_name = "C2PABuilder")]
+pub struct C2paBuilder(Builder);
+
+#[wasm_bindgen(js_class = "C2PABuilder")]
+impl C2paBuilder {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Self {
+        Self(Builder::default())
+    }
+
+    #[wasm_bindgen(js_name = "setThumbnail")]
+    pub fn set_thumbnail(
+        mut self,
+        source: Uint8Array,
+        format: &str,
+    ) -> Result<C2paBuilder, JsError> {
+        let mut source = Cursor::new(source.to_vec());
+        self.0.set_thumbnail(&mut source, format)?;
+        Ok(self)
+    }
+
+    #[wasm_bindgen(js_name = "addResource")]
+    pub fn add_resource(mut self, source: Uint8Array, id: &str) -> Result<C2paBuilder, JsError> {
+        let mut source = Cursor::new(source.to_vec());
+        self.0.add_resource(&mut source, id)?;
+        Ok(self)
+    }
+
+    pub fn sign(
+        self,
+        key: &PrivateEd25519,
+        certificate: Uint8Array,
+        source: Uint8Array,
+        format: &str,
+        definition: Object,
+    ) -> Result<C2paSignatureResult, JsError> {
+        let definition: ManifestDefinition = serde_wasm_bindgen::from_value(definition.into())?;
+
+        let mut source = Cursor::new(source.to_vec());
+        let mut dest = Cursor::new(Vec::new());
+
+        let signer = Ed25519Signer::new(key.0.raw_signing_key().clone(), certificate.to_vec());
+
+        let manifest = self
+            .0
+            .finalize(&mut source, &mut dest, format, definition, &signer)?;
+
+        Ok(C2paSignatureResult(dest.into_inner(), manifest))
+    }
+}
+
+impl Default for C2paBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
 }

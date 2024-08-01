@@ -1,4 +1,4 @@
-import { PrivateEd25519 } from '@vaultie/teddybear'
+import { C2PABuilder, PrivateEd25519 } from '@vaultie/teddybear'
 import { readFileSync } from 'fs'
 import { describe, it } from 'vitest'
 
@@ -13,20 +13,21 @@ describe('can execute C2PA operations', () => {
 
     const key = await PrivateEd25519.fromBytes(new Uint8Array(keyBytes))
 
-    key.embedC2PAManifest(new Uint8Array(certificate), new Uint8Array(image), 'image/jpeg', {
-      title: 'Test Image',
-      assertions: [
-        {
-          label: 'stds.schema-org.CreativeWork',
-          data: {
-            '@context': 'http://schema.org/',
-            '@type': 'CreativeWork',
-            url: 'https://example.com'
-          },
-          kind: 'Json'
-        }
-      ]
-    })
+    new C2PABuilder()
+      .sign(key, new Uint8Array(certificate), new Uint8Array(image), 'image/jpeg', {
+        title: 'Test Image',
+        assertions: [
+          {
+            label: 'stds.schema-org.CreativeWork',
+            data: {
+              '@context': 'http://schema.org/',
+              '@type': 'CreativeWork',
+              url: 'https://example.com'
+            },
+            kind: 'Json'
+          }
+        ]
+      })
   })
 
   it('can sign a PDF file', async () => {
@@ -35,19 +36,20 @@ describe('can execute C2PA operations', () => {
 
     const key = await PrivateEd25519.fromBytes(new Uint8Array(keyBytes))
 
-    key.embedC2PAManifest(new Uint8Array(certificate), new Uint8Array(pdf), 'application/pdf', {
-      title: 'Test PDF',
-      assertions: [
-        {
-          label: 'stds.schema-org.CreativeWork',
-          data: {
-            '@context': 'http://schema.org/',
-            '@type': 'CreativeWork',
-            url: 'https://example.com'
-          },
-          kind: 'Json'
-        }
-      ]
-    })
+    new C2PABuilder()
+      .sign(key, new Uint8Array(certificate), new Uint8Array(pdf), 'application/pdf', {
+        title: 'Test PDF',
+        assertions: [
+          {
+            label: 'stds.schema-org.CreativeWork',
+            data: {
+              '@context': 'http://schema.org/',
+              '@type': 'CreativeWork',
+              url: 'https://example.com'
+            },
+            kind: 'Json'
+          }
+        ]
+      })
   })
 })
