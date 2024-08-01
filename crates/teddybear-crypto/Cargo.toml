@@ -7,6 +7,7 @@ repository.workspace = true
 categories.workspace = true
 
 [dependencies]
+ssi-claims = { workspace = true }
 ssi-dids-core = { workspace = true }
 ssi-jwk = { workspace = true }
 ssi-jws = { workspace = true }

@@ -281,15 +281,15 @@ impl Signer<Ed25519VerificationKey2020> for Ed25519<Private> {
     async fn for_method(
         &self,
         method: Cow<'_, Ed25519VerificationKey2020>,
-    ) -> Option<Self::MessageSigner> {
+    ) -> Result<Option<Self::MessageSigner>, ssi_claims::SignatureError> {
         if method.id.as_str() != self.ed25519_did() {
-            return None;
+            return Ok(None);
         }
 
-        Some(MethodWithSecret::new(
+        Ok(Some(MethodWithSecret::new(
             method.into_owned(),
             Arc::new(self.ed25519.jwk.clone()),
-        ))
+        )))
     }
 }
 

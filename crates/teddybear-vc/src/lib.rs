@@ -2,12 +2,11 @@ mod credential_ref;
 
 use itertools::Itertools;
 use ssi_claims::{
-    chrono::Utc,
     data_integrity::{
         suites::Ed25519Signature2020, CryptographicSuite, DataIntegrity, ProofOptions,
     },
-    Invalid, InvalidClaims, ProofValidationError, SignatureEnvironment, SignatureError, Validate,
-    ValidateProof, VerifiableClaims, VerificationEnvironment,
+    Invalid, InvalidClaims, ProofValidationError, SignatureEnvironment, SignatureError,
+    ValidateClaims, ValidateProof, VerifiableClaims, VerificationParameters,
 };
 use ssi_dids_core::VerificationMethodDIDResolver;
 use ssi_vc::v2::{Credential, Presentation};
@@ -20,6 +19,11 @@ pub use ssi_vc::v2::syntax::{JsonCredential, JsonPresentation};
 use crate::credential_ref::CredentialRef;
 
 pub type DI<V> = DataIntegrity<V, Ed25519Signature2020>;
+
+type CustomResolver = VerificationMethodDIDResolver<DidKey, Ed25519VerificationKey2020>;
+
+type CustomVerificationParameters<'a> =
+    VerificationParameters<CustomResolver, &'a mut ContextLoader>;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -47,9 +51,12 @@ pub async fn issue_vc<'a>(
     credential: &'a JsonCredential,
     context_loader: &mut ContextLoader,
 ) -> Result<SignedEd25519Credential<'a>, Error> {
-    credential.validate_credential(&())?;
+    let resolver = CustomResolver::new(DidKey);
 
-    let resolver = VerificationMethodDIDResolver::<_, Ed25519VerificationKey2020>::new(DidKey);
+    let params = VerificationParameters::<&CustomResolver, _, _>::from_resolver(&resolver)
+        .with_json_ld_loader(&context_loader);
+
+    credential.validate_credential(&params)?;
 
     Ok(Ed25519Signature2020
         .sign_with(
@@ -60,9 +67,8 @@ pub async fn issue_vc<'a>(
             CredentialRef(credential),
             resolver,
             key,
-            ProofOptions {
-                ..Default::default()
-            },
+            ProofOptions::default(),
+            (),
         )
         .await?)
 }
@@ -77,11 +83,16 @@ pub async fn present_vp<'a>(
     challenge: Option<String>,
     context_loader: &mut ContextLoader,
 ) -> Result<SignedEd25519Presentation<'a>, Error> {
+    let resolver = CustomResolver::new(DidKey);
+
+    let params = VerificationParameters::<&CustomResolver, _, _>::from_resolver(&resolver)
+        .with_json_ld_loader(&context_loader);
+
     for vc in presentation.verifiable_credentials() {
-        vc.validate_credential(&())?;
+        vc.validate_credential(&params)?;
     }
 
-    let resolver = VerificationMethodDIDResolver::<_, Ed25519VerificationKey2020>::new(DidKey);
+    let resolver = CustomResolver::new(DidKey);
 
     Ok(Ed25519Signature2020
         .sign_with(
@@ -98,11 +109,10 @@ pub async fn present_vp<'a>(
                 challenge,
                 ..Default::default()
             },
+            (),
         )
         .await?)
 }
-
-type CustomVerificationEnvironment<'a> = VerificationEnvironment<&'a mut ContextLoader>;
 
 pub async fn verify<'a, 'b, V>(
     value: &'a DI<V>,
@@ -110,25 +120,16 @@ pub async fn verify<'a, 'b, V>(
 ) -> Result<(Ed25519<Public>, Option<&'a str>), Error>
 where
     <DI<V> as VerifiableClaims>::Claims:
-        Validate<CustomVerificationEnvironment<'b>, <DI<V> as VerifiableClaims>::Proof>,
-    <DI<V> as VerifiableClaims>::Proof: ValidateProof<
-        <DI<V> as VerifiableClaims>::Claims,
-        CustomVerificationEnvironment<'b>,
-        VerificationMethodDIDResolver<DidKey, Ed25519VerificationKey2020>,
-    >,
+        ValidateClaims<CustomVerificationParameters<'b>, <DI<V> as VerifiableClaims>::Proof>,
+    <DI<V> as VerifiableClaims>::Proof:
+        ValidateProof<CustomVerificationParameters<'b>, <DI<V> as VerifiableClaims>::Claims>,
 {
-    let verifier = VerificationMethodDIDResolver::<_, Ed25519VerificationKey2020>::new(DidKey);
+    let resolver = CustomResolver::new(DidKey);
 
-    value
-        .verify_with(
-            &verifier,
-            VerificationEnvironment {
-                date_time: Utc::now(),
-                json_ld_loader: context_loader,
-                eip712_loader: (),
-            },
-        )
-        .await??;
+    let params =
+        VerificationParameters::from_resolver(resolver).with_json_ld_loader(context_loader);
+
+    value.verify(params).await??;
 
     let proof = value
         .proof()
