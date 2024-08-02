@@ -13,7 +13,7 @@ ssi-json-ld = { workspace = true }
 ssi-vc = { workspace = true }
 ssi-verification-methods = { workspace = true }
 
-itertools = "0.13.0"
+itertools = { workspace = true }
 serde = { workspace = true }
 teddybear-crypto = { workspace = true }
 thiserror = { workspace = true }

@@ -21,6 +21,7 @@ ssi-verification-methods = { git = "https://github.com/vaultie/ssi", default-fea
 base64 = "0.22.1"
 ed25519-dalek = "2.1.0"
 iref = "3.1.4"
+itertools = "0.13.0"
 multibase = { version = "0.9.1", default-features = false }
 serde = { version = "1.0.195", features = ["derive"] }
 serde_json = "1.0.111"
