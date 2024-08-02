@@ -515,6 +515,12 @@ impl C2paBuilder {
         Self(Builder::default())
     }
 
+    #[wasm_bindgen(js_name = "setManifestDefinition")]
+    pub fn set_manifest_definition(mut self, definition: Object) -> Result<C2paBuilder, JsError> {
+        self.0.definition = serde_wasm_bindgen::from_value(definition.into())?;
+        Ok(self)
+    }
+
     #[wasm_bindgen(js_name = "setThumbnail")]
     pub fn set_thumbnail(
         mut self,
@@ -539,10 +545,7 @@ impl C2paBuilder {
         certificate: Uint8Array,
         source: Uint8Array,
         format: &str,
-        definition: Object,
     ) -> Result<C2paSignatureResult, JsError> {
-        self.0.definition = serde_wasm_bindgen::from_value(definition.into())?;
-
         let mut source = Cursor::new(source.to_vec());
         let mut dest = Cursor::new(Vec::new());
 

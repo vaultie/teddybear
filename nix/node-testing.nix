@@ -1,10 +1,10 @@
 {
-  src,
-  stdenvNoCC,
   fetchurl,
   fetchYarnDeps,
   fixup-yarn-lock,
   nodejs-slim,
+  src,
+  stdenvNoCC,
   yarn,
   yarnLockHash,
   uni,
@@ -29,6 +29,11 @@ stdenvNoCC.mkDerivation {
   placeholderImage = fetchurl {
     url = "https:/picsum.photos/id/0/200/300";
     hash = "sha256-tpipFiATKzL4Q7dtB+0wLygdDPoAp5bF6X095Xk++GI=";
+  };
+
+  thumbnailImage = fetchurl {
+    url = "https:/picsum.photos/id/1/128/128";
+    hash = "sha256-8KIDrMuw8PYGyMGSYvK6JF4t/MJhWhrwmyRgbY0Qre8=";
   };
 
   placeholderPdf = ./data/blank.pdf;

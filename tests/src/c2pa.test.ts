@@ -3,6 +3,7 @@ import { readFileSync } from 'fs'
 import { describe, expect, it } from 'vitest'
 
 const image = readFileSync(process.env.placeholderImage!)
+const thumbnail = readFileSync(process.env.thumbnailImage!)
 const pdf = readFileSync(process.env.placeholderPdf!)
 const certificate = readFileSync(process.env.certificate!)
 
@@ -14,7 +15,7 @@ describe('can execute C2PA operations', () => {
     const key = await PrivateEd25519.fromBytes(new Uint8Array(keyBytes))
 
     const { signedPayload } = new C2PABuilder()
-      .sign(key, new Uint8Array(certificate), new Uint8Array(image), 'image/jpeg', {
+      .setManifestDefinition({
         title: 'Test Image',
         assertions: [
           {
@@ -28,6 +29,7 @@ describe('can execute C2PA operations', () => {
           }
         ]
       })
+      .sign(key, new Uint8Array(certificate), new Uint8Array(image), 'image/jpeg')
 
     const { validationErrors } = verifyC2PA(signedPayload, 'image/jpeg')
 
@@ -41,7 +43,7 @@ describe('can execute C2PA operations', () => {
     const key = await PrivateEd25519.fromBytes(new Uint8Array(keyBytes))
 
     const { signedPayload } = new C2PABuilder()
-      .sign(key, new Uint8Array(certificate), new Uint8Array(pdf), 'application/pdf', {
+      .setManifestDefinition({
         title: 'Test PDF',
         assertions: [
           {
@@ -55,6 +57,8 @@ describe('can execute C2PA operations', () => {
           }
         ]
       })
+      .setThumbnail(new Uint8Array(thumbnail), 'image/jpeg')
+      .sign(key, new Uint8Array(certificate), new Uint8Array(pdf), 'application/pdf')
 
     const { validationErrors } = verifyC2PA(signedPayload, 'application/pdf')
 
@@ -68,7 +72,7 @@ describe('can execute C2PA operations', () => {
     const key = await PrivateEd25519.fromBytes(new Uint8Array(keyBytes))
 
     const { signedPayload } = new C2PABuilder()
-      .sign(key, new Uint8Array(certificate), new Uint8Array(pdf), 'application/pdf', {
+      .setManifestDefinition({
         title: 'Test PDF',
         assertions: [
           {
@@ -82,6 +86,7 @@ describe('can execute C2PA operations', () => {
           }
         ]
       })
+      .sign(key, new Uint8Array(certificate), new Uint8Array(pdf), 'application/pdf')
 
     const { validationErrors } = verifyC2PA(
       signedPayload.fill(123, 500, 600),
