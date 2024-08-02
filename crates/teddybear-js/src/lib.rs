@@ -5,11 +5,12 @@ extern crate alloc;
 
 use std::{collections::HashMap, io::Cursor};
 
+use itertools::Itertools;
 use js_sys::{Object, Uint8Array};
 use serde::Serialize;
 use serde_json::json;
 use serde_wasm_bindgen::Serializer;
-use teddybear_c2pa::{signer::Ed25519Signer, Builder, ManifestDefinition};
+use teddybear_c2pa::{Builder, Ed25519Signer, Reader};
 use teddybear_crypto::{Ed25519, Private, Public, JWK as InnerJWK};
 use teddybear_jwe::{add_recipient, decrypt, A256Gcm, XC20P};
 use teddybear_status_list::{
@@ -521,35 +522,33 @@ impl C2paBuilder {
         format: &str,
     ) -> Result<C2paBuilder, JsError> {
         let mut source = Cursor::new(source.to_vec());
-        self.0.set_thumbnail(&mut source, format)?;
+        self.0.set_thumbnail(format, &mut source)?;
         Ok(self)
     }
 
     #[wasm_bindgen(js_name = "addResource")]
     pub fn add_resource(mut self, source: Uint8Array, id: &str) -> Result<C2paBuilder, JsError> {
         let mut source = Cursor::new(source.to_vec());
-        self.0.add_resource(&mut source, id)?;
+        self.0.add_resource(id, &mut source)?;
         Ok(self)
     }
 
     pub fn sign(
-        self,
+        mut self,
         key: &PrivateEd25519,
         certificate: Uint8Array,
         source: Uint8Array,
         format: &str,
         definition: Object,
     ) -> Result<C2paSignatureResult, JsError> {
-        let definition: ManifestDefinition = serde_wasm_bindgen::from_value(definition.into())?;
+        self.0.definition = serde_wasm_bindgen::from_value(definition.into())?;
 
         let mut source = Cursor::new(source.to_vec());
         let mut dest = Cursor::new(Vec::new());
 
         let signer = Ed25519Signer::new(key.0.raw_signing_key().clone(), certificate.to_vec());
 
-        let manifest = self
-            .0
-            .finalize(&mut source, &mut dest, format, definition, &signer)?;
+        let manifest = self.0.sign(&signer, format, &mut source, &mut dest)?;
 
         Ok(C2paSignatureResult(dest.into_inner(), manifest))
     }
@@ -559,4 +558,77 @@ impl Default for C2paBuilder {
     fn default() -> Self {
         Self::new()
     }
+}
+
+/// C2PA validation error.
+#[derive(Clone)]
+#[wasm_bindgen(js_name = "C2PAValidationError")]
+pub struct C2paValidationError {
+    code: String,
+    url: Option<String>,
+}
+
+#[wasm_bindgen(js_class = "C2PAValidationError")]
+impl C2paValidationError {
+    /// Validation error code.
+    #[wasm_bindgen(getter)]
+    pub fn code(&self) -> String {
+        self.code.clone()
+    }
+
+    /// Related resource URL.
+    #[wasm_bindgen(getter)]
+    pub fn url(&self) -> Option<String> {
+        self.url.clone()
+    }
+}
+
+/// C2PA verification result.
+#[wasm_bindgen(js_name = "C2PAVerificationResult")]
+pub struct C2paVerificationResult {
+    manifests: Vec<Object>,
+    validation_errors: Vec<C2paValidationError>,
+}
+
+#[wasm_bindgen(js_class = "C2PAVerificationResult")]
+impl C2paVerificationResult {
+    /// Embedded C2PA manifests.
+    #[wasm_bindgen(getter)]
+    pub fn manifests(&self) -> Vec<Object> {
+        self.manifests.clone()
+    }
+
+    /// Validation error code.
+    #[wasm_bindgen(getter, js_name = "validationErrors")]
+    pub fn validation_errors(&self) -> Vec<C2paValidationError> {
+        self.validation_errors.clone()
+    }
+}
+
+#[wasm_bindgen(js_name = "verifyC2PA")]
+pub fn verify_c2pa(source: Uint8Array, format: &str) -> Result<C2paVerificationResult, JsError> {
+    let source = Cursor::new(source.to_vec());
+    let reader = Reader::from_stream(format, source)?;
+
+    let validation_errors = reader
+        .validation_status()
+        .unwrap_or(&[])
+        .iter()
+        .filter(|v| !v.passed())
+        .map(|v| C2paValidationError {
+            code: v.code().to_owned(),
+            url: v.url().map(ToOwned::to_owned),
+        })
+        .collect();
+
+    let manifests = reader
+        .iter_manifests()
+        .map(serde_wasm_bindgen::to_value)
+        .map_ok(Into::into)
+        .try_collect()?;
+
+    Ok(C2paVerificationResult {
+        manifests,
+        validation_errors,
+    })
 }
