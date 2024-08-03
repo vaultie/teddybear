@@ -91,7 +91,7 @@ dependencies = [
  "cfg-if",
  "once_cell",
  "version_check",
- "zerocopy 0.7.35",
+ "zerocopy",
 ]
 
 [[package]]
@@ -1722,9 +1722,9 @@ dependencies = [
 
 [[package]]
 name = "flate2"
-version = "1.0.30"
+version = "1.0.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f54427cfd1c7829e2a139fcefea601bf088ebca651d2bf53ebc600eac295dae"
+checksum = "7f211bbe8e69bbd0cfdea405084f128ae8b4aaa6b0b522fc8f2b009084797920"
 dependencies = [
  "crc32fast",
  "miniz_oxide 0.7.4",
@@ -2813,6 +2813,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78b3ae25bc7c8c38cec158d1f2757ee79e9b3740fbc7ccf0e59e4b08d793fa89"
 
 [[package]]
+name = "lock_api"
+version = "0.4.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "07af8b9cdd281b7915f413fa73f29ebd5d55d0d3f0155584dade1ff18cea1b17"
+dependencies = [
+ "autocfg",
+ "scopeguard",
+]
+
+[[package]]
 name = "locspan"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3248,6 +3258,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bb813b8af86854136c6922af0598d719255ecb2179515e6e7730d468f05c9cae"
 
 [[package]]
+name = "parking_lot"
+version = "0.12.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f1bf18183cf54e8d6059647fc3063646a1801cf30896933ec2311622cc4b9a27"
+dependencies = [
+ "lock_api",
+ "parking_lot_core",
+]
+
+[[package]]
+name = "parking_lot_core"
+version = "0.9.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e401f977ab385c9e4e3ab30627d6f26d00e2c73eef317493c4ec6d468726cf8"
+dependencies = [
+ "cfg-if",
+ "libc",
+ "redox_syscall",
+ "smallvec",
+ "windows-targets 0.52.6",
+]
+
+[[package]]
 name = "paste"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3532,11 +3565,11 @@ checksum = "439ee305def115ba05938db6eb1644ff94165c5ab5e9420d1c1bcedbba909391"
 
 [[package]]
 name = "ppv-lite86"
-version = "0.2.18"
+version = "0.2.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dee4364d9f3b902ef14fab8a1ddffb783a1cb6b4bba3bfc1fa3922732c7de97f"
+checksum = "77957b295656769bb8ad2b6a6b09d897d94f05c41b069aede1fcdaa675eaea04"
 dependencies = [
- "zerocopy 0.6.6",
+ "zerocopy",
 ]
 
 [[package]]
@@ -3777,6 +3810,15 @@ dependencies = [
  "slab",
  "static-iref",
  "thiserror",
+]
+
+[[package]]
+name = "redox_syscall"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2a908a6e00f1fdd0dfd9c0eb08ce85126f6d8bbda50017e74bc4a4b7d4a926a4"
+dependencies = [
+ "bitflags 2.6.0",
 ]
 
 [[package]]
@@ -4086,6 +4128,12 @@ checksum = "fbc91545643bcf3a0bbb6569265615222618bdf33ce4ffbbd13c4bbd4c093534"
 dependencies = [
  "windows-sys 0.52.0",
 ]
+
+[[package]]
+name = "scopeguard"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
 name = "sct"
@@ -4541,7 +4589,7 @@ dependencies = [
 [[package]]
 name = "ssi-bbs"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi#c212f04d93fb8d0a041381f6239310bd60710941"
+source = "git+https://github.com/vaultie/ssi#dea5a2f0dd598288c9860717b20b1a9468edafd1"
 dependencies = [
  "rand",
  "ssi-claims-core",
@@ -4552,7 +4600,7 @@ dependencies = [
 [[package]]
 name = "ssi-caips"
 version = "0.2.0"
-source = "git+https://github.com/vaultie/ssi#c212f04d93fb8d0a041381f6239310bd60710941"
+source = "git+https://github.com/vaultie/ssi#dea5a2f0dd598288c9860717b20b1a9468edafd1"
 dependencies = [
  "bs58",
  "linked-data",
@@ -4565,7 +4613,7 @@ dependencies = [
 [[package]]
 name = "ssi-claims"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi#c212f04d93fb8d0a041381f6239310bd60710941"
+source = "git+https://github.com/vaultie/ssi#dea5a2f0dd598288c9860717b20b1a9468edafd1"
 dependencies = [
  "educe 0.4.23",
  "iref",
@@ -4596,7 +4644,7 @@ dependencies = [
 [[package]]
 name = "ssi-claims-core"
 version = "0.1.1"
-source = "git+https://github.com/vaultie/ssi#c212f04d93fb8d0a041381f6239310bd60710941"
+source = "git+https://github.com/vaultie/ssi#dea5a2f0dd598288c9860717b20b1a9468edafd1"
 dependencies = [
  "chrono",
  "educe 0.4.23",
@@ -4611,12 +4659,12 @@ dependencies = [
 [[package]]
 name = "ssi-contexts"
 version = "0.1.6"
-source = "git+https://github.com/vaultie/ssi#c212f04d93fb8d0a041381f6239310bd60710941"
+source = "git+https://github.com/vaultie/ssi#dea5a2f0dd598288c9860717b20b1a9468edafd1"
 
 [[package]]
 name = "ssi-core"
 version = "0.2.0"
-source = "git+https://github.com/vaultie/ssi#c212f04d93fb8d0a041381f6239310bd60710941"
+source = "git+https://github.com/vaultie/ssi#dea5a2f0dd598288c9860717b20b1a9468edafd1"
 dependencies = [
  "async-trait",
  "pin-project",
@@ -4627,7 +4675,7 @@ dependencies = [
 [[package]]
 name = "ssi-crypto"
 version = "0.2.0"
-source = "git+https://github.com/vaultie/ssi#c212f04d93fb8d0a041381f6239310bd60710941"
+source = "git+https://github.com/vaultie/ssi#dea5a2f0dd598288c9860717b20b1a9468edafd1"
 dependencies = [
  "async-trait",
  "bs58",
@@ -4645,7 +4693,7 @@ dependencies = [
 [[package]]
 name = "ssi-data-integrity"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi#c212f04d93fb8d0a041381f6239310bd60710941"
+source = "git+https://github.com/vaultie/ssi#dea5a2f0dd598288c9860717b20b1a9468edafd1"
 dependencies = [
  "chrono",
  "iref",
@@ -4673,7 +4721,7 @@ dependencies = [
 [[package]]
 name = "ssi-data-integrity-core"
 version = "0.1.1"
-source = "git+https://github.com/vaultie/ssi#c212f04d93fb8d0a041381f6239310bd60710941"
+source = "git+https://github.com/vaultie/ssi#dea5a2f0dd598288c9860717b20b1a9468edafd1"
 dependencies = [
  "chrono",
  "contextual",
@@ -4708,7 +4756,7 @@ dependencies = [
 [[package]]
 name = "ssi-data-integrity-suites"
 version = "0.1.1"
-source = "git+https://github.com/vaultie/ssi#c212f04d93fb8d0a041381f6239310bd60710941"
+source = "git+https://github.com/vaultie/ssi#dea5a2f0dd598288c9860717b20b1a9468edafd1"
 dependencies = [
  "async-trait",
  "base64 0.12.3",
@@ -4756,7 +4804,7 @@ dependencies = [
 [[package]]
 name = "ssi-di-sd-primitives"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi#c212f04d93fb8d0a041381f6239310bd60710941"
+source = "git+https://github.com/vaultie/ssi#dea5a2f0dd598288c9860717b20b1a9468edafd1"
 dependencies = [
  "base64 0.12.3",
  "digest 0.10.7",
@@ -4777,7 +4825,7 @@ dependencies = [
 [[package]]
 name = "ssi-dids-core"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi#c212f04d93fb8d0a041381f6239310bd60710941"
+source = "git+https://github.com/vaultie/ssi#dea5a2f0dd598288c9860717b20b1a9468edafd1"
 dependencies = [
  "async-trait",
  "iref",
@@ -4800,7 +4848,7 @@ dependencies = [
 [[package]]
 name = "ssi-eip712"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi#c212f04d93fb8d0a041381f6239310bd60710941"
+source = "git+https://github.com/vaultie/ssi#dea5a2f0dd598288c9860717b20b1a9468edafd1"
 dependencies = [
  "hex",
  "indexmap 2.3.0",
@@ -4818,7 +4866,7 @@ dependencies = [
 [[package]]
 name = "ssi-json-ld"
 version = "0.3.0"
-source = "git+https://github.com/vaultie/ssi#c212f04d93fb8d0a041381f6239310bd60710941"
+source = "git+https://github.com/vaultie/ssi#dea5a2f0dd598288c9860717b20b1a9468edafd1"
 dependencies = [
  "async-std",
  "combination",
@@ -4842,7 +4890,7 @@ dependencies = [
 [[package]]
 name = "ssi-jwk"
 version = "0.2.1"
-source = "git+https://github.com/vaultie/ssi#c212f04d93fb8d0a041381f6239310bd60710941"
+source = "git+https://github.com/vaultie/ssi#dea5a2f0dd598288c9860717b20b1a9468edafd1"
 dependencies = [
  "base64 0.12.3",
  "ed25519-dalek",
@@ -4869,7 +4917,7 @@ dependencies = [
 [[package]]
 name = "ssi-jws"
 version = "0.2.1"
-source = "git+https://github.com/vaultie/ssi#c212f04d93fb8d0a041381f6239310bd60710941"
+source = "git+https://github.com/vaultie/ssi#dea5a2f0dd598288c9860717b20b1a9468edafd1"
 dependencies = [
  "base64 0.12.3",
  "blake2",
@@ -4891,7 +4939,7 @@ dependencies = [
 [[package]]
 name = "ssi-jwt"
 version = "0.2.1"
-source = "git+https://github.com/vaultie/ssi#c212f04d93fb8d0a041381f6239310bd60710941"
+source = "git+https://github.com/vaultie/ssi#dea5a2f0dd598288c9860717b20b1a9468edafd1"
 dependencies = [
  "async-trait",
  "chrono",
@@ -4914,7 +4962,7 @@ dependencies = [
 [[package]]
 name = "ssi-multicodec"
 version = "0.2.0"
-source = "git+https://github.com/vaultie/ssi#c212f04d93fb8d0a041381f6239310bd60710941"
+source = "git+https://github.com/vaultie/ssi#dea5a2f0dd598288c9860717b20b1a9468edafd1"
 dependencies = [
  "csv",
  "ed25519-dalek",
@@ -4928,7 +4976,7 @@ dependencies = [
 [[package]]
 name = "ssi-rdf"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi#c212f04d93fb8d0a041381f6239310bd60710941"
+source = "git+https://github.com/vaultie/ssi#dea5a2f0dd598288c9860717b20b1a9468edafd1"
 dependencies = [
  "combination",
  "indexmap 2.3.0",
@@ -4942,7 +4990,7 @@ dependencies = [
 [[package]]
 name = "ssi-sd-jwt"
 version = "0.2.0"
-source = "git+https://github.com/vaultie/ssi#c212f04d93fb8d0a041381f6239310bd60710941"
+source = "git+https://github.com/vaultie/ssi#dea5a2f0dd598288c9860717b20b1a9468edafd1"
 dependencies = [
  "base64 0.12.3",
  "rand",
@@ -4958,7 +5006,7 @@ dependencies = [
 [[package]]
 name = "ssi-security"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi#c212f04d93fb8d0a041381f6239310bd60710941"
+source = "git+https://github.com/vaultie/ssi#dea5a2f0dd598288c9860717b20b1a9468edafd1"
 dependencies = [
  "iref",
  "linked-data",
@@ -4969,9 +5017,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "ssi-status"
+version = "0.1.0"
+source = "git+https://github.com/vaultie/ssi#dea5a2f0dd598288c9860717b20b1a9468edafd1"
+dependencies = [
+ "base64 0.12.3",
+ "flate2",
+ "iref",
+ "log",
+ "multibase",
+ "parking_lot",
+ "rdf-types",
+ "serde",
+ "serde_json",
+ "ssi-claims-core",
+ "ssi-data-integrity",
+ "ssi-json-ld",
+ "ssi-jwk",
+ "ssi-jws",
+ "ssi-jwt",
+ "ssi-vc",
+ "ssi-verification-methods",
+ "thiserror",
+ "xsd-types",
+]
+
+[[package]]
 name = "ssi-vc"
 version = "0.3.0"
-source = "git+https://github.com/vaultie/ssi#c212f04d93fb8d0a041381f6239310bd60710941"
+source = "git+https://github.com/vaultie/ssi#dea5a2f0dd598288c9860717b20b1a9468edafd1"
 dependencies = [
  "base64 0.12.3",
  "bitvec 0.20.4",
@@ -5001,7 +5075,7 @@ dependencies = [
 [[package]]
 name = "ssi-vc-jose-cose"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi#c212f04d93fb8d0a041381f6239310bd60710941"
+source = "git+https://github.com/vaultie/ssi#dea5a2f0dd598288c9860717b20b1a9468edafd1"
 dependencies = [
  "serde",
  "serde_json",
@@ -5016,7 +5090,7 @@ dependencies = [
 [[package]]
 name = "ssi-verification-methods"
 version = "0.1.1"
-source = "git+https://github.com/vaultie/ssi#c212f04d93fb8d0a041381f6239310bd60710941"
+source = "git+https://github.com/vaultie/ssi#dea5a2f0dd598288c9860717b20b1a9468edafd1"
 dependencies = [
  "async-trait",
  "derivative",
@@ -5049,7 +5123,7 @@ dependencies = [
 [[package]]
 name = "ssi-verification-methods-core"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi#c212f04d93fb8d0a041381f6239310bd60710941"
+source = "git+https://github.com/vaultie/ssi#dea5a2f0dd598288c9860717b20b1a9468edafd1"
 dependencies = [
  "bs58",
  "educe 0.4.23",
@@ -5243,6 +5317,7 @@ dependencies = [
  "serde",
  "serde-wasm-bindgen 0.6.5",
  "serde_json",
+ "ssi-status",
  "teddybear-c2pa",
  "teddybear-crypto",
  "teddybear-jwe",
@@ -5282,12 +5357,13 @@ dependencies = [
 
 [[package]]
 name = "tempfile"
-version = "3.10.1"
+version = "3.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "85b77fafb263dd9d05cbeac119526425676db3784113aa9295c88498cbf8bff1"
+checksum = "b8fcd239983515c23a32fb82099f97d0b11b8c72f654ed659363a95c3dad7a53"
 dependencies = [
  "cfg-if",
  "fastrand 2.1.0",
+ "once_cell",
  "rustix 0.38.34",
  "windows-sys 0.52.0",
 ]
@@ -5826,11 +5902,11 @@ checksum = "ac3b87c63620426dd9b991e5ce0329eff545bccbbb34f3be09ff6fb6ab51b7b6"
 
 [[package]]
 name = "winapi-util"
-version = "0.1.8"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d4cc384e1e73b93bafa6fb4f1df8c41695c8a91cf9c4c64358067d15a7b6c6b"
+checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -5862,6 +5938,15 @@ name = "windows-sys"
 version = "0.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "282be5f36a8ce781fad8c8ae18fa3f9beff57ec1b52cb3de0789201425d9a33d"
+dependencies = [
+ "windows-targets 0.52.6",
+]
+
+[[package]]
+name = "windows-sys"
+version = "0.59.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e38bc4d79ed67fd075bcc251a1c39b32a1776bbe92e5bef1f0bf1f8c531853b"
 dependencies = [
  "windows-targets 0.52.6",
 ]
@@ -6090,32 +6175,12 @@ dependencies = [
 
 [[package]]
 name = "zerocopy"
-version = "0.6.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "854e949ac82d619ee9a14c66a1b674ac730422372ccb759ce0c39cabcf2bf8e6"
-dependencies = [
- "byteorder",
- "zerocopy-derive 0.6.6",
-]
-
-[[package]]
-name = "zerocopy"
 version = "0.7.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1b9b4fd18abc82b8136838da5d50bae7bdea537c574d8dc1a34ed098d6c166f0"
 dependencies = [
- "zerocopy-derive 0.7.35",
-]
-
-[[package]]
-name = "zerocopy-derive"
-version = "0.6.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "125139de3f6b9d625c39e2efdd73d41bdac468ccd556556440e322be0e1bbd91"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.72",
+ "byteorder",
+ "zerocopy-derive",
 ]
 
 [[package]]

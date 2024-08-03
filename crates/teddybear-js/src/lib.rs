@@ -9,6 +9,9 @@ use itertools::Itertools;
 use js_sys::{Object, Uint8Array};
 use serde::Serialize;
 use serde_wasm_bindgen::Serializer;
+use ssi_status::bitstring_status_list::{
+    BitstringStatusList, StatusList, StatusPurpose, StatusSize, TimeToLive,
+};
 use teddybear_c2pa::{Builder, Ed25519Signer, Reader};
 use teddybear_crypto::{Ed25519, Private, Public, JWK as InnerJWK};
 use teddybear_jwe::{add_recipient, decrypt, A256Gcm, XC20P};
@@ -432,6 +435,63 @@ pub fn verify_jws(jws: &str, key: Option<JWK>) -> Result<JwsVerificationResult, 
     };
 
     Ok(JwsVerificationResult(jwk, payload.as_slice().into()))
+}
+
+/// Encoded W3C-compatible status list credential.
+#[wasm_bindgen]
+pub struct StatusListCredential(StatusList);
+
+#[wasm_bindgen]
+impl StatusListCredential {
+    /// Create new StatusListCredential with all bits set to 0.
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Self {
+        StatusListCredential(StatusList::new(StatusSize::DEFAULT, TimeToLive::DEFAULT))
+    }
+
+    /// Create new StatusListCredential from a credential subject object.
+    #[wasm_bindgen(js_name = "fromCredentialSubject")]
+    pub fn from_credential_subject(
+        credential_subject: &Object,
+    ) -> Result<StatusListCredential, JsError> {
+        let credential: BitstringStatusList =
+            serde_wasm_bindgen::from_value(credential_subject.into())?;
+
+        Ok(StatusListCredential(credential.decode()?))
+    }
+
+    #[wasm_bindgen]
+    pub fn allocate(&mut self) -> Result<usize, JsError> {
+        Ok(self.0.push(0)?)
+    }
+
+    /// Check if a given index is revoked (bit set to 1).
+    #[wasm_bindgen(js_name = "isRevoked")]
+    pub fn is_revoked(&self, idx: usize) -> bool {
+        self.0.get(idx).map(|val| val == 1).unwrap_or(false)
+    }
+
+    /// Revoke a given index (set bit to 1).
+    pub fn revoke(&mut self, idx: usize) -> Result<(), JsError> {
+        self.0.set(idx, 1)?;
+        Ok(())
+    }
+
+    /// Serialize the current status list as an object.
+    #[wasm_bindgen(js_name = "toJSON")]
+    pub fn to_json(&self) -> Result<Object, JsError> {
+        Ok(self
+            .0
+            .to_credential_subject(None, StatusPurpose::Revocation, Vec::new())
+            .serialize(&OBJECT_SERIALIZER)?
+            .into())
+    }
+}
+
+impl Default for StatusListCredential {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[wasm_bindgen(js_name = "C2PASignatureResult")]

@@ -15,6 +15,7 @@ ssi-dids-core = { git = "https://github.com/vaultie/ssi" }
 ssi-json-ld = { git = "https://github.com/vaultie/ssi" }
 ssi-jwk = { git = "https://github.com/vaultie/ssi", default-features = false, features = ["ed25519"] }
 ssi-jws = { git = "https://github.com/vaultie/ssi", default-features = false, features = ["ed25519"] }
+ssi-status = { git = "https://github.com/vaultie/ssi" }
 ssi-vc = { git = "https://github.com/vaultie/ssi" }
 ssi-verification-methods = { git = "https://github.com/vaultie/ssi", default-features = false, features = ["ed25519"] }
 
