@@ -1,99 +1,131 @@
-import { C2PABuilder, PrivateEd25519, verifyC2PA } from '@vaultie/teddybear'
-import { readFileSync } from 'fs'
-import { describe, expect, it } from 'vitest'
+import { C2PABuilder, PrivateEd25519, verifyC2PA } from "@vaultie/teddybear";
+import { readFileSync } from "fs";
+import { TestAPI, describe, expect, it } from "vitest";
 
-const image = readFileSync(process.env.placeholderImage!)
-const thumbnail = readFileSync(process.env.thumbnailImage!)
-const pdf = readFileSync(process.env.placeholderPdf!)
-const certificate = readFileSync(process.env.certificate!)
+const image = readFileSync(process.env.placeholderImage!);
+const thumbnail = readFileSync(process.env.thumbnailImage!);
+const pdf = readFileSync(process.env.placeholderPdf!);
+const certificate = readFileSync(process.env.certificate!);
 
-describe('can execute C2PA operations', () => {
-  it('can sign an image', async () => {
+const c2paTest: TestAPI<{ key: PrivateEd25519 }> = it.extend({
+  key: async ({}, use) => {
     // This key should correspond to the certificate private key
-    const keyBytes = Buffer.from('5ff5e2393a44256abe197c82742366ff2f998f6822980e726f8fd16d6bd07eb1', 'hex')
+    const keyBytes = Buffer.from(
+      "5ff5e2393a44256abe197c82742366ff2f998f6822980e726f8fd16d6bd07eb1",
+      "hex",
+    );
+    const key = await PrivateEd25519.fromBytes(new Uint8Array(keyBytes));
+    await use(key);
+  },
+});
 
-    const key = await PrivateEd25519.fromBytes(new Uint8Array(keyBytes))
-
+describe("can execute C2PA operations", () => {
+  c2paTest("can sign an image", async ({ key }) => {
     const { signedPayload } = new C2PABuilder()
       .setManifestDefinition({
-        title: 'Test Image',
+        title: "Test Image",
         assertions: [
           {
-            label: 'stds.schema-org.CreativeWork',
+            label: "stds.schema-org.CreativeWork",
             data: {
-              '@context': 'http://schema.org/',
-              '@type': 'CreativeWork',
-              url: 'https://example.com'
+              "@context": "http://schema.org/",
+              "@type": "CreativeWork",
+              url: "https://example.com",
             },
-            kind: 'Json'
-          }
-        ]
+            kind: "Json",
+          },
+        ],
       })
-      .sign(key, new Uint8Array(certificate), new Uint8Array(image), 'image/jpeg')
+      .sign(
+        key,
+        new Uint8Array(certificate),
+        new Uint8Array(image),
+        "image/jpeg",
+      );
 
-    const { validationErrors } = verifyC2PA(signedPayload, 'image/jpeg')
+    const { manifests, validationErrors } = verifyC2PA(
+      signedPayload,
+      "image/jpeg",
+    );
 
-    expect(validationErrors).toHaveLength(0)
-  })
+    expect(validationErrors).toHaveLength(0);
 
-  it('can sign a PDF file', async () => {
-    // This key should correspond to the certificate private key
-    const keyBytes = Buffer.from('5ff5e2393a44256abe197c82742366ff2f998f6822980e726f8fd16d6bd07eb1', 'hex')
+    expect(manifests).toHaveLength(1);
+    expect(manifests[0].assertions).toHaveLength(1);
+    expect(manifests[0].assertions[0].data.get("url")).toStrictEqual(
+      "https://example.com",
+    );
+  });
 
-    const key = await PrivateEd25519.fromBytes(new Uint8Array(keyBytes))
-
+  c2paTest("can sign a PDF file", async ({ key }) => {
     const { signedPayload } = new C2PABuilder()
       .setManifestDefinition({
-        title: 'Test PDF',
+        title: "Test PDF",
         assertions: [
           {
-            label: 'stds.schema-org.CreativeWork',
+            label: "stds.schema-org.CreativeWork",
             data: {
-              '@context': 'http://schema.org/',
-              '@type': 'CreativeWork',
-              url: 'https://example.com'
+              "@context": "http://schema.org/",
+              "@type": "CreativeWork",
+              url: "https://example.com",
             },
-            kind: 'Json'
-          }
-        ]
+            kind: "Json",
+          },
+        ],
       })
-      .setThumbnail(new Uint8Array(thumbnail), 'image/jpeg')
-      .sign(key, new Uint8Array(certificate), new Uint8Array(pdf), 'application/pdf')
+      .setThumbnail(new Uint8Array(thumbnail), "image/jpeg")
+      .sign(
+        key,
+        new Uint8Array(certificate),
+        new Uint8Array(pdf),
+        "application/pdf",
+      );
 
-    const { validationErrors } = verifyC2PA(signedPayload, 'application/pdf')
+    const { manifests, validationErrors } = verifyC2PA(
+      signedPayload,
+      "application/pdf",
+    );
 
-    expect(validationErrors).toHaveLength(0)
-  })
+    expect(validationErrors).toHaveLength(0);
 
-  it('can verify a damaged file', async () => {
-    // This key should correspond to the certificate private key
-    const keyBytes = Buffer.from('5ff5e2393a44256abe197c82742366ff2f998f6822980e726f8fd16d6bd07eb1', 'hex')
+    expect(manifests).toHaveLength(1);
+    expect(manifests[0].assertions).toHaveLength(1);
+    expect(manifests[0].assertions[0].data.get("url")).toStrictEqual(
+      "https://example.com",
+    );
+  });
 
-    const key = await PrivateEd25519.fromBytes(new Uint8Array(keyBytes))
-
+  c2paTest("can verify a damaged file", async ({ key }) => {
     const { signedPayload } = new C2PABuilder()
       .setManifestDefinition({
-        title: 'Test PDF',
+        title: "Test PDF",
         assertions: [
           {
-            label: 'stds.schema-org.CreativeWork',
+            label: "stds.schema-org.CreativeWork",
             data: {
-              '@context': 'http://schema.org/',
-              '@type': 'CreativeWork',
-              url: 'https://example.com'
+              "@context": "http://schema.org/",
+              "@type": "CreativeWork",
+              url: "https://example.com",
             },
-            kind: 'Json'
-          }
-        ]
+            kind: "Json",
+          },
+        ],
       })
-      .sign(key, new Uint8Array(certificate), new Uint8Array(pdf), 'application/pdf')
+      .sign(
+        key,
+        new Uint8Array(certificate),
+        new Uint8Array(pdf),
+        "application/pdf",
+      );
 
     const { validationErrors } = verifyC2PA(
       signedPayload.fill(123, 500, 600),
-      'application/pdf'
-    )
+      "application/pdf",
+    );
 
-    expect(validationErrors).toHaveLength(1)
-    expect(validationErrors[0].code).toStrictEqual('assertion.dataHash.mismatch')
-  })
-})
+    expect(validationErrors).toHaveLength(1);
+    expect(validationErrors[0].code).toStrictEqual(
+      "assertion.dataHash.mismatch",
+    );
+  });
+});
