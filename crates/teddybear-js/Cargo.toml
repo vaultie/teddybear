@@ -23,8 +23,9 @@ wasm-opt = [
 teddybear-c2pa = { workspace = true }
 teddybear-crypto = { workspace = true }
 teddybear-jwe = { workspace = true }
-teddybear-status-list = { workspace = true }
 teddybear-vc = { workspace = true }
+
+ssi-status = { workspace = true }
 
 itertools = { workspace = true }
 serde = { workspace = true }

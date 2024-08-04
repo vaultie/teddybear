@@ -170,18 +170,8 @@
           e2e-test = pkgs.callPackage ./nix/node-testing.nix {
             inherit uni;
 
-            src = nix-filter.lib.filter {
-              root = ./tests;
-
-              include = [
-                "src"
-                "package.json"
-                "tsconfig.json"
-                "yarn.lock"
-              ];
-            };
-
-            yarnLockHash = "sha256-LTKJdshmknuSy2hC3SfYRBR5SfDamoMVH+aeC/aKwyA=";
+            src = ./tests;
+            yarnLockHash = "sha256-KdtWLlP0jHiQXyWcUuE3sKjrgfHnGRlObg7u4g4FBNE=";
           };
 
           unit-test = craneLib.cargoTest (nativeArgs

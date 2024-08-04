@@ -2,12 +2,12 @@
   "name": "teddybear-tests",
   "license": "MIT OR Apache-2.0",
   "scripts": {
-    "pretty": "ts-standard --fix \"src/**/*.test.ts\"",
+    "pretty": "prettier -w .",
     "test": "vitest run --reporter=basic"
   },
   "devDependencies": {
     "@types/node": "^20.14.5",
-    "ts-standard": "^12.0.2",
+    "prettier": "^3.3.3",
     "typescript": "^5.4.5",
     "vitest": "^1.6.0"
   },

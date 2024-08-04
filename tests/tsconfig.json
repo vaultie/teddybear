@@ -1,11 +1,9 @@
 {
-  "exclude": [
-    "node_modules"
-  ],
+  "exclude": ["node_modules"],
   "compilerOptions": {
     "target": "ESNext",
     "module": "commonjs",
     "strict": true,
-    "esModuleInterop": true,
+    "esModuleInterop": true
   }
 }

@@ -1,194 +1,149 @@
-#[cfg(feature = "query")]
-pub mod query;
+mod credential_ref;
 
-use chrono::{DateTime, FixedOffset, Utc};
-use ssi_ldp::{LinkedDataProofOptions, ProofSuiteType};
-use ssi_vc::{Credential, CredentialOrJWT, Issuer, OneOrMany, Presentation, ProofPurpose, URI};
+use itertools::Itertools;
+use ssi_claims::{
+    data_integrity::{
+        suites::Ed25519Signature2020, CryptographicSuite, DataIntegrity, ProofOptions,
+    },
+    Invalid, InvalidClaims, ProofValidationError, SignatureEnvironment, SignatureError,
+    ValidateClaims, ValidateProof, VerifiableClaims, VerificationParameters,
+};
+use ssi_dids_core::VerificationMethodDIDResolver;
+use ssi_vc::v2::{Credential, Presentation};
+use ssi_verification_methods::{Ed25519VerificationKey2020, ProofPurpose, ReferenceOrOwned};
 use teddybear_crypto::{DidKey, Ed25519, Private, Public};
-use thiserror::Error;
 
 pub use ssi_json_ld::ContextLoader;
+pub use ssi_vc::v2::syntax::{JsonCredential, JsonPresentation};
 
-#[derive(Error, Debug)]
+use crate::credential_ref::CredentialRef;
+
+pub type DI<V> = DataIntegrity<V, Ed25519Signature2020>;
+
+type CustomResolver = VerificationMethodDIDResolver<DidKey, Ed25519VerificationKey2020>;
+
+type CustomVerificationParameters<'a> =
+    VerificationParameters<CustomResolver, &'a mut ContextLoader>;
+
+#[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("Failed credential verification.")]
-    VerificationFailed(Vec<String>),
-
-    #[error("Credential expired.")]
-    CredentialExpired,
+    #[error("expected a document with a single proof")]
+    SingleProofOnly,
 
     #[error(transparent)]
-    Crypto(#[from] teddybear_crypto::Error),
+    SignatureError(#[from] SignatureError),
 
     #[error(transparent)]
-    Lib(#[from] ssi_vc::Error),
+    InvalidClaims(#[from] InvalidClaims),
+
+    #[error(transparent)]
+    Invalid(#[from] Invalid),
+
+    #[error(transparent)]
+    ProofValidationError(#[from] ProofValidationError),
 }
 
+type SignedEd25519Credential<'a> = DI<CredentialRef<'a, JsonCredential>>;
+
 #[inline]
-pub async fn issue_vc(
+pub async fn issue_vc<'a>(
     key: &Ed25519<Private>,
-    credential: &mut Credential,
+    credential: &'a JsonCredential,
     context_loader: &mut ContextLoader,
-) -> Result<(), ssi_vc::Error> {
-    credential.issuer = Some(Issuer::URI(URI::String(key.document_did().to_string())));
+) -> Result<SignedEd25519Credential<'a>, Error> {
+    let resolver = CustomResolver::new(DidKey);
 
-    credential.validate_unsigned()?;
+    let params = VerificationParameters::<&CustomResolver, _, _>::from_resolver(&resolver)
+        .with_json_ld_loader(&context_loader);
 
-    let proof_options = LinkedDataProofOptions {
-        type_: Some(ProofSuiteType::Ed25519Signature2020),
-        verification_method: Some(URI::String(key.ed25519_did().to_string())),
-        ..Default::default()
-    };
+    credential.validate_credential(&params)?;
 
-    let proof = credential
-        .generate_proof(
-            key.as_ed25519_private_jwk(),
-            &proof_options,
-            &DidKey,
-            context_loader,
+    Ok(Ed25519Signature2020
+        .sign_with(
+            SignatureEnvironment {
+                json_ld_loader: context_loader,
+                eip712_loader: (),
+            },
+            CredentialRef(credential),
+            resolver,
+            key,
+            ProofOptions::default(),
+            (),
         )
-        .await?;
-
-    credential.add_proof(proof);
-
-    Ok(())
+        .await?)
 }
 
+type SignedEd25519Presentation<'a> = DI<CredentialRef<'a, JsonPresentation>>;
+
 #[inline]
-pub async fn issue_vp(
+pub async fn present_vp<'a>(
     key: &Ed25519<Private>,
-    presentation: &mut Presentation,
+    presentation: &'a JsonPresentation,
     domain: Option<String>,
     challenge: Option<String>,
     context_loader: &mut ContextLoader,
-) -> Result<(), ssi_vc::Error> {
-    presentation.holder = Some(URI::String(key.document_did().to_string()));
+) -> Result<SignedEd25519Presentation<'a>, Error> {
+    let resolver = CustomResolver::new(DidKey);
 
-    presentation.validate_unsigned()?;
+    let params = VerificationParameters::<&CustomResolver, _, _>::from_resolver(&resolver)
+        .with_json_ld_loader(&context_loader);
 
-    let proof_options = LinkedDataProofOptions {
-        type_: Some(ProofSuiteType::Ed25519Signature2020),
-        verification_method: Some(URI::String(key.ed25519_did().to_string())),
-        proof_purpose: Some(ProofPurpose::Authentication),
-        domain,
-        challenge,
-        ..Default::default()
-    };
+    for vc in presentation.verifiable_credentials() {
+        vc.validate_credential(&params)?;
+    }
 
-    let proof = presentation
-        .generate_proof(
-            key.as_ed25519_private_jwk(),
-            &proof_options,
-            &DidKey,
-            context_loader,
+    let resolver = CustomResolver::new(DidKey);
+
+    Ok(Ed25519Signature2020
+        .sign_with(
+            SignatureEnvironment {
+                json_ld_loader: context_loader,
+                eip712_loader: (),
+            },
+            CredentialRef(presentation),
+            resolver,
+            key,
+            ProofOptions {
+                proof_purpose: ProofPurpose::Authentication,
+                domains: domain.map(|val| vec![val]).unwrap_or_default(),
+                challenge,
+                ..Default::default()
+            },
+            (),
         )
-        .await?;
-
-    presentation.add_proof(proof);
-
-    Ok(())
+        .await?)
 }
 
-#[inline]
-pub async fn verify_credential(
-    credential: &Credential,
-    context_loader: &mut ContextLoader,
-) -> Result<(), Error> {
-    credential.validate()?;
+pub async fn verify<'a, 'b, V>(
+    value: &'a DI<V>,
+    context_loader: &'b mut ContextLoader,
+) -> Result<(Ed25519<Public>, Option<&'a str>), Error>
+where
+    <DI<V> as VerifiableClaims>::Claims:
+        ValidateClaims<CustomVerificationParameters<'b>, <DI<V> as VerifiableClaims>::Proof>,
+    <DI<V> as VerifiableClaims>::Proof:
+        ValidateProof<CustomVerificationParameters<'b>, <DI<V> as VerifiableClaims>::Claims>,
+{
+    let resolver = CustomResolver::new(DidKey);
 
-    let proof_options = LinkedDataProofOptions {
-        type_: Some(ProofSuiteType::Ed25519Signature2020),
-        proof_purpose: Some(ProofPurpose::AssertionMethod),
-        ..Default::default()
+    let params =
+        VerificationParameters::from_resolver(resolver).with_json_ld_loader(context_loader);
+
+    value.verify(params).await??;
+
+    let proof = value
+        .proof()
+        .iter()
+        .exactly_one()
+        .map_err(|_| Error::SingleProofOnly)?;
+
+    // FIXME: Remove this conversion by using Ed25519 as a verification method directly
+    let verification_method = match &proof.verification_method {
+        ReferenceOrOwned::Owned(key) => Ed25519::from_jwk(key.public_key_jwk())
+            .await
+            .expect("verification method jwk is always expected to be valid"),
+        _ => return Err(Error::SingleProofOnly),
     };
 
-    let credential_errors = credential
-        .verify(Some(proof_options), &DidKey, context_loader)
-        .await
-        .errors;
-
-    if !credential_errors.is_empty() {
-        return Err(Error::VerificationFailed(credential_errors));
-    }
-
-    let valid_expiration_date = credential
-        .expiration_date
-        .clone()
-        .map(|date| DateTime::<FixedOffset>::from(date) < Utc::now())
-        .unwrap_or(true);
-
-    if !valid_expiration_date {
-        return Err(Error::CredentialExpired);
-    }
-
-    Ok(())
-}
-
-#[inline]
-pub async fn verify_presentation<'a>(
-    presentation: &'a Presentation,
-    context_loader: &mut ContextLoader,
-) -> Result<(Ed25519<Public>, Option<&'a str>), Error> {
-    presentation.validate()?;
-
-    let holder = Ed25519::from_did(
-        presentation
-            .holder
-            .as_ref()
-            .ok_or(ssi_vc::Error::MissingHolder)?
-            .as_str(),
-    )
-    .await?;
-
-    let proof_options = LinkedDataProofOptions {
-        type_: Some(ProofSuiteType::Ed25519Signature2020),
-        verification_method: Some(URI::String(holder.ed25519_did().to_string())),
-        proof_purpose: Some(ProofPurpose::Authentication),
-        ..Default::default()
-    };
-
-    let presentation_errors = presentation
-        .verify(Some(proof_options), &DidKey, context_loader)
-        .await
-        .errors;
-
-    if !presentation_errors.is_empty() {
-        return Err(Error::VerificationFailed(presentation_errors));
-    }
-
-    match &presentation.verifiable_credential {
-        Some(OneOrMany::One(CredentialOrJWT::Credential(credential))) => {
-            verify_credential(credential, context_loader).await?;
-
-            if let Some(subject) = credential
-                .credential_subject
-                .first()
-                .and_then(|subject| subject.id.as_ref())
-            {
-                // Enforce that the credential subject's DID is the same as the presentation holder's one.
-                if presentation
-                    .holder
-                    .as_ref()
-                    .filter(|holder| *holder == subject)
-                    .is_none()
-                {
-                    return Err(ssi_vc::Error::InvalidSubject.into());
-                }
-            } else {
-                return Err(ssi_vc::Error::InvalidSubject.into());
-            };
-        }
-        _ => return Err(ssi_vc::Error::MissingCredential.into()),
-    }
-
-    let challenge = presentation
-        .proof
-        .as_ref()
-        .ok_or(ssi_vc::Error::MissingProof)?
-        .to_single()
-        .ok_or(ssi_vc::Error::MissingProof)?
-        .challenge
-        .as_deref();
-
-    Ok((holder, challenge))
+    Ok((verification_method, proof.challenge.as_deref()))
 }
