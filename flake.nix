@@ -33,6 +33,11 @@
       owner = "numtide";
       repo = "flake-utils";
     };
+
+    identity-context = {
+      url = "https://w3c.credential.nexus/identity.jsonld";
+      flake = false;
+    };
   };
 
   outputs = {
@@ -41,6 +46,7 @@
     fenix,
     nix-filter,
     flake-utils,
+    identity-context,
     ...
   }:
     flake-utils.lib.eachDefaultSystem (
@@ -168,10 +174,10 @@
           inherit cjs esm uni;
 
           e2e-test = pkgs.callPackage ./nix/node-testing.nix {
-            inherit uni;
+            inherit identity-context uni;
 
             src = ./tests;
-            yarnLockHash = "sha256-KdtWLlP0jHiQXyWcUuE3sKjrgfHnGRlObg7u4g4FBNE=";
+            yarnLockHash = "sha256-Zcm5jr6hHq34vmRBq8ATLaqzg9svBIjL41OKcH5Enf4=";
           };
 
           unit-test = craneLib.cargoTest (nativeArgs

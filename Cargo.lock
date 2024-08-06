@@ -4954,7 +4954,8 @@ version = "0.15.0"
 dependencies = [
  "ed25519-dalek",
  "multibase",
- "ssi-claims",
+ "ssi-claims-core",
+ "ssi-crypto",
  "ssi-dids-core",
  "ssi-jwk",
  "ssi-jws",
@@ -5015,6 +5016,7 @@ dependencies = [
  "itertools 0.13.0",
  "serde",
  "ssi-claims",
+ "ssi-crypto",
  "ssi-dids-core",
  "ssi-json-ld",
  "ssi-vc",

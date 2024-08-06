@@ -60,6 +60,18 @@
         "type": "github"
       }
     },
+    "identity-context": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-eKihBHNN2dhmsVoi/Axntx9pF48ecy9IZhfqvECM+Ks=",
+        "type": "file",
+        "url": "https://w3c.credential.nexus/identity.jsonld"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://w3c.credential.nexus/identity.jsonld"
+      }
+    },
     "nix-filter": {
       "locked": {
         "lastModified": 1710156097,
@@ -96,6 +108,7 @@
         "crane": "crane",
         "fenix": "fenix",
         "flake-utils": "flake-utils",
+        "identity-context": "identity-context",
         "nix-filter": "nix-filter",
         "nixpkgs": "nixpkgs"
       }

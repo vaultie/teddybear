@@ -28,10 +28,25 @@ describe("can execute common private key operations", () => {
   it("can extract JWK values", async () => {
     const key = await PrivateEd25519.generate();
 
-    key.toEd25519PublicJWK();
-    key.toX25519PublicJWK();
-    key.toEd25519PrivateJWK();
-    key.toX25519PrivateJWK();
+    const pubEd25519 = key.toEd25519PublicJWK().toJSON();
+    expect(pubEd25519).toHaveProperty("crv", "Ed25519");
+    expect(pubEd25519).toHaveProperty("x");
+    expect(pubEd25519).not.toHaveProperty("d");
+
+    const prvEd25519 = key.toEd25519PrivateJWK().toJSON();
+    expect(prvEd25519).toHaveProperty("crv", "Ed25519");
+    expect(prvEd25519).toHaveProperty("x");
+    expect(prvEd25519).toHaveProperty("d");
+
+    const pubX25519 = key.toX25519PublicJWK().toJSON();
+    expect(pubX25519).toHaveProperty("crv", "X25519");
+    expect(pubX25519).toHaveProperty("x");
+    expect(pubX25519).not.toHaveProperty("d");
+
+    const prvX25519 = key.toX25519PrivateJWK().toJSON();
+    expect(prvX25519).toHaveProperty("crv", "X25519");
+    expect(prvX25519).toHaveProperty("x");
+    expect(prvX25519).toHaveProperty("d");
   });
 
   it("can sign JWS values", async () => {

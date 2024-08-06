@@ -58,6 +58,12 @@ pub async fn issue_vc<'a>(
 
     credential.validate_credential(&params)?;
 
+    let verification_method = Ed25519VerificationKey2020::from_public_key(
+        key.ed25519.id().as_iri().to_owned(),
+        key.document().id.as_uri().to_owned(),
+        key.raw_signing_key().verifying_key(),
+    );
+
     Ok(Ed25519Signature2020
         .sign_with(
             SignatureEnvironment {
@@ -67,7 +73,7 @@ pub async fn issue_vc<'a>(
             CredentialRef(credential),
             resolver,
             key,
-            ProofOptions::default(),
+            ProofOptions::from_method(ReferenceOrOwned::Owned(verification_method)),
             (),
         )
         .await?)
@@ -94,6 +100,12 @@ pub async fn present_vp<'a>(
 
     let resolver = CustomResolver::new(DidKey);
 
+    let verification_method = Ed25519VerificationKey2020::from_public_key(
+        key.ed25519.id().as_iri().to_owned(),
+        key.document().id.as_uri().to_owned(),
+        key.raw_signing_key().verifying_key(),
+    );
+
     Ok(Ed25519Signature2020
         .sign_with(
             SignatureEnvironment {
@@ -106,6 +118,7 @@ pub async fn present_vp<'a>(
             ProofOptions {
                 proof_purpose: ProofPurpose::Authentication,
                 domains: domain.map(|val| vec![val]).unwrap_or_default(),
+                verification_method: Some(ReferenceOrOwned::Owned(verification_method)),
                 challenge,
                 ..Default::default()
             },
