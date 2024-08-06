@@ -8,6 +8,7 @@ categories.workspace = true
 
 [dependencies]
 ssi-claims = { workspace = true }
+ssi-crypto = { workspace = true }
 ssi-dids-core = { workspace = true }
 ssi-json-ld = { workspace = true }
 ssi-vc = { workspace = true }

@@ -11,6 +11,8 @@ categories = ["cryptography", "wasm"]
 
 [workspace.dependencies]
 ssi-claims = { git = "https://github.com/vaultie/ssi", default-features = false, features = ["ed25519", "w3c"] }
+ssi-claims-core = { git = "https://github.com/vaultie/ssi", default-features = false }
+ssi-crypto = { git = "https://github.com/vaultie/ssi", default-features = false }
 ssi-dids-core = { git = "https://github.com/vaultie/ssi", default-features = false }
 ssi-json-ld = { git = "https://github.com/vaultie/ssi", default-features = false }
 ssi-jwk = { git = "https://github.com/vaultie/ssi", default-features = false, features = ["ed25519"] }

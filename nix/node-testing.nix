@@ -2,6 +2,7 @@
   fetchurl,
   fetchYarnDeps,
   fixup-yarn-lock,
+  identity-context,
   nodejs-slim,
   src,
   stdenvNoCC,
@@ -39,6 +40,8 @@ stdenvNoCC.mkDerivation {
   placeholderPdf = ./data/blank.pdf;
 
   certificate = ./data/crt.der;
+
+  identityContext = identity-context;
 
   postPatch = ''
     export HOME=$(mktemp -d)
