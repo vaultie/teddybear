@@ -9,6 +9,7 @@ use ssi_claims::{
     Invalid, InvalidClaims, ProofValidationError, SignatureEnvironment, SignatureError,
     ValidateClaims, ValidateProof, VerifiableClaims, VerificationParameters,
 };
+use ssi_json_ld::IriBuf;
 use ssi_vc::v2::{Credential, Presentation};
 use ssi_verification_methods::{
     Ed25519VerificationKey2020, ProofPurpose, ReferenceOrOwned, SingleSecretSigner,
@@ -45,9 +46,9 @@ pub enum Error {
 
 type SignedEd25519Credential<'a> = DI<CredentialRef<'a, JsonCredential>>;
 
-#[inline]
 pub async fn issue_vc<'a>(
     key: SigningKey,
+    verification_method: IriBuf,
     credential: &'a JsonCredential,
     context_loader: &mut ContextLoader,
 ) -> Result<SignedEd25519Credential<'a>, Error> {
@@ -67,7 +68,10 @@ pub async fn issue_vc<'a>(
             CredentialRef(credential),
             resolver,
             SingleSecretSigner::new(key),
-            ProofOptions::default(),
+            ProofOptions {
+                verification_method: Some(ReferenceOrOwned::Reference(verification_method)),
+                ..Default::default()
+            },
             (),
         )
         .await?)
@@ -75,9 +79,9 @@ pub async fn issue_vc<'a>(
 
 type SignedEd25519Presentation<'a> = DI<CredentialRef<'a, JsonPresentation>>;
 
-#[inline]
 pub async fn present_vp<'a>(
     key: SigningKey,
+    verification_method: IriBuf,
     presentation: &'a JsonPresentation,
     domain: Option<String>,
     challenge: Option<String>,
@@ -104,6 +108,7 @@ pub async fn present_vp<'a>(
             ProofOptions {
                 proof_purpose: ProofPurpose::Authentication,
                 domains: domain.map(|val| vec![val]).unwrap_or_default(),
+                verification_method: Some(ReferenceOrOwned::Reference(verification_method)),
                 challenge,
                 ..Default::default()
             },

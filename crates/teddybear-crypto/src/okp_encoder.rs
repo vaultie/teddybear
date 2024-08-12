@@ -5,7 +5,6 @@ pub trait OKPEncoder {
 }
 
 impl OKPEncoder for ed25519_dalek::VerifyingKey {
-    #[inline]
     fn encode_okp(&self) -> OctetParams {
         OctetParams {
             curve: "Ed25519".to_string(),
@@ -16,7 +15,6 @@ impl OKPEncoder for ed25519_dalek::VerifyingKey {
 }
 
 impl OKPEncoder for ed25519_dalek::SigningKey {
-    #[inline]
     fn encode_okp(&self) -> OctetParams {
         OctetParams {
             curve: "Ed25519".to_string(),
@@ -27,7 +25,6 @@ impl OKPEncoder for ed25519_dalek::SigningKey {
 }
 
 impl OKPEncoder for x25519_dalek::PublicKey {
-    #[inline]
     fn encode_okp(&self) -> OctetParams {
         OctetParams {
             curve: "X25519".to_string(),
@@ -38,7 +35,6 @@ impl OKPEncoder for x25519_dalek::PublicKey {
 }
 
 impl OKPEncoder for x25519_dalek::StaticSecret {
-    #[inline]
     fn encode_okp(&self) -> OctetParams {
         let public = x25519_dalek::PublicKey::from(self);
 

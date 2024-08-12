@@ -19,7 +19,7 @@ use ssi_verification_methods::{
     ControllerError, ControllerProvider, GenericVerificationMethod, InvalidVerificationMethod,
     ProofPurpose,
 };
-use teddybear_did_key::DidKey;
+use teddybear_did_key::DIDKey;
 
 use crate::okp_encoder::OKPEncoder;
 
@@ -52,11 +52,10 @@ where
     }
 }
 
-pub type SupportedDIDMethods = ChainDIDMethod<DidKey, DIDWeb>;
+pub type SupportedDIDMethods = ChainDIDMethod<DIDKey, DIDWeb>;
 
-#[inline]
 pub fn default_did_method() -> SupportedDIDMethods {
-    ChainDIDMethod(DidKey, DIDWeb)
+    ChainDIDMethod(DIDKey, DIDWeb)
 }
 
 pub type CustomVerificationMethodDIDResolver =
@@ -215,47 +214,40 @@ pub struct PrivateEd25519 {
 }
 
 impl PrivateEd25519 {
-    #[inline]
     pub fn generate() -> Self {
         Self {
             inner: ed25519_dalek::SigningKey::generate(&mut OsRng),
         }
     }
 
-    #[inline]
     pub fn from_bytes(value: &[u8; 32]) -> Self {
         Self {
             inner: ed25519_dalek::SigningKey::from_bytes(value),
         }
     }
 
-    #[inline]
     pub fn inner(&self) -> &ed25519_dalek::SigningKey {
         &self.inner
     }
 
-    #[inline]
     pub fn to_x25519_private_key(&self) -> PrivateX25519 {
         PrivateX25519 {
             inner: x25519_dalek::StaticSecret::from(self.inner.to_scalar_bytes()),
         }
     }
 
-    #[inline]
     pub fn to_public_jwk(&self) -> JWK {
         JWK::from(Params::OKP(self.inner.verifying_key().encode_okp()))
     }
 
-    #[inline]
     pub fn to_private_jwk(&self) -> JWK {
         JWK::from(Params::OKP(self.inner.encode_okp()))
     }
 
     pub fn to_did_key(&self) -> DIDBuf {
-        DidKey.generate(&self.inner.verifying_key())
+        DIDKey.generate(&self.inner.verifying_key())
     }
 
-    #[inline]
     pub fn to_verification_method(&self, id: IriBuf, controller: UriBuf) -> DIDVerificationMethod {
         // FIXME: Convert more efficiently
         let key =
@@ -265,7 +257,6 @@ impl PrivateEd25519 {
         serde_json::from_value(intermediate).expect("deserialization should always be successful")
     }
 
-    #[inline]
     pub fn sign(&self, payload: &str, embed_signing_key: bool) -> Result<String, ssi_jws::Error> {
         let header = Header {
             algorithm: Algorithm::EdDSA,
@@ -282,23 +273,19 @@ pub struct PrivateX25519 {
 }
 
 impl PrivateX25519 {
-    #[inline]
     pub fn inner(&self) -> &x25519_dalek::StaticSecret {
         &self.inner
     }
 
-    #[inline]
     pub fn to_public_jwk(&self) -> JWK {
         let public_key = x25519_dalek::PublicKey::from(&self.inner);
         JWK::from(Params::OKP(public_key.encode_okp()))
     }
 
-    #[inline]
     pub fn to_private_jwk(&self) -> JWK {
         JWK::from(Params::OKP(self.inner.encode_okp()))
     }
 
-    #[inline]
     pub fn to_verification_method(&self, id: IriBuf, controller: UriBuf) -> DIDVerificationMethod {
         // FIXME: Convert more efficiently
         let public_key = x25519_dalek::PublicKey::from(&self.inner);
@@ -309,12 +296,10 @@ impl PrivateX25519 {
     }
 }
 
-#[inline]
 pub fn verify_jws(jws: &str, key: &JWK) -> Result<Vec<u8>, ssi_jws::Error> {
     Ok(decode_verify(jws, key)?.1)
 }
 
-#[inline]
 pub fn verify_jws_with_embedded_jwk(jws: &str) -> Result<(JWK, Vec<u8>), ssi_jws::Error> {
     let (header_b64, payload_enc, signature_b64) = split_jws(jws)?;
 

@@ -25,9 +25,9 @@ const X25519_CONTEXT: &IriRef = iri_ref!("https://w3id.org/security/suites/x2551
 const X25519_TYPE: &str = "X25519KeyAgreementKey2020";
 const X25519_PREFIX: &[u8] = &[0xec, 0x01];
 
-pub struct DidKey;
+pub struct DIDKey;
 
-impl DidKey {
+impl DIDKey {
     pub fn generate(&self, source: &ed25519_dalek::VerifyingKey) -> DIDBuf {
         DIDBuf::from_string(
             [
@@ -43,11 +43,11 @@ impl DidKey {
     }
 }
 
-impl DIDMethod for DidKey {
+impl DIDMethod for DIDKey {
     const DID_METHOD_NAME: &'static str = "key";
 }
 
-impl DIDMethodResolver for DidKey {
+impl DIDMethodResolver for DIDKey {
     async fn resolve_method_representation<'a>(
         &'a self,
         key: &'a str,

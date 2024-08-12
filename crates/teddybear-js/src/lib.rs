@@ -189,30 +189,40 @@ impl PrivateEd25519 {
     #[wasm_bindgen(js_name = "issueVC")]
     pub async fn issue_vc(
         &self,
+        verification_method: &str,
         vc: Object,
         context_loader: &mut ContextLoader,
     ) -> Result<Object, JsError> {
         let credential = serde_wasm_bindgen::from_value(vc.into())?;
-        Ok(
-            issue_vc(self.0.inner().clone(), &credential, &mut context_loader.0)
-                .await?
-                .serialize(&OBJECT_SERIALIZER)?
-                .into(),
+        let vm = IriBuf::from_str(verification_method)?;
+
+        Ok(issue_vc(
+            self.0.inner().clone(),
+            vm,
+            &credential,
+            &mut context_loader.0,
         )
+        .await?
+        .serialize(&OBJECT_SERIALIZER)?
+        .into())
     }
 
     /// Create a new verifiable presentation.
     #[wasm_bindgen(js_name = "presentVP")]
     pub async fn present_vp(
         &self,
+        verification_method: &str,
         vp: Object,
         context_loader: &mut ContextLoader,
         domain: Option<String>,
         challenge: Option<String>,
     ) -> Result<Object, JsError> {
         let presentation = serde_wasm_bindgen::from_value(vp.into())?;
+        let vm = IriBuf::from_str(verification_method)?;
+
         Ok(present_vp(
             self.0.inner().clone(),
+            vm,
             &presentation,
             domain,
             challenge,
