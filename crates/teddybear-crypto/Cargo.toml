@@ -7,14 +7,23 @@ repository.workspace = true
 categories.workspace = true
 
 [dependencies]
-ssi-claims-core = { workspace = true }
-ssi-crypto = { workspace = true }
 ssi-dids-core = { workspace = true }
 ssi-jwk = { workspace = true }
 ssi-jws = { workspace = true }
+ssi-multicodec = { workspace = true }
+ssi-rdf = { workspace = true }
+ssi-security = { workspace = true }
 ssi-verification-methods = { workspace = true }
 
+did-web = { workspace = true }
+
 ed25519-dalek = { workspace = true }
-teddybear-did-key = { workspace = true }
+getrandom = { version = "0.2.15", features = ["js"] }
+linked-data = "0.1.2"
 multibase = { workspace = true }
+rand = { version = "0.8.5", default-features = false, features = ["getrandom"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+teddybear-did-key = { workspace = true }
 thiserror = { workspace = true }
+x25519-dalek = { workspace = true }

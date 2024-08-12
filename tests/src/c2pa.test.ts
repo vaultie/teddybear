@@ -14,7 +14,7 @@ const c2paTest: TestAPI<{ key: PrivateEd25519 }> = it.extend({
       "5ff5e2393a44256abe197c82742366ff2f998f6822980e726f8fd16d6bd07eb1",
       "hex",
     );
-    const key = await PrivateEd25519.fromBytes(new Uint8Array(keyBytes));
+    const key = PrivateEd25519.fromBytes(new Uint8Array(keyBytes));
     await use(key);
   },
 });

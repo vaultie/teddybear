@@ -14,7 +14,6 @@ use ssi_dids_core::{
     resolution::{self, Error},
     DIDBuf, DIDMethod, DIDMethodResolver, DIDURLBuf, Document,
 };
-use ssi_jwk::{Params, JWK};
 use static_iref::iri_ref;
 
 // https://www.w3.org/community/reports/credentials/CG-FINAL-di-eddsa-2020-20220724/#ed25519verificationkey2020
@@ -29,23 +28,18 @@ const X25519_PREFIX: &[u8] = &[0xec, 0x01];
 pub struct DidKey;
 
 impl DidKey {
-    pub fn generate(&self, source: &JWK) -> Option<DIDBuf> {
-        match &source.params {
-            Params::OKP(params) if params.curve == "Ed25519" => Some(
-                DIDBuf::from_string(
-                    [
-                        "did:key:",
-                        &multibase::encode(
-                            Base::Base58Btc,
-                            [ED25519_PREFIX, &params.public_key.0].concat(),
-                        ),
-                    ]
-                    .concat(),
-                )
-                .expect("DidKey is expected to generate a valid did"),
-            ),
-            _ => None,
-        }
+    pub fn generate(&self, source: &ed25519_dalek::VerifyingKey) -> DIDBuf {
+        DIDBuf::from_string(
+            [
+                "did:key:",
+                &multibase::encode(
+                    Base::Base58Btc,
+                    [ED25519_PREFIX, source.as_bytes()].concat(),
+                ),
+            ]
+            .concat(),
+        )
+        .expect("DidKey is expected to generate a valid did")
     }
 }
 
@@ -94,26 +88,38 @@ impl DIDMethodResolver for DidKey {
 
         let mut doc = Document::new(document_did.clone());
 
-        doc.verification_method = vec![DIDVerificationMethod::new(
-            ed25519_did,
-            ED25519_TYPE.to_string(),
-            document_did.clone(),
-            BTreeMap::from_iter([(
-                String::from("publicKeyMultibase"),
-                Value::String(key.to_string()),
-            )]),
-        )];
-
-        doc.verification_relationships.key_agreement =
-            vec![ValueOrReference::Value(DIDVerificationMethod::new(
-                x25519_did,
+        doc.verification_method = vec![
+            DIDVerificationMethod::new(
+                ed25519_did.clone(),
+                ED25519_TYPE.to_string(),
+                document_did.clone(),
+                BTreeMap::from_iter([(
+                    String::from("publicKeyMultibase"),
+                    Value::String(key.to_string()),
+                )]),
+            ),
+            DIDVerificationMethod::new(
+                x25519_did.clone(),
                 X25519_TYPE.to_string(),
                 document_did,
                 BTreeMap::from_iter([(
                     String::from("publicKeyMultibase"),
                     Value::String(encoded_x25519),
                 )]),
-            ))];
+            ),
+        ];
+
+        doc.verification_relationships
+            .authentication
+            .push(ValueOrReference::Reference(ed25519_did.clone().into()));
+
+        doc.verification_relationships
+            .assertion_method
+            .push(ValueOrReference::Reference(ed25519_did.into()));
+
+        doc.verification_relationships
+            .key_agreement
+            .push(ValueOrReference::Reference(x25519_did.into()));
 
         let content_type = options.accept.unwrap_or(representation::MediaType::JsonLd);
         let representation = doc.into_representation(representation::Options::from_media_type(

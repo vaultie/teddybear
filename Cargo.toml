@@ -11,15 +11,18 @@ categories = ["cryptography", "wasm"]
 
 [workspace.dependencies]
 ssi-claims = { git = "https://github.com/vaultie/ssi", default-features = false, features = ["ed25519", "w3c"] }
-ssi-claims-core = { git = "https://github.com/vaultie/ssi", default-features = false }
-ssi-crypto = { git = "https://github.com/vaultie/ssi", default-features = false }
 ssi-dids-core = { git = "https://github.com/vaultie/ssi", default-features = false }
 ssi-json-ld = { git = "https://github.com/vaultie/ssi", default-features = false }
 ssi-jwk = { git = "https://github.com/vaultie/ssi", default-features = false, features = ["ed25519"] }
 ssi-jws = { git = "https://github.com/vaultie/ssi", default-features = false, features = ["ed25519"] }
+ssi-multicodec = { git = "https://github.com/vaultie/ssi", default-features = false }
+ssi-rdf = { git = "https://github.com/vaultie/ssi", default-features = false }
+ssi-security = { git = "https://github.com/vaultie/ssi", default-features = false }
 ssi-status = { git = "https://github.com/vaultie/ssi", default-features = false }
 ssi-vc = { git = "https://github.com/vaultie/ssi", default-features = false }
 ssi-verification-methods = { git = "https://github.com/vaultie/ssi", default-features = false, features = ["ed25519"] }
+
+did-web = { git = "https://github.com/vaultie/ssi", default-features = false }
 
 base64 = "0.22.1"
 ed25519-dalek = "2.1.0"
@@ -31,6 +34,7 @@ serde_json = "1.0.111"
 static-iref = "3.0.0"
 thiserror = "1.0.56"
 tokio = { version = "1.35.1", features = ["macros"] }
+x25519-dalek = { version = "2.0.1", features = ["static_secrets"] }
 
 teddybear-c2pa = { path = "crates/teddybear-c2pa" }
 teddybear-crypto = { path = "crates/teddybear-crypto" }

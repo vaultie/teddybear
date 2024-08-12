@@ -14,7 +14,7 @@ const vcTest: TestAPI<{ contextLoader: ContextLoader; key: PrivateEd25519 }> =
       );
     },
     key: async ({}, use) => {
-      const key = await PrivateEd25519.generate();
+      const key = PrivateEd25519.generate();
       await use(key);
     },
   });
@@ -31,7 +31,7 @@ describe("can execute verifiable credentials operations", () => {
         ],
         type: ["VerifiableCredential", "Identity"],
         id: "https://example.com/test",
-        issuer: key.documentDID(),
+        issuer: key.toDIDKey(),
         issuanceDate: new Date().toISOString(),
         credentialSubject: {
           type: "Person",
@@ -66,7 +66,7 @@ describe("can execute verifiable credentials operations", () => {
         ],
         type: ["VerifiableCredential", "Identity"],
         id: "https://example.com/test",
-        issuer: key.documentDID(),
+        issuer: key.toDIDKey(),
         issuanceDate: new Date().toISOString(),
         credentialSubject: {
           type: "Person",
@@ -91,7 +91,7 @@ describe("can execute verifiable credentials operations", () => {
       contextLoader,
     );
 
-    await key.issueVP(
+    await key.presentVP(
       {
         "@context": ["https://www.w3.org/ns/credentials/v2"],
         type: ["VerifiablePresentation"],
