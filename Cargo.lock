@@ -1253,7 +1253,7 @@ dependencies = [
 [[package]]
 name = "did-web"
 version = "0.3.0"
-source = "git+https://github.com/vaultie/ssi#69d579e4ae88746d51661ce329a721b89d85bedb"
+source = "git+https://github.com/vaultie/ssi#e7f47365266e7a0407f89e6f43a4a0f9a248b2f8"
 dependencies = [
  "http",
  "reqwest",
@@ -4346,7 +4346,7 @@ dependencies = [
 [[package]]
 name = "ssi-caips"
 version = "0.2.0"
-source = "git+https://github.com/vaultie/ssi#69d579e4ae88746d51661ce329a721b89d85bedb"
+source = "git+https://github.com/vaultie/ssi#e7f47365266e7a0407f89e6f43a4a0f9a248b2f8"
 dependencies = [
  "bs58",
  "linked-data",
@@ -4359,7 +4359,7 @@ dependencies = [
 [[package]]
 name = "ssi-claims"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi#69d579e4ae88746d51661ce329a721b89d85bedb"
+source = "git+https://github.com/vaultie/ssi#e7f47365266e7a0407f89e6f43a4a0f9a248b2f8"
 dependencies = [
  "educe 0.4.23",
  "iref",
@@ -4390,7 +4390,7 @@ dependencies = [
 [[package]]
 name = "ssi-claims-core"
 version = "0.1.1"
-source = "git+https://github.com/vaultie/ssi#69d579e4ae88746d51661ce329a721b89d85bedb"
+source = "git+https://github.com/vaultie/ssi#e7f47365266e7a0407f89e6f43a4a0f9a248b2f8"
 dependencies = [
  "chrono",
  "educe 0.4.23",
@@ -4405,12 +4405,12 @@ dependencies = [
 [[package]]
 name = "ssi-contexts"
 version = "0.1.6"
-source = "git+https://github.com/vaultie/ssi#69d579e4ae88746d51661ce329a721b89d85bedb"
+source = "git+https://github.com/vaultie/ssi#e7f47365266e7a0407f89e6f43a4a0f9a248b2f8"
 
 [[package]]
 name = "ssi-core"
 version = "0.2.0"
-source = "git+https://github.com/vaultie/ssi#69d579e4ae88746d51661ce329a721b89d85bedb"
+source = "git+https://github.com/vaultie/ssi#e7f47365266e7a0407f89e6f43a4a0f9a248b2f8"
 dependencies = [
  "async-trait",
  "pin-project",
@@ -4421,7 +4421,7 @@ dependencies = [
 [[package]]
 name = "ssi-crypto"
 version = "0.2.0"
-source = "git+https://github.com/vaultie/ssi#69d579e4ae88746d51661ce329a721b89d85bedb"
+source = "git+https://github.com/vaultie/ssi#e7f47365266e7a0407f89e6f43a4a0f9a248b2f8"
 dependencies = [
  "async-trait",
  "bs58",
@@ -4439,7 +4439,7 @@ dependencies = [
 [[package]]
 name = "ssi-data-integrity"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi#69d579e4ae88746d51661ce329a721b89d85bedb"
+source = "git+https://github.com/vaultie/ssi#e7f47365266e7a0407f89e6f43a4a0f9a248b2f8"
 dependencies = [
  "chrono",
  "iref",
@@ -4467,7 +4467,7 @@ dependencies = [
 [[package]]
 name = "ssi-data-integrity-core"
 version = "0.1.1"
-source = "git+https://github.com/vaultie/ssi#69d579e4ae88746d51661ce329a721b89d85bedb"
+source = "git+https://github.com/vaultie/ssi#e7f47365266e7a0407f89e6f43a4a0f9a248b2f8"
 dependencies = [
  "chrono",
  "contextual",
@@ -4502,7 +4502,7 @@ dependencies = [
 [[package]]
 name = "ssi-data-integrity-suites"
 version = "0.1.1"
-source = "git+https://github.com/vaultie/ssi#69d579e4ae88746d51661ce329a721b89d85bedb"
+source = "git+https://github.com/vaultie/ssi#e7f47365266e7a0407f89e6f43a4a0f9a248b2f8"
 dependencies = [
  "async-trait",
  "base64 0.12.3",
@@ -4549,7 +4549,7 @@ dependencies = [
 [[package]]
 name = "ssi-di-sd-primitives"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi#69d579e4ae88746d51661ce329a721b89d85bedb"
+source = "git+https://github.com/vaultie/ssi#e7f47365266e7a0407f89e6f43a4a0f9a248b2f8"
 dependencies = [
  "base64 0.12.3",
  "digest 0.10.7",
@@ -4570,7 +4570,7 @@ dependencies = [
 [[package]]
 name = "ssi-dids-core"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi#69d579e4ae88746d51661ce329a721b89d85bedb"
+source = "git+https://github.com/vaultie/ssi#e7f47365266e7a0407f89e6f43a4a0f9a248b2f8"
 dependencies = [
  "async-trait",
  "iref",
@@ -4593,7 +4593,7 @@ dependencies = [
 [[package]]
 name = "ssi-eip712"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi#69d579e4ae88746d51661ce329a721b89d85bedb"
+source = "git+https://github.com/vaultie/ssi#e7f47365266e7a0407f89e6f43a4a0f9a248b2f8"
 dependencies = [
  "hex",
  "indexmap 2.3.0",
@@ -4611,7 +4611,7 @@ dependencies = [
 [[package]]
 name = "ssi-json-ld"
 version = "0.3.0"
-source = "git+https://github.com/vaultie/ssi#69d579e4ae88746d51661ce329a721b89d85bedb"
+source = "git+https://github.com/vaultie/ssi#e7f47365266e7a0407f89e6f43a4a0f9a248b2f8"
 dependencies = [
  "async-std",
  "combination",
@@ -4635,7 +4635,7 @@ dependencies = [
 [[package]]
 name = "ssi-jwk"
 version = "0.2.1"
-source = "git+https://github.com/vaultie/ssi#69d579e4ae88746d51661ce329a721b89d85bedb"
+source = "git+https://github.com/vaultie/ssi#e7f47365266e7a0407f89e6f43a4a0f9a248b2f8"
 dependencies = [
  "base64 0.12.3",
  "ed25519-dalek",
@@ -4662,7 +4662,7 @@ dependencies = [
 [[package]]
 name = "ssi-jws"
 version = "0.2.1"
-source = "git+https://github.com/vaultie/ssi#69d579e4ae88746d51661ce329a721b89d85bedb"
+source = "git+https://github.com/vaultie/ssi#e7f47365266e7a0407f89e6f43a4a0f9a248b2f8"
 dependencies = [
  "base64 0.12.3",
  "blake2",
@@ -4684,7 +4684,7 @@ dependencies = [
 [[package]]
 name = "ssi-jwt"
 version = "0.2.1"
-source = "git+https://github.com/vaultie/ssi#69d579e4ae88746d51661ce329a721b89d85bedb"
+source = "git+https://github.com/vaultie/ssi#e7f47365266e7a0407f89e6f43a4a0f9a248b2f8"
 dependencies = [
  "async-trait",
  "chrono",
@@ -4707,7 +4707,7 @@ dependencies = [
 [[package]]
 name = "ssi-multicodec"
 version = "0.2.0"
-source = "git+https://github.com/vaultie/ssi#69d579e4ae88746d51661ce329a721b89d85bedb"
+source = "git+https://github.com/vaultie/ssi#e7f47365266e7a0407f89e6f43a4a0f9a248b2f8"
 dependencies = [
  "csv",
  "ed25519-dalek",
@@ -4721,7 +4721,7 @@ dependencies = [
 [[package]]
 name = "ssi-rdf"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi#69d579e4ae88746d51661ce329a721b89d85bedb"
+source = "git+https://github.com/vaultie/ssi#e7f47365266e7a0407f89e6f43a4a0f9a248b2f8"
 dependencies = [
  "combination",
  "indexmap 2.3.0",
@@ -4735,7 +4735,7 @@ dependencies = [
 [[package]]
 name = "ssi-sd-jwt"
 version = "0.2.0"
-source = "git+https://github.com/vaultie/ssi#69d579e4ae88746d51661ce329a721b89d85bedb"
+source = "git+https://github.com/vaultie/ssi#e7f47365266e7a0407f89e6f43a4a0f9a248b2f8"
 dependencies = [
  "base64 0.12.3",
  "rand",
@@ -4751,7 +4751,7 @@ dependencies = [
 [[package]]
 name = "ssi-security"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi#69d579e4ae88746d51661ce329a721b89d85bedb"
+source = "git+https://github.com/vaultie/ssi#e7f47365266e7a0407f89e6f43a4a0f9a248b2f8"
 dependencies = [
  "iref",
  "linked-data",
@@ -4764,7 +4764,7 @@ dependencies = [
 [[package]]
 name = "ssi-status"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi#69d579e4ae88746d51661ce329a721b89d85bedb"
+source = "git+https://github.com/vaultie/ssi#e7f47365266e7a0407f89e6f43a4a0f9a248b2f8"
 dependencies = [
  "base64 0.12.3",
  "flate2",
@@ -4790,7 +4790,7 @@ dependencies = [
 [[package]]
 name = "ssi-vc"
 version = "0.3.0"
-source = "git+https://github.com/vaultie/ssi#69d579e4ae88746d51661ce329a721b89d85bedb"
+source = "git+https://github.com/vaultie/ssi#e7f47365266e7a0407f89e6f43a4a0f9a248b2f8"
 dependencies = [
  "base64 0.12.3",
  "bitvec 0.20.4",
@@ -4820,7 +4820,7 @@ dependencies = [
 [[package]]
 name = "ssi-vc-jose-cose"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi#69d579e4ae88746d51661ce329a721b89d85bedb"
+source = "git+https://github.com/vaultie/ssi#e7f47365266e7a0407f89e6f43a4a0f9a248b2f8"
 dependencies = [
  "serde",
  "serde_json",
@@ -4835,7 +4835,7 @@ dependencies = [
 [[package]]
 name = "ssi-verification-methods"
 version = "0.1.1"
-source = "git+https://github.com/vaultie/ssi#69d579e4ae88746d51661ce329a721b89d85bedb"
+source = "git+https://github.com/vaultie/ssi#e7f47365266e7a0407f89e6f43a4a0f9a248b2f8"
 dependencies = [
  "async-trait",
  "derivative",
@@ -4868,7 +4868,7 @@ dependencies = [
 [[package]]
 name = "ssi-verification-methods-core"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi#69d579e4ae88746d51661ce329a721b89d85bedb"
+source = "git+https://github.com/vaultie/ssi#e7f47365266e7a0407f89e6f43a4a0f9a248b2f8"
 dependencies = [
  "bs58",
  "educe 0.4.23",
