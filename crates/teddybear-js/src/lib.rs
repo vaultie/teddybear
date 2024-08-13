@@ -258,7 +258,7 @@ impl PrivateX25519 {
             .0
             .to_verification_method(IriBuf::from_str(id)?, UriBuf::from_str(controller)?);
 
-        Ok(serde_wasm_bindgen::to_value(&verification_method)?.into())
+        Ok(verification_method.serialize(&OBJECT_SERIALIZER)?.into())
     }
 
     /// Decrypt the provided JWE object using the X25519 key and the A256GCM algorithm.
