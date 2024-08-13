@@ -267,13 +267,12 @@ impl PrivateEd25519 {
         DIDKey.generate(&self.inner.verifying_key())
     }
 
-    pub fn to_verification_method(&self, id: IriBuf, controller: UriBuf) -> DIDVerificationMethod {
-        // FIXME: Convert more efficiently
-        let key =
-            Ed25519VerificationKey2020::from_public_key(id, controller, self.inner.verifying_key());
-        let intermediate =
-            serde_json::to_value(&key).expect("serialization should always be successful");
-        serde_json::from_value(intermediate).expect("deserialization should always be successful")
+    pub fn to_verification_method(
+        &self,
+        id: IriBuf,
+        controller: UriBuf,
+    ) -> Ed25519VerificationKey2020 {
+        Ed25519VerificationKey2020::from_public_key(id, controller, self.inner.verifying_key())
     }
 
     pub fn sign(&self, payload: &str, embed_signing_key: bool) -> Result<String, ssi_jws::Error> {
@@ -305,13 +304,13 @@ impl PrivateX25519 {
         JWK::from(Params::OKP(self.inner.encode_okp()))
     }
 
-    pub fn to_verification_method(&self, id: IriBuf, controller: UriBuf) -> DIDVerificationMethod {
-        // FIXME: Convert more efficiently
+    pub fn to_verification_method(
+        &self,
+        id: IriBuf,
+        controller: UriBuf,
+    ) -> X25519KeyAgreementKey2020 {
         let public_key = x25519_dalek::PublicKey::from(&self.inner);
-        let key = X25519KeyAgreementKey2020::from_public_key(id, controller, public_key);
-        let intermediate =
-            serde_json::to_value(&key).expect("serialization should always be successful");
-        serde_json::from_value(intermediate).expect("deserialization should always be successful")
+        X25519KeyAgreementKey2020::from_public_key(id, controller, public_key)
     }
 }
 

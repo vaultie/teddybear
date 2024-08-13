@@ -4,8 +4,7 @@ use serde::{Deserialize, Serialize};
 use ssi_dids_core::ssi_json_ld::{iref::UriBuf, Iri, IriBuf};
 use ssi_jwk::{Params, JWK};
 use ssi_multicodec::MultiEncodedBuf;
-use ssi_rdf::{Interpretation, Vocabulary};
-use ssi_security::{Multibase, MultibaseBuf};
+use ssi_security::{multibase, Multibase, MultibaseBuf};
 use ssi_verification_methods::{
     ExpectedType, GenericVerificationMethod, InvalidVerificationMethod, JwkVerificationMethod,
     TypedVerificationMethod, VerificationMethod, VerificationMethodSet,
@@ -102,58 +101,14 @@ impl FromStr for PublicKey {
     }
 }
 
-impl<I: Interpretation, V: Vocabulary> linked_data::LinkedDataResource<I, V> for PublicKey
-where
-    MultibaseBuf: linked_data::LinkedDataResource<I, V>,
-{
-    fn interpretation(
-        &self,
-        vocabulary: &mut V,
-        interpretation: &mut I,
-    ) -> linked_data::ResourceInterpretation<I, V> {
-        self.encoded.interpretation(vocabulary, interpretation)
-    }
-}
-
-impl<I: Interpretation, V: Vocabulary> linked_data::LinkedDataSubject<I, V> for PublicKey
-where
-    MultibaseBuf: linked_data::LinkedDataSubject<I, V>,
-{
-    fn visit_subject<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: linked_data::SubjectVisitor<I, V>,
-    {
-        self.encoded.visit_subject(serializer)
-    }
-}
-
-impl<I: Interpretation, V: Vocabulary> linked_data::LinkedDataPredicateObjects<I, V> for PublicKey
-where
-    MultibaseBuf: linked_data::LinkedDataPredicateObjects<I, V>,
-{
-    fn visit_objects<S>(&self, visitor: S) -> Result<S::Ok, S::Error>
-    where
-        S: linked_data::PredicateObjectsVisitor<I, V>,
-    {
-        self.encoded.visit_objects(visitor)
-    }
-}
-
-#[derive(
-    Debug, Clone, Serialize, Deserialize, linked_data::Serialize, linked_data::Deserialize,
-)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename = "X25519KeyAgreementKey2020")]
-#[ld(prefix("sec" = "https://w3id.org/security#"))]
-#[ld(type = "sec:X25519KeyAgreementKey2020")]
 pub struct X25519KeyAgreementKey2020 {
-    #[ld(id)]
     pub id: IriBuf,
 
-    #[ld("sec:controller")]
     pub controller: UriBuf,
 
     #[serde(rename = "publicKeyMultibase")]
-    #[ld("sec:publicKeyMultibase")]
     pub public_key: PublicKey,
 }
 
