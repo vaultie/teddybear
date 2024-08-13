@@ -52,7 +52,7 @@ describe("can execute C2PA operations", () => {
 
     expect(manifests).toHaveLength(1);
     expect(manifests[0].assertions).toHaveLength(1);
-    expect(manifests[0].assertions[0].data.get("url")).toStrictEqual(
+    expect(manifests[0].assertions[0].data.url).toStrictEqual(
       "https://example.com",
     );
   });
@@ -90,7 +90,7 @@ describe("can execute C2PA operations", () => {
 
     expect(manifests).toHaveLength(1);
     expect(manifests[0].assertions).toHaveLength(1);
-    expect(manifests[0].assertions[0].data.get("url")).toStrictEqual(
+    expect(manifests[0].assertions[0].data.url).toStrictEqual(
       "https://example.com",
     );
   });

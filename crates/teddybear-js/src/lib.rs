@@ -682,7 +682,7 @@ pub fn verify_c2pa(source: Uint8Array, format: &str) -> Result<C2paVerificationR
 
     let manifests = reader
         .iter_manifests()
-        .map(serde_wasm_bindgen::to_value)
+        .map(|manifest| manifest.serialize(&OBJECT_SERIALIZER))
         .map_ok(Into::into)
         .try_collect()?;
 
