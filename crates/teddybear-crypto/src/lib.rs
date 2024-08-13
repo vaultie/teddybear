@@ -20,6 +20,7 @@ use ssi_verification_methods::{
     ProofPurpose,
 };
 use teddybear_did_key::DIDKey;
+use teddybear_high_assurance::DnsError;
 
 use crate::okp_encoder::OKPEncoder;
 
@@ -81,6 +82,9 @@ pub enum Ed25519Error {
     #[error("invalid resource type")]
     InvalidResourceType,
 
+    #[error("high assurance verification failed")]
+    HighAssuranceVerificationFailed,
+
     #[error("{0}")]
     ControllerError(String),
 
@@ -89,6 +93,9 @@ pub enum Ed25519Error {
 
     #[error(transparent)]
     InvalidVerificationMethod(#[from] InvalidVerificationMethod),
+
+    #[error(transparent)]
+    DnsError(#[from] DnsError),
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -147,19 +154,31 @@ impl Document {
     }
 
     pub async fn resolve(id: &Iri) -> Result<Self, Ed25519Error> {
-        Ok(Self {
-            inner: CustomVerificationMethodDIDResolver::new(default_did_method())
-                .require_controller(id)
-                .await
-                .map_err(|e| match e {
-                    ControllerError::NotFound(e) => Ed25519Error::ControllerError(e),
-                    ControllerError::Invalid => {
-                        Ed25519Error::ControllerError("Invalid controller".to_string())
-                    }
-                    ControllerError::Unsupported(e) => Ed25519Error::ControllerError(e),
-                    ControllerError::InternalError(e) => Ed25519Error::ControllerError(e),
-                })?,
-        })
+        let inner = CustomVerificationMethodDIDResolver::new(default_did_method())
+            .require_controller(id)
+            .await
+            .map_err(|e| match e {
+                ControllerError::NotFound(e) => Ed25519Error::ControllerError(e),
+                ControllerError::Invalid => {
+                    Ed25519Error::ControllerError("Invalid controller".to_string())
+                }
+                ControllerError::Unsupported(e) => Ed25519Error::ControllerError(e),
+                ControllerError::InternalError(e) => Ed25519Error::ControllerError(e),
+            })?;
+
+        // Verify `did:web` if possible
+        // FIXME: Move to SSI and handle in the DID resolver
+        if let Some(vm) = id.strip_prefix("did:web:") {
+            if let Some(resolved_name) =
+                teddybear_high_assurance::resolve_uri_record(&format!("_did.{vm}")).await?
+            {
+                if id.as_str() != resolved_name {
+                    return Err(Ed25519Error::HighAssuranceVerificationFailed);
+                }
+            }
+        }
+
+        Ok(Self { inner })
     }
 
     pub fn verification_methods(&self) -> impl Iterator<Item = (ProofPurpose, DIDURLBuf)> + '_ {

@@ -39,6 +39,7 @@ x25519-dalek = { version = "2.0.1", features = ["static_secrets"] }
 teddybear-c2pa = { path = "crates/teddybear-c2pa" }
 teddybear-crypto = { path = "crates/teddybear-crypto" }
 teddybear-did-key = { path = "crates/teddybear-did-key" }
+teddybear-high-assurance = { path = "crates/teddybear-high-assurance" }
 teddybear-jwe = { path = "crates/teddybear-jwe" }
 teddybear-vc = { path = "crates/teddybear-vc" }
 
