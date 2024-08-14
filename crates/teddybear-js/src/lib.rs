@@ -14,8 +14,8 @@ use ssi_status::bitstring_status_list::{
 };
 use teddybear_c2pa::{Builder, Ed25519Signer, Reader};
 use teddybear_crypto::{
-    DIDURLBuf, Ed25519VerificationKey2020, IriBuf, JwkVerificationMethod, UriBuf,
-    X25519KeyAgreementKey2020,
+    DIDURLBuf, DocumentResolveOptions, Ed25519VerificationKey2020, IriBuf, JwkVerificationMethod,
+    UriBuf, X25519KeyAgreementKey2020,
 };
 use teddybear_jwe::{A256Gcm, XC20P};
 use wasm_bindgen::prelude::*;
@@ -81,9 +81,15 @@ pub struct Document(teddybear_crypto::Document);
 
 #[wasm_bindgen]
 impl Document {
-    pub async fn resolve(did: &str) -> Result<Document, JsError> {
+    pub async fn resolve(did: &str, options: Option<Object>) -> Result<Document, JsError> {
+        let options: DocumentResolveOptions = options
+            .map(Into::into)
+            .map(serde_wasm_bindgen::from_value)
+            .transpose()?
+            .unwrap_or_default();
+
         Ok(Document(
-            teddybear_crypto::Document::resolve(&IriBuf::from_str(did)?).await?,
+            teddybear_crypto::Document::resolve(&IriBuf::from_str(did)?, options).await?,
         ))
     }
 

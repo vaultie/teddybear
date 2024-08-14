@@ -1,6 +1,8 @@
 mod okp_encoder;
 mod x25519;
 
+use std::borrow::Cow;
+
 use did_web::DIDWeb;
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
@@ -32,6 +34,8 @@ pub use ssi_jwk::JWK;
 pub use ssi_verification_methods::{Ed25519VerificationKey2020, JwkVerificationMethod};
 
 pub use crate::x25519::X25519KeyAgreementKey2020;
+
+const DEFAULT_RESOLVER: &'static str = "https://cloudflare-dns.com/dns-query";
 
 pub struct ChainDIDMethod<A, B>(A, B);
 
@@ -104,6 +108,16 @@ pub struct Document {
     inner: ssi_dids_core::Document,
 }
 
+#[derive(Default, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct DocumentResolveOptions<'a> {
+    /// Whether to require high assurance DID verification.
+    require_high_assurance_verification: bool,
+
+    /// Preferred DNS-over-HTTPS resolver.
+    dns_over_https_resolver: Option<Cow<'a, str>>,
+}
+
 fn proof_purpose_iter<'a, I: IntoIterator<Item = &'a ValueOrReference>>(
     proof_purpose: ProofPurpose,
     values: I,
@@ -153,7 +167,10 @@ impl Document {
         Ok(Self { inner })
     }
 
-    pub async fn resolve(id: &Iri) -> Result<Self, Ed25519Error> {
+    pub async fn resolve(
+        id: &Iri,
+        options: DocumentResolveOptions<'_>,
+    ) -> Result<Self, Ed25519Error> {
         let inner = CustomVerificationMethodDIDResolver::new(default_did_method())
             .require_controller(id)
             .await
@@ -166,14 +183,21 @@ impl Document {
                 ControllerError::InternalError(e) => Ed25519Error::ControllerError(e),
             })?;
 
-        // Verify `did:web` if possible
-        // FIXME: Move to SSI and handle in the DID resolver
-        if let Some(vm) = id.strip_prefix("did:web:") {
-            if let Some(resolved_name) =
-                teddybear_high_assurance::resolve_uri_record(&format!("_did.{vm}")).await?
-            {
-                if id.as_str() != resolved_name {
-                    return Err(Ed25519Error::HighAssuranceVerificationFailed);
+        if options.require_high_assurance_verification {
+            // FIXME: Implement other parts of the RFC.
+            if let Some(vm) = id.strip_prefix("did:web:") {
+                if let Some(resolved_name) = teddybear_high_assurance::resolve_uri_record(
+                    options
+                        .dns_over_https_resolver
+                        .as_deref()
+                        .unwrap_or(&DEFAULT_RESOLVER),
+                    &format!("_did.{vm}"),
+                )
+                .await?
+                {
+                    if id.as_str() != resolved_name {
+                        return Err(Ed25519Error::HighAssuranceVerificationFailed);
+                    }
                 }
             }
         }

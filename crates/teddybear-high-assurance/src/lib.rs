@@ -20,8 +20,8 @@ pub enum DnsError {
     Reqwest(#[from] reqwest::Error),
 }
 
-pub async fn resolve_uri_record(name: &str) -> Result<Option<String>, DnsError> {
-    let rdata = resolve_record(name, RecordType::Unknown(256)).await?;
+pub async fn resolve_uri_record(resolver: &str, name: &str) -> Result<Option<String>, DnsError> {
+    let rdata = resolve_record(resolver, name, RecordType::Unknown(256)).await?;
 
     Ok(match rdata {
         Some(rdata) => {
@@ -41,7 +41,11 @@ pub async fn resolve_uri_record(name: &str) -> Result<Option<String>, DnsError> 
     })
 }
 
-async fn resolve_record(name: &str, rr_type: RecordType) -> Result<Option<RData>, DnsError> {
+async fn resolve_record(
+    resolver: &str,
+    name: &str,
+    rr_type: RecordType,
+) -> Result<Option<RData>, DnsError> {
     let name = Name::from_utf8(name)?;
 
     let query = Query::query(name.clone(), rr_type);
@@ -51,7 +55,7 @@ async fn resolve_record(name: &str, rr_type: RecordType) -> Result<Option<RData>
     message.set_recursion_desired(true);
 
     let response_bytes = reqwest::Client::new()
-        .post("https://cloudflare-dns.com/dns-query")
+        .post(resolver)
         .header("accept", "application/dns-message")
         .header("content-Type", "application/dns-message")
         .body(message.to_bytes()?)

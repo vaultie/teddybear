@@ -2,10 +2,10 @@ import { C2PABuilder, PrivateEd25519, verifyC2PA } from "@vaultie/teddybear";
 import { readFileSync } from "fs";
 import { TestAPI, describe, expect, it } from "vitest";
 
-const image = readFileSync(process.env.placeholderImage!);
-const thumbnail = readFileSync(process.env.thumbnailImage!);
-const pdf = readFileSync(process.env.placeholderPdf!);
-const certificate = readFileSync(process.env.certificate!);
+const image = readFileSync(process.env.PLACEHOLDER_IMAGE!);
+const pdf = readFileSync(process.env.PLACEHOLDER_PDF!);
+const thumbnail = readFileSync(process.env.THUMBNAIL_IMAGE!);
+const certificate = readFileSync(process.env.CERTIFICATE!);
 
 const c2paTest: TestAPI<{ key: PrivateEd25519 }> = it.extend({
   key: async ({}, use) => {

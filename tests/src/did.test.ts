@@ -17,4 +17,18 @@ describe("can execute DID document-related operations", () => {
       "did:key:z6MkmpNwNTy4ATx87tZWHqSwNf1ZdeQrBHFWyhtvUwqrt32R#z6LSej1Ss4cgai4cK8KspVmAEgCa7TP7c6zGHtftB16YNXoE"
     );
   })
+
+  it('can resolve did:web', async () => {
+    const document = await Document.resolve("did:web:issuer.localhost", {
+      requireHighAssuranceVerification: false
+    });
+
+    expect(document.verificationMethods().assertionMethod?.[0]).toStrictEqual(
+      "did:web:issuer.localhost#key-1"
+    );
+
+    expect(document.verificationMethods().authentication?.[0]).toStrictEqual(
+      "did:web:issuer.localhost#key-1"
+    );
+  })
 });

@@ -8,7 +8,7 @@ const vcTest: TestAPI<{ contextLoader: ContextLoader; key: PrivateEd25519 }> =
       await use(
         new ContextLoader({
           "https://w3c.credential.nexus/identity": (
-            await readFile(process.env.identityContext!)
+            await readFile(process.env.IDENTITY_CONTEXT!)
           ).toString("utf-8"),
         }),
       );
