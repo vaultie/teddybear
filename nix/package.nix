@@ -3,6 +3,7 @@
   buildForNode,
   craneLib,
   lib,
+  moreutils,
   wabt,
   wasmArgs,
   wasmCargoArtifacts,
@@ -20,6 +21,7 @@ in
 
       nativeBuildInputs = [
         binaryen
+        moreutils
         wabt
         wasm-bindgen-cli
         wasm-pack
@@ -47,6 +49,15 @@ in
       preInstall = ''
         substituteInPlace crates/teddybear-js/build/package.json \
           --replace-fail "teddybear-js" "@vaultie/teddybear${lib.optionalString buildForNode "-node"}"
+
+        # wasm-bindgen's custom TypeScript sections are merged into random d.ts file locations,
+        # so to generate the module documentation we have to use a separate file and merge
+        # it manually
+        substituteInPlace crates/teddybear-js/build/index.d.ts \
+          --replace-fail "/* tslint:disable */''\n/* eslint-disable */" ""
+
+        cat crates/teddybear-js/module.d.ts crates/teddybear-js/build/index.d.ts \
+          | sponge crates/teddybear-js/build/index.d.ts
       '';
 
       installPhaseCommand = ''
