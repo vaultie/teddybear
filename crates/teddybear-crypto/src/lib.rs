@@ -8,10 +8,8 @@ use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use ssi_dids_core::{
     document::{verification_method::ValueOrReference, DIDVerificationMethod, ResourceRef},
-    resolution::{self, DIDResolverByMethod},
     ssi_json_ld::Iri,
-    DIDBuf, DIDMethodResolver, DIDResolver, DIDURLReference, DIDURLReferenceBuf, InvalidDIDURL,
-    VerificationMethodDIDResolver,
+    DIDBuf, DIDURLReference, DIDURLReferenceBuf, InvalidDIDURL, VerificationMethodDIDResolver,
 };
 use ssi_jwk::{Algorithm, Params};
 use ssi_jws::{
@@ -35,32 +33,12 @@ pub use ssi_verification_methods::{Ed25519VerificationKey2020, JwkVerificationMe
 
 pub use crate::x25519::X25519KeyAgreementKey2020;
 
-const DEFAULT_RESOLVER: &'static str = "https://cloudflare-dns.com/dns-query";
+const DEFAULT_RESOLVER: &str = "https://cloudflare-dns.com/dns-query";
 
-pub struct ChainDIDMethod<A, B>(A, B);
-
-impl<A, B> DIDResolver for ChainDIDMethod<A, B>
-where
-    A: DIDMethodResolver,
-    B: DIDResolver,
-{
-    async fn resolve_representation<'a>(
-        &'a self,
-        did: &'a DID,
-        options: resolution::Options,
-    ) -> Result<resolution::Output<Vec<u8>>, resolution::Error> {
-        if self.0.supports_method(did.method_name()) {
-            self.0.resolve_representation(did, options).await
-        } else {
-            self.1.resolve_representation(did, options).await
-        }
-    }
-}
-
-pub type SupportedDIDMethods = ChainDIDMethod<DIDKey, DIDWeb>;
+pub type SupportedDIDMethods = (DIDKey, DIDWeb);
 
 pub fn default_did_method() -> SupportedDIDMethods {
-    ChainDIDMethod(DIDKey, DIDWeb)
+    (DIDKey, DIDWeb)
 }
 
 pub type CustomVerificationMethodDIDResolver =
@@ -190,7 +168,7 @@ impl Document {
                     options
                         .dns_over_https_resolver
                         .as_deref()
-                        .unwrap_or(&DEFAULT_RESOLVER),
+                        .unwrap_or(DEFAULT_RESOLVER),
                     &format!("_did.{vm}"),
                 )
                 .await?
