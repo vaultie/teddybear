@@ -38,8 +38,8 @@ testers.runNixOSTest ({lib, ...}: {
 
     systemd.services = {
       generate-cert = {
-        before = ["coredns.service" "static-web-server.service"];
-        requiredBy = ["coredns.service" "static-web-server.service"];
+        before = ["static-web-server.service"];
+        requiredBy = ["static-web-server.service"];
 
         serviceConfig = {
           Type = "oneshot";
@@ -65,30 +65,14 @@ testers.runNixOSTest ({lib, ...}: {
       };
     };
 
-    services = {
-      resolved.enable = true;
-
-      coredns = {
-        enable = true;
-        config = ''
-          https://.:5353 {
-            tls /var/lib/ssl/cert.pem /var/lib/ssl/key.pem {
-              client_auth nocert
-            }
-            forward . 127.0.0.1:53
-          }
-        '';
-      };
-
-      static-web-server = {
-        enable = true;
-        root = "/etc/did-web-root";
-        listen = "127.0.0.1:443";
-        configuration.general = {
-          http2 = true;
-          http2-tls-cert = "/var/lib/ssl/cert.pem";
-          http2-tls-key = "/var/lib/ssl/key.pem";
-        };
+    services.static-web-server = {
+      enable = true;
+      root = "/etc/did-web-root";
+      listen = "127.0.0.1:443";
+      configuration.general = {
+        http2 = true;
+        http2-tls-cert = "/var/lib/ssl/cert.pem";
+        http2-tls-key = "/var/lib/ssl/key.pem";
       };
     };
 
@@ -109,10 +93,7 @@ testers.runNixOSTest ({lib, ...}: {
   };
 
   testScript = ''
-    machine.wait_for_unit("systemd-resolved.service")
-    machine.wait_for_unit("coredns.service")
     machine.wait_for_unit("static-web-server.service")
-
     machine.succeed("${lib.getExe runner}")
   '';
 })
