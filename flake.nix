@@ -98,6 +98,10 @@
           inherit rustPlatform;
         };
 
+        wasm-snip = pkgs.callPackage ./nix/wasm-snip.nix {
+          inherit rustPlatform;
+        };
+
         commonArgs = {
           inherit src;
 
@@ -126,6 +130,18 @@
           "simd128"
         ];
 
+        # Potentially, some unused code may be introduced into the resulting WASM blob,
+        # unnecessarily increasing its size. Using `wasm-snip` it's possible to replace
+        # function bodies with a trap opcode, optimizing out both the function itself
+        # and its callers.
+        wasmSnipPatterns = [
+          ".*core::panicking::.*"
+          ".*std::panicking::.*"
+          ".*bmff_io.*"
+          ".*gif_io.*"
+          ".*svg_io.*"
+        ];
+
         wasmArgs =
           commonArgs
           // {
@@ -150,7 +166,9 @@
               craneLib
               wasmArgs
               wasmCargoArtifacts
+              wasmSnipPatterns
               wasm-pack
+              wasm-snip
               ;
           };
 
@@ -163,7 +181,7 @@
       in {
         devShells = {
           default = pkgs.mkShell {
-            buildInputs = [rustToolchain pkgs.nodejs pkgs.yarn];
+            buildInputs = [rustToolchain pkgs.nodejs pkgs.yarn pkgs.twiggy];
             inputsFrom = [esm];
           };
 

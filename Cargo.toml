@@ -48,4 +48,5 @@ codegen-units = 1
 lto = true
 opt-level = "z"
 panic = "abort"
-strip = true
+# Debug symbols are used to snip unused code snippets
+# strip = true

@@ -7,8 +7,10 @@
   wabt,
   wasmArgs,
   wasmCargoArtifacts,
+  wasmSnipPatterns,
   wasm-bindgen-cli,
   wasm-pack,
+  wasm-snip
 }: let
   target =
     if buildForNode
@@ -25,6 +27,7 @@ in
         wabt
         wasm-bindgen-cli
         wasm-pack
+        wasm-snip
       ];
 
       buildPhaseCargoCommand = ''
@@ -35,7 +38,25 @@ in
           --out-dir build \
           --out-name index \
           --target ${target} \
+          --no-opt \
           --release
+
+        ${lib.optionalString (wasmSnipPatterns != []) ''
+          wasm-snip crates/teddybear-js/build/index_bg.wasm \
+            --output crates/teddybear-js/build/index_bg.wasm \
+            ${lib.concatMapStringsSep " " (p: "-p ${lib.escapeShellArg p}") wasmSnipPatterns}
+        ''}
+
+        wasm-opt -Oz \
+          --output crates/teddybear-js/build/index_bg.wasm \
+          --enable-bulk-memory \
+          --enable-mutable-globals \
+          --enable-nontrapping-float-to-int \
+          --enable-sign-ext \
+          --enable-simd \
+          --converge \
+          --strip-debug \
+          crates/teddybear-js/build/index_bg.wasm
 
         wasm-strip crates/teddybear-js/build/index_bg.wasm
       '';

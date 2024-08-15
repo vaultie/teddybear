@@ -9,17 +9,6 @@ categories.workspace = true
 [lib]
 crate-type = ["cdylib", "rlib"]
 
-[package.metadata.wasm-pack.profile.release]
-wasm-opt = [
-    "-Oz",
-    "--enable-bulk-memory",
-    "--enable-mutable-globals",
-    "--enable-nontrapping-float-to-int",
-    "--enable-sign-ext",
-    "--enable-simd",
-    "--converge"
-]
-
 [dependencies]
 teddybear-c2pa = { workspace = true }
 teddybear-crypto = { workspace = true }
