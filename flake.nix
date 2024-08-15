@@ -135,8 +135,6 @@
         # function bodies with a trap opcode, optimizing out both the function itself
         # and its callers.
         wasmSnipPatterns = [
-          ".*core::panicking::.*"
-          ".*std::panicking::.*"
           ".*bmff_io.*"
           ".*gif_io.*"
           ".*svg_io.*"
