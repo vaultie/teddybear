@@ -74,7 +74,7 @@ pub struct GeneralJWE<'a> {
 pub fn encrypt<
     'a,
     T: SymmetricEncryptionAlgorithm,
-    I: IntoIterator<Item = &'a x25519_dalek::PublicKey>,
+    I: IntoIterator<Item = (String, &'a x25519_dalek::PublicKey)>,
 >(
     payload: &[u8],
     recipients: I,
@@ -83,11 +83,11 @@ pub fn encrypt<
 
     let recipients = recipients
         .into_iter()
-        .map(|recipient| {
+        .map(|(consumer_info, recipient)| {
             let ephemeral_key_pair = X25519KeyPair::random()?;
             let producer_info = ephemeral_key_pair.to_public_bytes()?;
 
-            let (consumer_info, askar_recipient) = extract_public_key(recipient)?;
+            let askar_recipient = X25519KeyPair::from_public_bytes(recipient.as_bytes())?;
 
             let kek = create_kek(
                 &ephemeral_key_pair,
@@ -130,6 +130,7 @@ pub fn encrypt<
 
 pub fn decrypt<T: SymmetricEncryptionAlgorithm>(
     jwe: &GeneralJWE<'_>,
+    consumer_info: &str,
     recipient: &x25519_dalek::StaticSecret,
 ) -> Result<Vec<u8>, Error> {
     if jwe.protected != T::SHARED_PROTECTED_HEADER_BASE64 {
@@ -139,7 +140,7 @@ pub fn decrypt<T: SymmetricEncryptionAlgorithm>(
         ));
     }
 
-    let (consumer_info, askar_recipient) = extract_private_key(recipient)?;
+    let askar_recipient = X25519KeyPair::from_secret_bytes(recipient.as_bytes())?;
 
     let matching_recipient = jwe
         .recipients
@@ -187,7 +188,9 @@ pub fn decrypt<T: SymmetricEncryptionAlgorithm>(
 
 pub fn add_recipient<T: SymmetricEncryptionAlgorithm>(
     jwe: &GeneralJWE<'_>,
+    existing_consumer_info: &str,
     existing_recipient: &x25519_dalek::StaticSecret,
+    new_consumer_info: String,
     new_recipient: &x25519_dalek::PublicKey,
 ) -> Result<Recipient, Error> {
     if jwe.protected != T::SHARED_PROTECTED_HEADER_BASE64 {
@@ -197,9 +200,8 @@ pub fn add_recipient<T: SymmetricEncryptionAlgorithm>(
         ));
     }
 
-    let (existing_consumer_info, existing_askar_recipient) =
-        extract_private_key(existing_recipient)?;
-    let (new_consumer_info, new_askar_recipient) = extract_public_key(new_recipient)?;
+    let existing_askar_recipient = X25519KeyPair::from_secret_bytes(existing_recipient.as_bytes())?;
+    let new_askar_recipient = X25519KeyPair::from_public_bytes(new_recipient.as_bytes())?;
 
     let matching_recipient = jwe
         .recipients
@@ -305,19 +307,6 @@ fn create_kek(
     Ok(kek)
 }
 
-fn extract_private_key(key: &x25519_dalek::StaticSecret) -> Result<(String, X25519KeyPair), Error> {
-    let public_key = x25519_dalek::PublicKey::from(key);
-    let consumer_info = URL_SAFE_NO_PAD.encode(public_key.to_bytes());
-    let askar_recipient = X25519KeyPair::from_secret_bytes(key.as_bytes())?;
-    Ok((consumer_info, askar_recipient))
-}
-
-fn extract_public_key(key: &x25519_dalek::PublicKey) -> Result<(String, X25519KeyPair), Error> {
-    let consumer_info = URL_SAFE_NO_PAD.encode(key.to_bytes());
-    let askar_recipient = X25519KeyPair::from_public_bytes(key.as_bytes())?;
-    Ok((consumer_info, askar_recipient))
-}
-
 #[cfg(test)]
 mod tests {
     use askar_crypto::alg::{aes::A256Gcm, chacha20::XC20P};
@@ -333,10 +322,10 @@ mod tests {
                 async fn [<single_recipient_ $name>]() {
                     let value = b"Hello, world";
                     let key = PrivateEd25519::generate();
-                    let jwe = encrypt::<$symmetric_algorithm, _>(value, &[
-                        PublicKey::from(key.to_x25519_private_key().inner())
+                    let jwe = encrypt::<$symmetric_algorithm, _>(value, [
+                        (String::from("key1"), &PublicKey::from(key.to_x25519_private_key().inner()))
                     ]).unwrap();
-                    let decrypted = decrypt::<$symmetric_algorithm>(&jwe, key.to_x25519_private_key().inner()).unwrap();
+                    let decrypted = decrypt::<$symmetric_algorithm>(&jwe, "key1", key.to_x25519_private_key().inner()).unwrap();
                     assert_eq!(decrypted, value);
                 }
 
@@ -350,15 +339,15 @@ mod tests {
 
                     let jwe = encrypt::<$symmetric_algorithm, _>(
                         value,
-                        &[
-                            PublicKey::from(key.to_x25519_private_key().inner()),
-                            PublicKey::from(key2.to_x25519_private_key().inner()),
-                            PublicKey::from(key3.to_x25519_private_key().inner())
+                        [
+                            (String::from("key1"), &PublicKey::from(key.to_x25519_private_key().inner())),
+                            (String::from("key2"), &PublicKey::from(key2.to_x25519_private_key().inner())),
+                            (String::from("key3"), &PublicKey::from(key3.to_x25519_private_key().inner()))
                         ],
                     )
                     .unwrap();
 
-                    let decrypted = decrypt::<$symmetric_algorithm>(&jwe, key2.to_x25519_private_key().inner()).unwrap();
+                    let decrypted = decrypt::<$symmetric_algorithm>(&jwe, "key2", key2.to_x25519_private_key().inner()).unwrap();
 
                     assert_eq!(decrypted, value);
                 }
@@ -367,11 +356,12 @@ mod tests {
                 async fn [<unknown_key_ $name>]() {
                     let value = b"Hello, world";
                     let key = PrivateEd25519::generate();
-                    let jwe = encrypt::<$symmetric_algorithm, _>(value, &[
-                        PublicKey::from(key.to_x25519_private_key().inner())
+                    let jwe = encrypt::<$symmetric_algorithm, _>(value, [
+                        (String::from("key1"), &PublicKey::from(key.to_x25519_private_key().inner()))
                     ]).unwrap();
                     assert!(decrypt::<$symmetric_algorithm>(
                         &jwe,
+                        "key1",
                         PrivateEd25519::generate().to_x25519_private_key().inner()
                     )
                     .is_err());
@@ -381,8 +371,10 @@ mod tests {
                 async fn [<large_payload_ $name>]() {
                     let value = vec![0; 4096];
                     let key = PrivateEd25519::generate();
-                    let jwe = encrypt::<$symmetric_algorithm, _>(&value, &[PublicKey::from(key.to_x25519_private_key().inner())]).unwrap();
-                    let decrypted = decrypt::<$symmetric_algorithm>(&jwe, key.to_x25519_private_key().inner()).unwrap();
+                    let jwe = encrypt::<$symmetric_algorithm, _>(&value, [
+                        (String::from("key1"), &PublicKey::from(key.to_x25519_private_key().inner()))
+                    ]).unwrap();
+                    let decrypted = decrypt::<$symmetric_algorithm>(&jwe, "key1", key.to_x25519_private_key().inner()).unwrap();
                     assert_eq!(decrypted, value);
                 }
 
@@ -395,9 +387,9 @@ mod tests {
 
                     let mut jwe = encrypt::<$symmetric_algorithm, _>(
                         value,
-                        &[
-                            PublicKey::from(key.to_x25519_private_key().inner()),
-                            PublicKey::from(key2.to_x25519_private_key().inner()),
+                        [
+                            (String::from("key1"), &PublicKey::from(key.to_x25519_private_key().inner())),
+                            (String::from("key2"), &PublicKey::from(key2.to_x25519_private_key().inner())),
                         ],
                     )
                     .unwrap();
@@ -406,15 +398,17 @@ mod tests {
 
                     let recipient = add_recipient::<$symmetric_algorithm>(
                         &mut jwe,
+                        "key1",
                         key.to_x25519_private_key().inner(),
+                        String::from("key3"),
                         &PublicKey::from(key3.to_x25519_private_key().inner())
                     )
                     .unwrap();
 
                     jwe.recipients.push(recipient);
 
-                    let decrypted_one = decrypt::<$symmetric_algorithm>(&jwe, key2.to_x25519_private_key().inner()).unwrap();
-                    let decrypted_two = decrypt::<$symmetric_algorithm>(&jwe, key3.to_x25519_private_key().inner()).unwrap();
+                    let decrypted_one = decrypt::<$symmetric_algorithm>(&jwe, "key2", key2.to_x25519_private_key().inner()).unwrap();
+                    let decrypted_two = decrypt::<$symmetric_algorithm>(&jwe, "key3", key3.to_x25519_private_key().inner()).unwrap();
 
                     assert_eq!(decrypted_one, decrypted_two);
                 }

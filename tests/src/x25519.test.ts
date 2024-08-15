@@ -1,4 +1,11 @@
-import { Document, encryptAES, encryptChaCha20, PrivateEd25519, PrivateX25519, PublicX25519 } from "@vaultie/teddybear";
+import {
+  Document,
+  encryptAES,
+  encryptChaCha20,
+  PrivateEd25519,
+  PrivateX25519,
+  PublicX25519,
+} from "@vaultie/teddybear";
 import { describe, it, expect } from "vitest";
 
 // @ts-expect-error Library without TS definitions
@@ -10,12 +17,19 @@ import { Ed25519VerificationKey2020 } from "@digitalbazaar/ed25519-verification-
 // @ts-expect-error Library without TS definitions
 import { X25519KeyAgreementKey2020 } from "@digitalbazaar/x25519-key-agreement-key-2020";
 
-const generateX25519 = async (): Promise<[PublicX25519, PrivateX25519, object, string]> => {
+const generateX25519 = async (): Promise<
+  [PublicX25519, PrivateX25519, object, string]
+> => {
   const key = PrivateEd25519.generate();
   const document = await Document.resolve(key.toDIDKey());
   const vm = document.verificationMethods().keyAgreement?.[0]!;
-  return [document.getX25519VerificationMethod(vm), key.toX25519PrivateKey(), document.toJSON(), vm];
-}
+  return [
+    document.getX25519VerificationMethod(vm),
+    key.toX25519PrivateKey(),
+    document.toJSON(),
+    vm,
+  ];
+};
 
 describe("can execute x25519 operations", () => {
   it("can extract JWK values", async () => {
@@ -33,32 +47,27 @@ describe("can execute x25519 operations", () => {
   });
 
   it("can encrypt and decrypt for a single key", async () => {
-    const [pub, priv] = await generateX25519();
+    const [pub, priv, , did] = await generateX25519();
 
     const value = new TextEncoder().encode("Hello, world");
 
-    const encrypted = encryptAES(
-      value,
-      [pub]
-    );
+    const encrypted = encryptAES(value, [pub]);
 
-    expect(priv.decryptAES(encrypted)).toStrictEqual(value);
+    expect(priv.decryptAES(did, encrypted)).toStrictEqual(value);
   });
 
   it("can encrypt and decrypt for multiple keys", async () => {
     const [firstKey] = await generateX25519();
     const [secondKey] = await generateX25519();
-    const [thirdKeyPub, thirdKeyPriv] = await generateX25519();
+    const [thirdKeyPub, thirdKeyPriv, , thirdKeyDID] = await generateX25519();
 
     const value = new TextEncoder().encode("Hello, world");
 
-    const encrypted = encryptAES(value, [
-      firstKey,
-      secondKey,
-      thirdKeyPub,
-    ]);
+    const encrypted = encryptAES(value, [firstKey, secondKey, thirdKeyPub]);
 
-    expect(thirdKeyPriv.decryptAES(encrypted)).toStrictEqual(value);
+    expect(thirdKeyPriv.decryptAES(thirdKeyDID, encrypted)).toStrictEqual(
+      value,
+    );
   });
 
   it("other libraries can decrypt JWEs", async () => {
@@ -80,10 +89,7 @@ describe("can execute x25519 operations", () => {
 
     const [secondKey] = await generateX25519();
 
-    const jwe = encryptChaCha20(data, [
-      firstKey,
-      secondKey,
-    ]);
+    const jwe = encryptChaCha20(data, [firstKey, secondKey]);
 
     const cipher = new Cipher();
 
@@ -97,8 +103,9 @@ describe("can execute x25519 operations", () => {
   it("can decrypt JWEs from other libraries", async () => {
     const data = new TextEncoder().encode("Hello, world");
 
-    const [,,firstKeyDocument,firstKeyDID] = await generateX25519();
-    const [,secondKey,secondKeyDocument,secondKeyDID] = await generateX25519();
+    const [, , firstKeyDocument, firstKeyDID] = await generateX25519();
+    const [, secondKey, secondKeyDocument, secondKeyDID] =
+      await generateX25519();
 
     const recipients = [
       { header: { kid: firstKeyDID, alg: "ECDH-ES+A256KW" } },
@@ -116,31 +123,29 @@ describe("can execute x25519 operations", () => {
 
     const jwe = await cipher.encrypt({ data, recipients, keyResolver });
 
-    expect(secondKey.decryptChaCha20(jwe)).toStrictEqual(data);
+    expect(secondKey.decryptChaCha20(secondKeyDID, jwe)).toStrictEqual(data);
   });
 
-  // it("can add new recipients", async () => {
-  //   const firstKey = await PrivateEd25519.generate();
-  //   const secondKey = await PublicEd25519.fromDID(
-  //     "did:key:z6MkqWhsS8uVAnUpgKUZhZAHz2ioDFbBaR6eZPM8UkUQcrEg",
-  //   );
+  it("can add new recipients", async () => {
+    const [firstKeyPub, firstKeyPriv, , firstKeyDID] = await generateX25519();
+    const [secondKey] = await generateX25519();
 
-  //   const value = new TextEncoder().encode("Hello, world");
+    const value = new TextEncoder().encode("Hello, world");
 
-  //   const encrypted = encryptAES(value, [
-  //     firstKey.toX25519PublicJWK(),
-  //     secondKey.toX25519PublicJWK(),
-  //   ]);
+    const encrypted = encryptAES(value, [firstKeyPub, secondKey]);
 
-  //   const thirdKey = await PrivateEd25519.generate();
+    const [thirdKeyPub, thirdKeyPriv, , thirdKeyDID] = await generateX25519();
 
-  //   const recipient = firstKey.addAESRecipient(
-  //     encrypted,
-  //     thirdKey.toX25519PublicJWK(),
-  //   );
+    const recipient = firstKeyPriv.addAESRecipient(
+      firstKeyDID,
+      encrypted,
+      thirdKeyPub,
+    );
 
-  //   encrypted.recipients.push(recipient);
+    encrypted.recipients.push(recipient);
 
-  //   expect(thirdKey.decryptAES(encrypted)).toStrictEqual(value);
-  // });
+    expect(thirdKeyPriv.decryptAES(thirdKeyDID, encrypted)).toStrictEqual(
+      value,
+    );
+  });
 });

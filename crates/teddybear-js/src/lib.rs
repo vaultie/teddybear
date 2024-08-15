@@ -269,30 +269,38 @@ impl PrivateX25519 {
 
     /// Decrypt the provided JWE object using the X25519 key and the A256GCM algorithm.
     #[wasm_bindgen(js_name = "decryptAES")]
-    pub fn decrypt_aes(&self, jwe: Jwe) -> Result<Uint8Array, JsError> {
+    pub fn decrypt_aes(&self, verification_method: &str, jwe: Jwe) -> Result<Uint8Array, JsError> {
         let jwe = serde_wasm_bindgen::from_value(jwe.into())?;
-        let payload = &*teddybear_jwe::decrypt::<A256Gcm>(&jwe, self.0.inner())?;
+        let payload =
+            &*teddybear_jwe::decrypt::<A256Gcm>(&jwe, verification_method, self.0.inner())?;
         Ok(payload.into())
     }
 
     /// Decrypt the provided JWE object using the X25519 key and the XC20P algorithm.
     #[wasm_bindgen(js_name = "decryptChaCha20")]
-    pub fn decrypt_chacha20(&self, jwe: Jwe) -> Result<Uint8Array, JsError> {
+    pub fn decrypt_chacha20(
+        &self,
+        verification_method: &str,
+        jwe: Jwe,
+    ) -> Result<Uint8Array, JsError> {
         let jwe = serde_wasm_bindgen::from_value(jwe.into())?;
-        let payload = &*teddybear_jwe::decrypt::<XC20P>(&jwe, self.0.inner())?;
+        let payload = &*teddybear_jwe::decrypt::<XC20P>(&jwe, verification_method, self.0.inner())?;
         Ok(payload.into())
     }
 
     #[wasm_bindgen(js_name = "addAESRecipient")]
     pub fn add_aes_recipient(
         &self,
+        verification_method: &str,
         jwe: Jwe,
         recipient: PublicX25519,
     ) -> Result<JweRecipient, JsError> {
         let jwe = serde_wasm_bindgen::from_value(jwe.into())?;
         let recipient = teddybear_jwe::add_recipient::<A256Gcm>(
             &jwe,
+            verification_method,
             self.0.inner(),
+            recipient.0.id.as_str().to_owned(),
             recipient.0.public_key.decoded(),
         )?;
         Ok(recipient.serialize(&OBJECT_SERIALIZER)?.into())
@@ -301,13 +309,16 @@ impl PrivateX25519 {
     #[wasm_bindgen(js_name = "addChaCha20Recipient")]
     pub fn add_chacha20_recipient(
         &self,
+        verification_method: &str,
         jwe: Jwe,
         recipient: PublicX25519,
     ) -> Result<JweRecipient, JsError> {
         let jwe = serde_wasm_bindgen::from_value(jwe.into())?;
         let recipient = teddybear_jwe::add_recipient::<XC20P>(
             &jwe,
+            verification_method,
             self.0.inner(),
+            recipient.0.id.as_str().to_owned(),
             recipient.0.public_key.decoded(),
         )?;
         Ok(recipient.serialize(&OBJECT_SERIALIZER)?.into())
@@ -434,7 +445,9 @@ impl JWK {
 pub fn encrypt_aes(payload: Uint8Array, recipients: Vec<PublicX25519>) -> Result<Jwe, JsError> {
     let jwe = teddybear_jwe::encrypt::<A256Gcm, _>(
         &payload.to_vec(),
-        recipients.iter().map(|val| val.0.public_key.decoded()),
+        recipients
+            .iter()
+            .map(|val| (val.0.id.as_str().to_owned(), val.0.public_key.decoded())),
     )?;
 
     Ok(jwe.serialize(&OBJECT_SERIALIZER)?.into())
@@ -448,7 +461,9 @@ pub fn encrypt_chacha20(
 ) -> Result<Jwe, JsError> {
     let jwe = teddybear_jwe::encrypt::<XC20P, _>(
         &payload.to_vec(),
-        recipients.iter().map(|val| val.0.public_key.decoded()),
+        recipients
+            .iter()
+            .map(|val| (val.0.id.as_str().to_owned(), val.0.public_key.decoded())),
     )?;
 
     Ok(jwe.serialize(&OBJECT_SERIALIZER)?.into())

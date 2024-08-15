@@ -24,7 +24,7 @@ describe("can execute verifiable credentials operations", () => {
 
   vcTest("can issue a test credential", ({ contextLoader, key }) =>
     key.issueVC(
-      `${key.toDIDKey()}#testkey`,
+      "did:web:issuer.localhost#key-1",
       {
         "@context": [
           "https://www.w3.org/ns/credentials/v2",
@@ -32,7 +32,7 @@ describe("can execute verifiable credentials operations", () => {
         ],
         type: ["VerifiableCredential", "Identity"],
         id: "https://example.com/test",
-        issuer: key.toDIDKey(),
+        issuer: "did:web:issuer.localhost",
         issuanceDate: new Date().toISOString(),
         credentialSubject: {
           type: "Person",
@@ -60,7 +60,7 @@ describe("can execute verifiable credentials operations", () => {
 
   vcTest("can sign a test presentation", async ({ contextLoader, key }) => {
     const verifiableCredential = await key.issueVC(
-      `${key.toDIDKey()}#testkey`,
+      "did:web:issuer.localhost#key-1",
       {
         "@context": [
           "https://www.w3.org/ns/credentials/v2",
@@ -68,7 +68,7 @@ describe("can execute verifiable credentials operations", () => {
         ],
         type: ["VerifiableCredential", "Identity"],
         id: "https://example.com/test",
-        issuer: key.toDIDKey(),
+        issuer: "did:web:issuer.localhost#key-1",
         issuanceDate: new Date().toISOString(),
         credentialSubject: {
           type: "Person",
@@ -94,6 +94,7 @@ describe("can execute verifiable credentials operations", () => {
     );
 
     await key.presentVP(
+      "did:web:issuer.localhost#key-1",
       {
         "@context": ["https://www.w3.org/ns/credentials/v2"],
         type: ["VerifiablePresentation"],

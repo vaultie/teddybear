@@ -42,18 +42,18 @@ describe("can execute ed25519 operations", () => {
     expect(prvEd25519).toHaveProperty("d");
   });
 
-  it('can sign JWS values', async () => {
+  it("can sign JWS values", async () => {
     const key = PrivateEd25519.generate();
 
     const jws = key.signJWS("testvalue", true);
 
     const { payload } = await compactVerify(
       jws,
-      await importJWK(key.toPublicJWK().toJSON() as JWK)
+      await importJWK(key.toPublicJWK().toJSON() as JWK),
     );
 
     expect(new TextDecoder().decode(payload)).toStrictEqual("testvalue");
-  })
+  });
 
   it("can extract JWS payload", () => {
     const key = PrivateEd25519.generate();
