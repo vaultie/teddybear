@@ -23,7 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Nix
-        uses: nixbuild/nix-quick-install-action@v28
+        uses: DeterminateSystems/nix-installer-action@main
       - name: Activate Nix cache
         uses: nix-community/cache-nix-action@v5
         with:
