@@ -10,19 +10,19 @@ repository = "https://github.com/vaultie/teddybear"
 categories = ["cryptography", "wasm"]
 
 [workspace.dependencies]
-ssi-claims = { git = "https://github.com/vaultie/ssi", default-features = false, features = ["ed25519", "w3c"] }
-ssi-dids-core = { git = "https://github.com/vaultie/ssi", default-features = false }
-ssi-json-ld = { git = "https://github.com/vaultie/ssi", default-features = false }
-ssi-jwk = { git = "https://github.com/vaultie/ssi", default-features = false, features = ["ed25519"] }
-ssi-jws = { git = "https://github.com/vaultie/ssi", default-features = false, features = ["ed25519"] }
-ssi-multicodec = { git = "https://github.com/vaultie/ssi", default-features = false }
-ssi-rdf = { git = "https://github.com/vaultie/ssi", default-features = false }
-ssi-security = { git = "https://github.com/vaultie/ssi", default-features = false }
-ssi-status = { git = "https://github.com/vaultie/ssi", default-features = false }
-ssi-vc = { git = "https://github.com/vaultie/ssi", default-features = false }
-ssi-verification-methods = { git = "https://github.com/vaultie/ssi", default-features = false, features = ["ed25519"] }
+ssi-claims = { git = "https://github.com/vaultie/ssi", branch = "pre-merge", default-features = false, features = ["ed25519", "w3c"] }
+ssi-dids-core = { git = "https://github.com/vaultie/ssi", branch = "pre-merge", default-features = false }
+ssi-json-ld = { git = "https://github.com/vaultie/ssi", branch = "pre-merge", default-features = false }
+ssi-jwk = { git = "https://github.com/vaultie/ssi", branch = "pre-merge", default-features = false, features = ["ed25519"] }
+ssi-jws = { git = "https://github.com/vaultie/ssi", branch = "pre-merge", default-features = false, features = ["ed25519"] }
+ssi-multicodec = { git = "https://github.com/vaultie/ssi", branch = "pre-merge", default-features = false }
+ssi-rdf = { git = "https://github.com/vaultie/ssi", branch = "pre-merge", default-features = false }
+ssi-security = { git = "https://github.com/vaultie/ssi", branch = "pre-merge", default-features = false }
+ssi-status = { git = "https://github.com/vaultie/ssi", branch = "pre-merge", default-features = false }
+ssi-vc = { git = "https://github.com/vaultie/ssi", branch = "pre-merge", default-features = false }
+ssi-verification-methods = { git = "https://github.com/vaultie/ssi", branch = "pre-merge", default-features = false, features = ["ed25519"] }
 
-did-web = { git = "https://github.com/vaultie/ssi", default-features = false }
+did-web = { git = "https://github.com/vaultie/ssi", branch = "pre-merge", default-features = false }
 
 base64 = "0.22.1"
 ed25519-dalek = "2.1.0"

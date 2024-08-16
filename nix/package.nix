@@ -10,7 +10,7 @@
   wasmSnipPatterns,
   wasm-bindgen-cli,
   wasm-pack,
-  wasm-snip
+  wasm-snip,
 }: let
   target =
     if buildForNode

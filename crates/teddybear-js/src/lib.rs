@@ -29,6 +29,11 @@ const OBJECT_SERIALIZER: Serializer = Serializer::new().serialize_maps_as_object
 
 #[wasm_bindgen(typescript_custom_section)]
 const TYPESCRIPT_SECTION: &'static str = r#"
+/**
+ * A single X25519 JWE recipient.
+ *
+ * @category JOSE
+ */
 export type JWERecipient = {
     header: {
         kid: string;
@@ -44,6 +49,11 @@ export type JWERecipient = {
     encrypted_key: string;
 };
 
+/**
+ * JWE object.
+ *
+ * @category JOSE
+ */
 export type JWE = {
     protected: string;
     recipients: JWERecipient[];
@@ -52,6 +62,11 @@ export type JWE = {
     tag: string;
 };
 
+/**
+ * Supported verification method types.
+ *
+ * @category DID
+ */
 export type VerificationMethod =
     | "assertionMethod"
     | "authentication"
@@ -59,6 +74,11 @@ export type VerificationMethod =
     | "capabilityDelegation"
     | "keyAgreement";
 
+/**
+ * Verification method map.
+ *
+ * @category DID
+ */
 export type VerificationMethods = {
     [K in VerificationMethod]?: string[];
 };
@@ -76,6 +96,9 @@ extern "C" {
     pub type VerificationMethods;
 }
 
+/// DID document.
+///
+/// @category DID
 #[wasm_bindgen]
 pub struct Document(teddybear_crypto::Document);
 
@@ -126,7 +149,9 @@ impl Document {
     }
 }
 
-/// A private Ed25519 keypair.
+/// Private Ed25519 key.
+///
+/// @category Keys
 #[wasm_bindgen]
 pub struct PrivateEd25519(teddybear_crypto::PrivateEd25519);
 
@@ -240,6 +265,9 @@ impl PrivateEd25519 {
     }
 }
 
+/// Private X25519 key.
+///
+/// @category Keys
 #[wasm_bindgen]
 pub struct PrivateX25519(teddybear_crypto::PrivateX25519);
 
@@ -325,7 +353,9 @@ impl PrivateX25519 {
     }
 }
 
-/// A public Ed25519 keypair.
+/// Public Ed25519 key.
+///
+/// @category Keys
 #[wasm_bindgen]
 pub struct PublicEd25519(Ed25519VerificationKey2020);
 
@@ -338,7 +368,9 @@ impl PublicEd25519 {
     }
 }
 
-/// A public X25519 keypair.
+/// Public X25519 key.
+///
+/// @category Keys
 #[wasm_bindgen]
 pub struct PublicX25519(X25519KeyAgreementKey2020);
 
@@ -351,6 +383,9 @@ impl PublicX25519 {
     }
 }
 
+/// JSON-LD context loader.
+///
+/// @category W3C VC
 #[wasm_bindgen]
 pub struct ContextLoader(InnerContextLoader);
 
@@ -372,6 +407,9 @@ impl ContextLoader {
     }
 }
 
+/// Verifiable presentation verification result.
+///
+/// @category W3C VC
 #[wasm_bindgen]
 pub struct VerificationResult {
     key: PublicEd25519,
@@ -380,16 +418,20 @@ pub struct VerificationResult {
 
 #[wasm_bindgen]
 impl VerificationResult {
+    #[wasm_bindgen(getter)]
     pub fn key(self) -> PublicEd25519 {
         self.key
     }
 
+    #[wasm_bindgen(getter)]
     pub fn challenge(self) -> Option<String> {
         self.challenge
     }
 }
 
 /// Verify the provided verifiable credential.
+///
+/// @category W3C VC
 #[wasm_bindgen(js_name = "verifyCredential")]
 pub async fn js_verify_credential(
     document: Object,
@@ -406,6 +448,8 @@ pub async fn js_verify_credential(
 }
 
 /// Verify the provided verifiable presentation.
+///
+/// @category W3C VC
 #[wasm_bindgen(js_name = "verifyPresentation")]
 pub async fn js_verify_presentation(
     document: Object,
@@ -421,93 +465,9 @@ pub async fn js_verify_presentation(
     })
 }
 
-/// Wrapped JWK value.
-#[wasm_bindgen]
-pub struct JWK(teddybear_crypto::JWK);
-
-#[wasm_bindgen]
-impl JWK {
-    /// Create a new wrapped JWK value from the provided JWK object.
-    #[wasm_bindgen(constructor)]
-    pub fn new(object: &Object) -> Result<JWK, JsError> {
-        Ok(Self(serde_wasm_bindgen::from_value(object.into())?))
-    }
-
-    /// Serialize the current wrapped JWK as an object.
-    #[wasm_bindgen(js_name = "toJSON")]
-    pub fn to_json(&self) -> Result<Object, JsError> {
-        Ok(self.0.serialize(&OBJECT_SERIALIZER)?.into())
-    }
-}
-
-/// Encrypt the provided payload for the provided recipient array using A256GCM algorithm.
-#[wasm_bindgen(js_name = "encryptAES")]
-pub fn encrypt_aes(payload: Uint8Array, recipients: Vec<PublicX25519>) -> Result<Jwe, JsError> {
-    let jwe = teddybear_jwe::encrypt::<A256Gcm, _>(
-        &payload.to_vec(),
-        recipients
-            .iter()
-            .map(|val| (val.0.id.as_str().to_owned(), val.0.public_key.decoded())),
-    )?;
-
-    Ok(jwe.serialize(&OBJECT_SERIALIZER)?.into())
-}
-
-/// Encrypt the provided payload for the provided recipient array using XC20P algorithm.
-#[wasm_bindgen(js_name = "encryptChaCha20")]
-pub fn encrypt_chacha20(
-    payload: Uint8Array,
-    recipients: Vec<PublicX25519>,
-) -> Result<Jwe, JsError> {
-    let jwe = teddybear_jwe::encrypt::<XC20P, _>(
-        &payload.to_vec(),
-        recipients
-            .iter()
-            .map(|val| (val.0.id.as_str().to_owned(), val.0.public_key.decoded())),
-    )?;
-
-    Ok(jwe.serialize(&OBJECT_SERIALIZER)?.into())
-}
-
-/// JWS verification result.
-#[wasm_bindgen(js_name = "JWSVerificationResult")]
-pub struct JwsVerificationResult(Option<teddybear_crypto::JWK>, Uint8Array);
-
-#[wasm_bindgen(js_class = "JWSVerificationResult")]
-impl JwsVerificationResult {
-    /// Embedded JWK key.
-    ///
-    /// Corresponds to the `jwk` field within the JWS header.
-    ///
-    /// [`None`] if the JWS verification process was not using the embedded key.
-    #[wasm_bindgen(getter)]
-    pub fn jwk(&self) -> Option<JWK> {
-        self.0.clone().map(JWK)
-    }
-
-    /// JWS payload.
-    #[wasm_bindgen(getter)]
-    pub fn payload(&self) -> Uint8Array {
-        self.1.clone()
-    }
-}
-
-/// Verify JWS signature against the embedded JWK key.
-///
-/// Returns both the signed payload and the embedded JWK key used to sign the payload.
-#[wasm_bindgen(js_name = "verifyJWS")]
-pub fn verify_jws(jws: &str, key: Option<JWK>) -> Result<JwsVerificationResult, JsError> {
-    let (jwk, payload) = if let Some(key) = key {
-        (None, teddybear_crypto::verify_jws(jws, &key.0)?)
-    } else {
-        let (jwk, payload) = teddybear_crypto::verify_jws_with_embedded_jwk(jws)?;
-        (Some(jwk), payload)
-    };
-
-    Ok(JwsVerificationResult(jwk, payload.as_slice().into()))
-}
-
 /// Encoded W3C-compatible status list credential.
+///
+/// @category W3C VC
 #[wasm_bindgen]
 pub struct StatusListCredential(StatusList);
 
@@ -564,6 +524,105 @@ impl Default for StatusListCredential {
     }
 }
 
+/// Wrapped JWK value.
+///
+/// @category JOSE
+#[wasm_bindgen]
+pub struct JWK(teddybear_crypto::JWK);
+
+#[wasm_bindgen]
+impl JWK {
+    /// Create a new wrapped JWK value from the provided JWK object.
+    #[wasm_bindgen(constructor)]
+    pub fn new(object: &Object) -> Result<JWK, JsError> {
+        Ok(Self(serde_wasm_bindgen::from_value(object.into())?))
+    }
+
+    /// Serialize the current wrapped JWK as an object.
+    #[wasm_bindgen(js_name = "toJSON")]
+    pub fn to_json(&self) -> Result<Object, JsError> {
+        Ok(self.0.serialize(&OBJECT_SERIALIZER)?.into())
+    }
+}
+
+/// Encrypt the provided payload for the provided recipient array using A256GCM algorithm.
+///
+/// @category JOSE
+#[wasm_bindgen(js_name = "encryptAES")]
+pub fn encrypt_aes(payload: Uint8Array, recipients: Vec<PublicX25519>) -> Result<Jwe, JsError> {
+    let jwe = teddybear_jwe::encrypt::<A256Gcm, _>(
+        &payload.to_vec(),
+        recipients
+            .iter()
+            .map(|val| (val.0.id.as_str().to_owned(), val.0.public_key.decoded())),
+    )?;
+
+    Ok(jwe.serialize(&OBJECT_SERIALIZER)?.into())
+}
+
+/// Encrypt the provided payload for the provided recipient array using XC20P algorithm.
+///
+/// @category JOSE
+#[wasm_bindgen(js_name = "encryptChaCha20")]
+pub fn encrypt_chacha20(
+    payload: Uint8Array,
+    recipients: Vec<PublicX25519>,
+) -> Result<Jwe, JsError> {
+    let jwe = teddybear_jwe::encrypt::<XC20P, _>(
+        &payload.to_vec(),
+        recipients
+            .iter()
+            .map(|val| (val.0.id.as_str().to_owned(), val.0.public_key.decoded())),
+    )?;
+
+    Ok(jwe.serialize(&OBJECT_SERIALIZER)?.into())
+}
+
+/// JWS verification result.
+///
+/// @category JOSE
+#[wasm_bindgen(js_name = "JWSVerificationResult")]
+pub struct JwsVerificationResult(Option<teddybear_crypto::JWK>, Uint8Array);
+
+#[wasm_bindgen(js_class = "JWSVerificationResult")]
+impl JwsVerificationResult {
+    /// Embedded JWK key.
+    ///
+    /// Corresponds to the `jwk` field within the JWS header.
+    ///
+    /// [`None`] if the JWS verification process was not using the embedded key.
+    #[wasm_bindgen(getter)]
+    pub fn jwk(&self) -> Option<JWK> {
+        self.0.clone().map(JWK)
+    }
+
+    /// JWS payload.
+    #[wasm_bindgen(getter)]
+    pub fn payload(&self) -> Uint8Array {
+        self.1.clone()
+    }
+}
+
+/// Verify JWS signature against the embedded JWK key.
+///
+/// Returns both the signed payload and the embedded JWK key used to sign the payload.
+///
+/// @category JOSE
+#[wasm_bindgen(js_name = "verifyJWS")]
+pub fn verify_jws(jws: &str, key: Option<JWK>) -> Result<JwsVerificationResult, JsError> {
+    let (jwk, payload) = if let Some(key) = key {
+        (None, teddybear_crypto::verify_jws(jws, &key.0)?)
+    } else {
+        let (jwk, payload) = teddybear_crypto::verify_jws_with_embedded_jwk(jws)?;
+        (Some(jwk), payload)
+    };
+
+    Ok(JwsVerificationResult(jwk, payload.as_slice().into()))
+}
+
+/// C2PA signing result.
+///
+/// @category C2PA
 #[wasm_bindgen(js_name = "C2PASignatureResult")]
 pub struct C2paSignatureResult(Vec<u8>, Vec<u8>);
 
@@ -582,6 +641,9 @@ impl C2paSignatureResult {
     }
 }
 
+/// C2PA signature builder.
+///
+/// @category C2PA
 #[wasm_bindgen(js_name = "C2PABuilder")]
 pub struct C2paBuilder(Builder);
 
@@ -641,6 +703,8 @@ impl Default for C2paBuilder {
 }
 
 /// C2PA validation error.
+///
+/// @category C2PA
 #[derive(Clone)]
 #[wasm_bindgen(js_name = "C2PAValidationError")]
 pub struct C2paValidationError {
@@ -663,7 +727,9 @@ impl C2paValidationError {
     }
 }
 
-/// C2PA verification result.
+/// C2PA signature verification result.
+///
+/// @category C2PA
 #[wasm_bindgen(js_name = "C2PAVerificationResult")]
 pub struct C2paVerificationResult {
     manifests: Vec<Object>,
@@ -685,6 +751,9 @@ impl C2paVerificationResult {
     }
 }
 
+/// Verify C2PA signatures within a file.
+///
+/// @category C2PA
 #[wasm_bindgen(js_name = "verifyC2PA")]
 pub fn verify_c2pa(source: Uint8Array, format: &str) -> Result<C2paVerificationResult, JsError> {
     let source = Cursor::new(source.to_vec());
