@@ -38,6 +38,16 @@
       url = "https://w3c.credential.nexus/identity.jsonld";
       flake = false;
     };
+
+    placeholder-image = {
+      url = "https:/picsum.photos/id/0/200/300";
+      flake = false;
+    };
+
+    thumbnail-image = {
+      url = "https:/picsum.photos/id/1/128/128";
+      flake = false;
+    };
   };
 
   outputs = {
@@ -47,6 +57,8 @@
     nix-filter,
     flake-utils,
     identity-context,
+    placeholder-image,
+    thumbnail-image,
     ...
   }:
     flake-utils.lib.eachDefaultSystem (
@@ -86,6 +98,10 @@
           inherit rustPlatform;
         };
 
+        wasm-snip = pkgs.callPackage ./nix/wasm-snip.nix {
+          inherit rustPlatform;
+        };
+
         commonArgs = {
           inherit src;
 
@@ -114,6 +130,16 @@
           "simd128"
         ];
 
+        # Potentially, some unused code may be introduced into the resulting WASM blob,
+        # unnecessarily increasing its size. Using `wasm-snip` it's possible to replace
+        # function bodies with a trap opcode, optimizing out both the function itself
+        # and its callers.
+        wasmSnipPatterns = [
+          ".*bmff_io.*"
+          ".*gif_io.*"
+          ".*svg_io.*"
+        ];
+
         wasmArgs =
           commonArgs
           // {
@@ -138,7 +164,9 @@
               craneLib
               wasmArgs
               wasmCargoArtifacts
+              wasmSnipPatterns
               wasm-pack
+              wasm-snip
               ;
           };
 
@@ -151,7 +179,7 @@
       in {
         devShells = {
           default = pkgs.mkShell {
-            buildInputs = [rustToolchain pkgs.nodejs pkgs.yarn];
+            buildInputs = [rustToolchain pkgs.nodejs pkgs.yarn pkgs.twiggy];
             inputsFrom = [esm];
           };
 
@@ -173,11 +201,18 @@
         checks = {
           inherit cjs esm uni;
 
-          e2e-test = pkgs.callPackage ./nix/node-testing.nix {
-            inherit identity-context uni;
+          e2e-test = pkgs.callPackage ./nix/e2e-testing/vm.nix {
+            inherit identity-context placeholder-image thumbnail-image;
 
-            src = ./tests;
-            yarnLockHash = "sha256-Zcm5jr6hHq34vmRBq8ATLaqzg9svBIjL41OKcH5Enf4=";
+            certificate = ./nix/e2e-testing/crt.der;
+            placeholder-pdf = ./nix/e2e-testing/blank.pdf;
+
+            runner = pkgs.callPackage ./nix/e2e-testing/runner.nix {
+              inherit uni;
+
+              src = ./tests;
+              yarnLockHash = "sha256-Zcm5jr6hHq34vmRBq8ATLaqzg9svBIjL41OKcH5Enf4=";
+            };
           };
 
           unit-test = craneLib.cargoTest (nativeArgs

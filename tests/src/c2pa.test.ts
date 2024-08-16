@@ -2,10 +2,10 @@ import { C2PABuilder, PrivateEd25519, verifyC2PA } from "@vaultie/teddybear";
 import { readFileSync } from "fs";
 import { TestAPI, describe, expect, it } from "vitest";
 
-const image = readFileSync(process.env.placeholderImage!);
-const thumbnail = readFileSync(process.env.thumbnailImage!);
-const pdf = readFileSync(process.env.placeholderPdf!);
-const certificate = readFileSync(process.env.certificate!);
+const image = readFileSync(process.env.PLACEHOLDER_IMAGE!);
+const pdf = readFileSync(process.env.PLACEHOLDER_PDF!);
+const thumbnail = readFileSync(process.env.THUMBNAIL_IMAGE!);
+const certificate = readFileSync(process.env.CERTIFICATE!);
 
 const c2paTest: TestAPI<{ key: PrivateEd25519 }> = it.extend({
   key: async ({}, use) => {
@@ -14,7 +14,7 @@ const c2paTest: TestAPI<{ key: PrivateEd25519 }> = it.extend({
       "5ff5e2393a44256abe197c82742366ff2f998f6822980e726f8fd16d6bd07eb1",
       "hex",
     );
-    const key = await PrivateEd25519.fromBytes(new Uint8Array(keyBytes));
+    const key = PrivateEd25519.fromBytes(new Uint8Array(keyBytes));
     await use(key);
   },
 });
@@ -52,7 +52,7 @@ describe("can execute C2PA operations", () => {
 
     expect(manifests).toHaveLength(1);
     expect(manifests[0].assertions).toHaveLength(1);
-    expect(manifests[0].assertions[0].data.get("url")).toStrictEqual(
+    expect(manifests[0].assertions[0].data.url).toStrictEqual(
       "https://example.com",
     );
   });
@@ -90,7 +90,7 @@ describe("can execute C2PA operations", () => {
 
     expect(manifests).toHaveLength(1);
     expect(manifests[0].assertions).toHaveLength(1);
-    expect(manifests[0].assertions[0].data.get("url")).toStrictEqual(
+    expect(manifests[0].assertions[0].data.url).toStrictEqual(
       "https://example.com",
     );
   });

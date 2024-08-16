@@ -1,8 +1,8 @@
 {
-  fetchurl,
   fetchYarnDeps,
   fixup-yarn-lock,
-  identity-context,
+  lib,
+  makeWrapper,
   nodejs-slim,
   src,
   stdenvNoCC,
@@ -25,25 +25,12 @@ stdenvNoCC.mkDerivation {
     nodejs-slim
     yarn
     fixup-yarn-lock
+    makeWrapper
   ];
 
-  placeholderImage = fetchurl {
-    url = "https:/picsum.photos/id/0/200/300";
-    hash = "sha256-tpipFiATKzL4Q7dtB+0wLygdDPoAp5bF6X095Xk++GI=";
-  };
+  buildPhase = ''
+    runHook preBuild
 
-  thumbnailImage = fetchurl {
-    url = "https:/picsum.photos/id/1/128/128";
-    hash = "sha256-8KIDrMuw8PYGyMGSYvK6JF4t/MJhWhrwmyRgbY0Qre8=";
-  };
-
-  placeholderPdf = ./data/blank.pdf;
-
-  certificate = ./data/crt.der;
-
-  identityContext = identity-context;
-
-  postPatch = ''
     export HOME=$(mktemp -d)
 
     yarn config --offline set yarn-offline-mirror $offlineCache
@@ -65,10 +52,25 @@ stdenvNoCC.mkDerivation {
       --non-interactive
 
     patchShebangs node_modules/
+
+    runHook postBuild
   '';
 
-  buildPhase = ''
-    yarn test
-    touch $out
+  installPhase = ''
+    runHook preInstall
+
+    mkdir $out
+
+    cp -R $src/. $out/
+
+    makeWrapper ${lib.getExe yarn} "$out/bin/test" \
+      --chdir $out \
+      --add-flags "test --no-cache"
+
+    mv node_modules $out
+
+    runHook postInstall
   '';
+
+  meta.mainProgram = "test";
 }

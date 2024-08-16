@@ -103,6 +103,18 @@
         "type": "github"
       }
     },
+    "placeholder-image": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-WQ95CTNlOqm4G2bPsSyq5GcHxFX0PIsSpuc9mkdyp18=",
+        "type": "file",
+        "url": "https:/picsum.photos/id/0/200/300"
+      },
+      "original": {
+        "type": "file",
+        "url": "https:/picsum.photos/id/0/200/300"
+      }
+    },
     "root": {
       "inputs": {
         "crane": "crane",
@@ -110,7 +122,9 @@
         "flake-utils": "flake-utils",
         "identity-context": "identity-context",
         "nix-filter": "nix-filter",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "placeholder-image": "placeholder-image",
+        "thumbnail-image": "thumbnail-image"
       }
     },
     "rust-analyzer-src": {
@@ -143,6 +157,18 @@
         "owner": "nix-systems",
         "repo": "default",
         "type": "github"
+      }
+    },
+    "thumbnail-image": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-0snwsrVlUXAiPcQo02B8ad5wwgAhKq7NQ+DfZGoSowE=",
+        "type": "file",
+        "url": "https:/picsum.photos/id/1/128/128"
+      },
+      "original": {
+        "type": "file",
+        "url": "https:/picsum.photos/id/1/128/128"
       }
     }
   },

@@ -12,6 +12,7 @@ base64 = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 ssi-jwk = { workspace = true }
+x25519-dalek = { workspace = true }
 
 [dev-dependencies]
 paste = "1.0.14"

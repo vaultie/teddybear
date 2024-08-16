@@ -8,13 +8,13 @@ const vcTest: TestAPI<{ contextLoader: ContextLoader; key: PrivateEd25519 }> =
       await use(
         new ContextLoader({
           "https://w3c.credential.nexus/identity": (
-            await readFile(process.env.identityContext!)
+            await readFile(process.env.IDENTITY_CONTEXT!)
           ).toString("utf-8"),
         }),
       );
     },
     key: async ({}, use) => {
-      const key = await PrivateEd25519.generate();
+      const key = PrivateEd25519.generate();
       await use(key);
     },
   });
@@ -24,6 +24,7 @@ describe("can execute verifiable credentials operations", () => {
 
   vcTest("can issue a test credential", ({ contextLoader, key }) =>
     key.issueVC(
+      "did:web:issuer.localhost#key-1",
       {
         "@context": [
           "https://www.w3.org/ns/credentials/v2",
@@ -31,7 +32,7 @@ describe("can execute verifiable credentials operations", () => {
         ],
         type: ["VerifiableCredential", "Identity"],
         id: "https://example.com/test",
-        issuer: key.documentDID(),
+        issuer: "did:web:issuer.localhost",
         issuanceDate: new Date().toISOString(),
         credentialSubject: {
           type: "Person",
@@ -59,6 +60,7 @@ describe("can execute verifiable credentials operations", () => {
 
   vcTest("can sign a test presentation", async ({ contextLoader, key }) => {
     const verifiableCredential = await key.issueVC(
+      "did:web:issuer.localhost#key-1",
       {
         "@context": [
           "https://www.w3.org/ns/credentials/v2",
@@ -66,7 +68,7 @@ describe("can execute verifiable credentials operations", () => {
         ],
         type: ["VerifiableCredential", "Identity"],
         id: "https://example.com/test",
-        issuer: key.documentDID(),
+        issuer: "did:web:issuer.localhost#key-1",
         issuanceDate: new Date().toISOString(),
         credentialSubject: {
           type: "Person",
@@ -91,7 +93,8 @@ describe("can execute verifiable credentials operations", () => {
       contextLoader,
     );
 
-    await key.issueVP(
+    await key.presentVP(
+      "did:web:issuer.localhost#key-1",
       {
         "@context": ["https://www.w3.org/ns/credentials/v2"],
         type: ["VerifiablePresentation"],

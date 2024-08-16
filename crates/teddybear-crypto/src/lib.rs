@@ -1,323 +1,326 @@
-use std::{borrow::Cow, sync::Arc};
+mod okp_encoder;
+mod x25519;
 
-use ed25519_dalek::{SigningKey, VerifyingKey};
+use std::borrow::Cow;
+
+use did_web::DIDWeb;
+use rand::rngs::OsRng;
+use serde::{Deserialize, Serialize};
 use ssi_dids_core::{
-    document::DIDVerificationMethod, method_resolver::VerificationMethodDIDResolver,
-    resolution::Options, DIDResolver, DIDURLBuf, Document, Unexpected, DID, DIDURL,
+    document::{verification_method::ValueOrReference, DIDVerificationMethod, ResourceRef},
+    ssi_json_ld::Iri,
+    DIDBuf, DIDURLReference, DIDURLReferenceBuf, InvalidDIDURL, VerificationMethodDIDResolver,
 };
-use ssi_jwk::{Algorithm, Base64urlUInt, OctetParams, Params};
+use ssi_jwk::{Algorithm, Params};
 use ssi_jws::{
     decode_jws_parts, decode_verify, encode_sign_custom_header, split_jws, verify_bytes, Header,
 };
-use ssi_verification_methods::{Ed25519VerificationKey2020, MethodWithSecret, Signer};
-use thiserror::Error;
+use ssi_verification_methods::{
+    ControllerError, ControllerProvider, GenericVerificationMethod, InvalidVerificationMethod,
+    ProofPurpose,
+};
+use teddybear_did_key::DIDKey;
+use teddybear_high_assurance::DnsError;
 
+use crate::okp_encoder::OKPEncoder;
+
+pub use ssi_dids_core::{
+    ssi_json_ld::{iref::UriBuf, IriBuf},
+    DIDURLBuf, DID, DIDURL,
+};
 pub use ssi_jwk::JWK;
-pub use teddybear_did_key::DidKey;
+pub use ssi_verification_methods::{Ed25519VerificationKey2020, JwkVerificationMethod};
 
-#[derive(Error, Debug)]
-pub enum Error {
-    #[error("provided JWK is missing a private key value")]
+pub use crate::x25519::X25519KeyAgreementKey2020;
+
+const DEFAULT_RESOLVER: &str = "https://cloudflare-dns.com/dns-query";
+
+pub type SupportedDIDMethods = (DIDKey, DIDWeb);
+
+pub fn default_did_method() -> SupportedDIDMethods {
+    (DIDKey, DIDWeb)
+}
+
+pub type CustomVerificationMethodDIDResolver =
+    VerificationMethodDIDResolver<SupportedDIDMethods, Ed25519VerificationKey2020>;
+
+#[derive(Debug, thiserror::Error)]
+pub enum Ed25519Error {
+    #[error("invalid key identifier")]
+    InvalidKeyIdentifier,
+
+    #[error("invalid JWK type")]
+    InvalidJWKType,
+
+    #[error("missing private key value")]
     MissingPrivateKey,
 
-    #[error(transparent)]
-    Ed25519(#[from] ed25519_dalek::SignatureError),
+    #[error("invalid private key value")]
+    InvalidPrivateKeyValue,
+
+    #[error("resource not found")]
+    ResourceNotFound,
+
+    #[error("invalid resource type")]
+    InvalidResourceType,
+
+    #[error("high assurance verification failed")]
+    HighAssuranceVerificationFailed,
+
+    #[error("{0}")]
+    ControllerError(String),
 
     #[error(transparent)]
-    Jwk(#[from] ssi_jwk::Error),
+    InvalidDIDUrl(#[from] InvalidDIDURL<String>),
 
     #[error(transparent)]
-    Jws(#[from] ssi_jws::Error),
+    InvalidVerificationMethod(#[from] InvalidVerificationMethod),
 
     #[error(transparent)]
-    MultibaseError(#[from] multibase::Error),
-
-    #[error(transparent)]
-    InvalidDid(#[from] Unexpected),
-
-    #[error(transparent)]
-    DidResolve(#[from] ssi_dids_core::resolution::Error),
+    DnsError(#[from] DnsError),
 }
 
-#[derive(Clone, Debug)]
-pub struct KeyInfo {
-    id: DIDURLBuf,
-    jwk: JWK,
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct Document {
+    inner: ssi_dids_core::Document,
 }
 
-impl KeyInfo {
-    pub fn id(&self) -> &DIDURL {
-        self.id.as_did_url()
+#[derive(Default, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct DocumentResolveOptions<'a> {
+    /// Whether to require high assurance DID verification.
+    require_high_assurance_verification: bool,
+
+    /// Preferred DNS-over-HTTPS resolver.
+    dns_over_https_resolver: Option<Cow<'a, str>>,
+}
+
+fn proof_purpose_iter<'a, I: IntoIterator<Item = &'a ValueOrReference>>(
+    proof_purpose: ProofPurpose,
+    values: I,
+) -> impl Iterator<Item = (ProofPurpose, DIDURLReference<'a>)> {
+    values.into_iter().map(move |vr| (proof_purpose, vr.id()))
+}
+
+impl Document {
+    pub async fn create<PI: IntoIterator<Item = ProofPurpose>>(
+        id: DIDBuf,
+        keys: Vec<(DIDVerificationMethod, PI)>,
+    ) -> Result<Self, Ed25519Error> {
+        let mut inner = ssi_dids_core::Document::new(id);
+
+        for (key, purposes) in keys {
+            for purpose in purposes {
+                let reference =
+                    ValueOrReference::Reference(DIDURLReferenceBuf::Absolute(key.id.clone()));
+
+                match purpose {
+                    ProofPurpose::Assertion => inner
+                        .verification_relationships
+                        .assertion_method
+                        .push(reference),
+                    ProofPurpose::Authentication => inner
+                        .verification_relationships
+                        .authentication
+                        .push(reference),
+                    ProofPurpose::CapabilityInvocation => inner
+                        .verification_relationships
+                        .capability_invocation
+                        .push(reference),
+                    ProofPurpose::CapabilityDelegation => inner
+                        .verification_relationships
+                        .capability_delegation
+                        .push(reference),
+                    ProofPurpose::KeyAgreement => inner
+                        .verification_relationships
+                        .key_agreement
+                        .push(reference),
+                }
+            }
+
+            inner.verification_method.push(key);
+        }
+
+        Ok(Self { inner })
     }
-}
 
-#[derive(Clone, Debug)]
-pub struct Public {
-    // verifying_key here in not necessary at the moment, but it might be useful later.
-    // FIXME: Remove the #[allow(dead_code)] as soon as the field starts being used.
-    #[allow(dead_code)]
-    verifying_key: VerifyingKey,
-}
+    pub async fn resolve(
+        id: &Iri,
+        options: DocumentResolveOptions<'_>,
+    ) -> Result<Self, Ed25519Error> {
+        let inner = CustomVerificationMethodDIDResolver::new(default_did_method())
+            .require_controller(id)
+            .await
+            .map_err(|e| match e {
+                ControllerError::NotFound(e) => Ed25519Error::ControllerError(e),
+                ControllerError::Invalid => {
+                    Ed25519Error::ControllerError("Invalid controller".to_string())
+                }
+                ControllerError::Unsupported(e) => Ed25519Error::ControllerError(e),
+                ControllerError::InternalError(e) => Ed25519Error::ControllerError(e),
+            })?;
 
-#[derive(Clone, Debug)]
-pub struct Private {
-    signing_key: SigningKey,
-}
+        if options.require_high_assurance_verification {
+            // FIXME: Implement other parts of the RFC.
+            if let Some(vm) = id.strip_prefix("did:web:") {
+                if let Some(resolved_name) = teddybear_high_assurance::resolve_uri_record(
+                    options
+                        .dns_over_https_resolver
+                        .as_deref()
+                        .unwrap_or(DEFAULT_RESOLVER),
+                    &format!("_did.{vm}"),
+                )
+                .await?
+                {
+                    if id.as_str() != resolved_name {
+                        return Err(Ed25519Error::HighAssuranceVerificationFailed);
+                    }
+                }
+            }
+        }
 
-#[derive(Clone, Debug)]
-pub struct Ed25519<T> {
-    raw: T,
-    document: Document,
-    pub ed25519: KeyInfo,
-    pub x25519: KeyInfo,
-}
+        Ok(Self { inner })
+    }
 
-impl Ed25519<Private> {
-    pub async fn generate() -> Result<Self, Error> {
-        Self::from_private_jwk(
-            JWK::generate_ed25519().expect("ed25519 should always generate successfully"),
+    pub fn verification_methods(&self) -> impl Iterator<Item = (ProofPurpose, DIDURLBuf)> + '_ {
+        proof_purpose_iter(
+            ProofPurpose::Authentication,
+            &self.inner.verification_relationships.authentication,
         )
-        .await
+        .chain(proof_purpose_iter(
+            ProofPurpose::Assertion,
+            &self.inner.verification_relationships.assertion_method,
+        ))
+        .chain(proof_purpose_iter(
+            ProofPurpose::KeyAgreement,
+            &self.inner.verification_relationships.key_agreement,
+        ))
+        .chain(proof_purpose_iter(
+            ProofPurpose::CapabilityInvocation,
+            &self.inner.verification_relationships.capability_invocation,
+        ))
+        .chain(proof_purpose_iter(
+            ProofPurpose::CapabilityDelegation,
+            &self.inner.verification_relationships.capability_delegation,
+        ))
+        .map(|(proof_purpose, reference)| {
+            (
+                proof_purpose,
+                reference.resolve(&self.inner.id).into_owned(),
+            )
+        })
     }
 
-    pub async fn from_private_jwk(jwk: JWK) -> Result<Self, Error> {
-        let private_key = match &jwk.params {
-            Params::OKP(okp) => okp.private_key.as_ref(),
-            _ => None,
-        };
+    pub fn get_verification_method<T, E>(&self, id: &DIDURL) -> Result<T, Ed25519Error>
+    where
+        T: TryFrom<GenericVerificationMethod, Error = E>,
+        Ed25519Error: From<E>,
+    {
+        match self
+            .inner
+            .find_resource(id)
+            .ok_or(Ed25519Error::ResourceNotFound)?
+        {
+            ResourceRef::VerificationMethod(vm) => {
+                Ok(T::try_from(GenericVerificationMethod::from(vm.clone()))?)
+            }
+            ResourceRef::Document(_) => Err(Ed25519Error::InvalidResourceType),
+        }
+    }
+}
 
-        let key = SigningKey::try_from(&*private_key.ok_or(Error::MissingPrivateKey)?.0)?;
+pub struct PrivateEd25519 {
+    inner: ed25519_dalek::SigningKey,
+}
 
-        Self::from_signing_key(key, jwk).await
+impl PrivateEd25519 {
+    pub fn generate() -> Self {
+        Self {
+            inner: ed25519_dalek::SigningKey::generate(&mut OsRng),
+        }
     }
 
-    pub async fn from_bytes(value: [u8; 32]) -> Result<Self, Error> {
-        let key = SigningKey::from_bytes(&value);
-
-        let jwk = JWK::from(Params::OKP(OctetParams {
-            curve: "Ed25519".to_string(),
-            public_key: Base64urlUInt(key.verifying_key().as_bytes().to_vec()),
-            private_key: Some(Base64urlUInt(value.to_vec())),
-        }));
-
-        Self::from_signing_key(key, jwk).await
+    pub fn from_bytes(value: &[u8; 32]) -> Self {
+        Self {
+            inner: ed25519_dalek::SigningKey::from_bytes(value),
+        }
     }
 
-    #[inline]
+    pub fn inner(&self) -> &ed25519_dalek::SigningKey {
+        &self.inner
+    }
+
+    pub fn to_x25519_private_key(&self) -> PrivateX25519 {
+        PrivateX25519 {
+            inner: x25519_dalek::StaticSecret::from(self.inner.to_scalar_bytes()),
+        }
+    }
+
+    pub fn to_public_jwk(&self) -> JWK {
+        JWK::from(Params::OKP(self.inner.verifying_key().encode_okp()))
+    }
+
+    pub fn to_private_jwk(&self) -> JWK {
+        JWK::from(Params::OKP(self.inner.encode_okp()))
+    }
+
+    pub fn to_did_key(&self) -> DIDBuf {
+        DIDKey.generate(&self.inner.verifying_key())
+    }
+
+    pub fn to_verification_method(
+        &self,
+        id: IriBuf,
+        controller: UriBuf,
+    ) -> Ed25519VerificationKey2020 {
+        Ed25519VerificationKey2020::from_public_key(id, controller, self.inner.verifying_key())
+    }
+
     pub fn sign(&self, payload: &str, embed_signing_key: bool) -> Result<String, ssi_jws::Error> {
         let header = Header {
             algorithm: Algorithm::EdDSA,
-            key_id: if embed_signing_key {
-                self.ed25519.jwk.key_id.clone()
-            } else {
-                None
-            },
-            jwk: embed_signing_key.then(|| self.to_ed25519_public_jwk()),
+            jwk: embed_signing_key.then(|| self.to_public_jwk()),
             ..Default::default()
         };
 
-        encode_sign_custom_header(payload, &self.ed25519.jwk, &header)
-    }
-
-    #[inline]
-    pub fn raw_signing_key(&self) -> &SigningKey {
-        &self.raw.signing_key
-    }
-
-    #[inline]
-    pub fn as_ed25519_private_jwk(&self) -> &JWK {
-        &self.ed25519.jwk
-    }
-
-    #[inline]
-    pub fn as_x25519_private_jwk(&self) -> &JWK {
-        &self.x25519.jwk
-    }
-
-    async fn from_signing_key(signing_key: SigningKey, jwk: JWK) -> Result<Self, Error> {
-        let (document, ed25519, mut x25519) = Ed25519::<()>::parts_from_jwk(jwk).await?;
-
-        match &mut x25519.jwk.params {
-            Params::OKP(okp) => {
-                okp.private_key = Some(Base64urlUInt(signing_key.to_scalar_bytes().to_vec()))
-            }
-            _ => unreachable!("X25519 keys should always have OKP params"),
-        }
-
-        Ok(Self {
-            document,
-            ed25519,
-            x25519,
-            raw: Private { signing_key },
-        })
+        encode_sign_custom_header(payload, &self.to_private_jwk(), &header)
     }
 }
 
-impl Ed25519<Public> {
-    pub async fn from_jwk(jwk: JWK) -> Result<Self, Error> {
-        let did = DidKey.generate(&jwk).ok_or(Error::MissingPrivateKey)?;
-        let (document, ed25519, x25519, verifying_key) =
-            Ed25519::<()>::parts_from_did(&did).await?;
-
-        Ok(Self {
-            document,
-            ed25519,
-            x25519,
-            raw: Public { verifying_key },
-        })
-    }
-
-    pub async fn from_did(did: &str) -> Result<Self, Error> {
-        let did = DID::new(did).map_err(|e| e.1)?;
-        let (document, ed25519, x25519, verifying_key) = Self::parts_from_did(did).await?;
-
-        Ok(Self {
-            document,
-            ed25519,
-            x25519,
-            raw: Public { verifying_key },
-        })
-    }
+pub struct PrivateX25519 {
+    inner: x25519_dalek::StaticSecret,
 }
 
-impl<T> Ed25519<T> {
-    #[inline]
-    pub fn document(&self) -> &Document {
-        &self.document
+impl PrivateX25519 {
+    pub fn inner(&self) -> &x25519_dalek::StaticSecret {
+        &self.inner
     }
 
-    #[inline]
-    pub fn document_did(&self) -> &str {
-        &self.document.id
+    pub fn to_public_jwk(&self) -> JWK {
+        let public_key = x25519_dalek::PublicKey::from(&self.inner);
+        JWK::from(Params::OKP(public_key.encode_okp()))
     }
 
-    #[inline]
-    pub fn to_ed25519_public_jwk(&self) -> JWK {
-        self.ed25519.jwk.to_public()
+    pub fn to_private_jwk(&self) -> JWK {
+        JWK::from(Params::OKP(self.inner.encode_okp()))
     }
 
-    #[inline]
-    pub fn to_x25519_public_jwk(&self) -> JWK {
-        self.x25519.jwk.to_public()
-    }
-
-    #[inline]
-    pub fn ed25519_did(&self) -> &str {
-        self.ed25519
-            .jwk
-            .key_id
-            .as_deref()
-            .expect("key id should always be present")
-    }
-
-    #[inline]
-    pub fn x25519_did(&self) -> &str {
-        self.x25519
-            .jwk
-            .key_id
-            .as_deref()
-            .expect("key id should always be present")
-    }
-
-    async fn parts_from_jwk(mut jwk: JWK) -> Result<(Document, KeyInfo, KeyInfo), Error> {
-        let did = DidKey.generate(&jwk).ok_or(Error::MissingPrivateKey)?;
-
-        let document = VerificationMethodDIDResolver::<_, Ed25519VerificationKey2020>::new(DidKey)
-            .resolve_with(did.as_did(), Options::default())
-            .await?
-            .document
-            .into_document();
-
-        let id = document
-            .verification_method
-            .first()
-            .expect("at least one key is expected")
-            .id
-            .clone();
-
-        // JWK structure is preserved as much as possible, so we can't use
-        // extract_key_info for acquiring Ed25519 key from DID.
-        jwk.key_id = Some(id.to_string());
-        jwk.algorithm = Some(Algorithm::EdDSA);
-
-        let (x25519, _) = extract_key_info::<X25519KeyInfo>(
-            document
-                .verification_relationships
-                .key_agreement
-                .first()
-                .and_then(|val| val.as_value())
-                .expect("teddybear-did-key should provide at least one x25519 key"),
-        )?;
-
-        Ok((document, KeyInfo { id, jwk }, x25519))
-    }
-
-    async fn parts_from_did(
-        did: &DID,
-    ) -> Result<(Document, KeyInfo, KeyInfo, VerifyingKey), Error> {
-        let document = VerificationMethodDIDResolver::<_, Ed25519VerificationKey2020>::new(DidKey)
-            .resolve_with(did, Options::default())
-            .await?
-            .document
-            .into_document();
-
-        let (ed25519, verifying_key) = extract_key_info::<Ed25519KeyInfo>(
-            document
-                .verification_method
-                .first()
-                .expect("teddybear-did-key should provide at least one ed25519 key"),
-        )?;
-
-        let (x25519, _) = extract_key_info::<X25519KeyInfo>(
-            document
-                .verification_relationships
-                .key_agreement
-                .first()
-                .and_then(|val| val.as_value())
-                .expect("teddybear-did-key should provide at least one x25519 key"),
-        )?;
-
-        Ok((document, ed25519, x25519, verifying_key))
-    }
-}
-
-impl<T, U> PartialEq<Ed25519<U>> for Ed25519<T> {
-    fn eq(&self, other: &Ed25519<U>) -> bool {
-        self.ed25519.jwk.equals_public(&other.ed25519.jwk)
-    }
-}
-
-impl<T> PartialEq<JWK> for Ed25519<T> {
-    fn eq(&self, other: &JWK) -> bool {
-        self.ed25519.jwk.equals_public(other)
-    }
-}
-
-impl Signer<Ed25519VerificationKey2020> for Ed25519<Private> {
-    type MessageSigner = MethodWithSecret<Ed25519VerificationKey2020, JWK>;
-
-    async fn for_method(
+    pub fn to_verification_method(
         &self,
-        method: Cow<'_, Ed25519VerificationKey2020>,
-    ) -> Result<Option<Self::MessageSigner>, ssi_claims_core::SignatureError> {
-        if method.id.as_str() != self.ed25519_did() {
-            return Ok(None);
-        }
-
-        Ok(Some(MethodWithSecret::new(
-            method.into_owned(),
-            Arc::new(self.ed25519.jwk.clone()),
-        )))
+        id: IriBuf,
+        controller: UriBuf,
+    ) -> X25519KeyAgreementKey2020 {
+        let public_key = x25519_dalek::PublicKey::from(&self.inner);
+        X25519KeyAgreementKey2020::from_public_key(id, controller, public_key)
     }
 }
 
-#[inline]
-pub fn verify_jws(jws: &str, key: &JWK) -> Result<Vec<u8>, Error> {
+pub fn verify_jws(jws: &str, key: &JWK) -> Result<Vec<u8>, ssi_jws::Error> {
     Ok(decode_verify(jws, key)?.1)
 }
 
-#[inline]
-pub fn verify_jws_with_embedded_jwk(jws: &str) -> Result<(JWK, Vec<u8>), Error> {
+pub fn verify_jws_with_embedded_jwk(jws: &str) -> Result<(JWK, Vec<u8>), ssi_jws::Error> {
     let (header_b64, payload_enc, signature_b64) = split_jws(jws)?;
 
     let (jws, signing_bytes) = decode_jws_parts(header_b64, payload_enc.as_bytes(), signature_b64)?
@@ -328,63 +331,4 @@ pub fn verify_jws_with_embedded_jwk(jws: &str) -> Result<(JWK, Vec<u8>), Error> 
     verify_bytes(jws.header.algorithm, &signing_bytes, &key, &jws.signature)?;
 
     Ok((key, jws.payload))
-}
-
-struct Ed25519KeyInfo;
-struct X25519KeyInfo;
-
-trait RawExtract {
-    type Output;
-
-    const CURVE: &'static str;
-
-    fn extract(value: &[u8]) -> Result<Self::Output, Error>;
-}
-
-impl RawExtract for Ed25519KeyInfo {
-    type Output = VerifyingKey;
-
-    const CURVE: &'static str = "Ed25519";
-
-    fn extract(value: &[u8]) -> Result<Self::Output, Error> {
-        Ok(VerifyingKey::try_from(value)?)
-    }
-}
-
-impl RawExtract for X25519KeyInfo {
-    type Output = ();
-
-    const CURVE: &'static str = "X25519";
-
-    fn extract(_: &[u8]) -> Result<Self::Output, Error> {
-        Ok(())
-    }
-}
-
-#[inline]
-fn extract_key_info<T: RawExtract>(
-    verification_method: &DIDVerificationMethod,
-) -> Result<(KeyInfo, T::Output), Error> {
-    let public_key_multibase = verification_method
-        .properties
-        .get("publicKeyMultibase")
-        .and_then(|val| val.as_str())
-        .expect("publicKeyMultibase should always be present");
-
-    let public_key = multibase::decode(public_key_multibase)?.1;
-
-    let raw_output = T::extract(&public_key[2..])?;
-
-    let mut jwk = JWK::from(Params::OKP(OctetParams {
-        curve: T::CURVE.to_string(),
-        public_key: Base64urlUInt(public_key[2..].to_owned()),
-        private_key: None,
-    }));
-
-    let id = verification_method.id.clone();
-
-    jwk.key_id = Some(id.to_string());
-    jwk.algorithm = Some(Algorithm::EdDSA);
-
-    Ok((KeyInfo { id, jwk }, raw_output))
 }
