@@ -194,10 +194,16 @@ impl PrivateEd25519 {
         JWK(self.0.to_private_jwk())
     }
 
-    /// Get the did:key DID value of the Ed25519 key.
+    /// Get the did:key document DID value of the Ed25519 key.
     #[wasm_bindgen(js_name = "toDIDKey")]
     pub fn to_did_key(&self) -> String {
         self.0.to_did_key().into_string()
+    }
+
+    /// Get the did:key DID URL fragment value of the Ed25519 key.
+    #[wasm_bindgen(js_name = "toDIDKeyURLFragment")]
+    pub fn to_did_key_url_fragment(&self) -> String {
+        self.0.to_did_key_url_fragment().to_string()
     }
 
     /// Convert private key to verification method object.
@@ -285,6 +291,12 @@ impl PrivateX25519 {
         JWK(self.0.to_private_jwk())
     }
 
+    /// Get the did:key DID URL fragment value of the X25519 key.
+    #[wasm_bindgen(js_name = "toDIDKeyURLFragment")]
+    pub fn to_did_key_url_fragment(&self) -> String {
+        self.0.to_did_key_url_fragment().to_string()
+    }
+
     /// Convert private key to verification method object.
     #[wasm_bindgen(js_name = "toVerificationMethod")]
     pub fn to_verification_method(&self, id: &str, controller: &str) -> Result<Object, JsError> {
@@ -361,6 +373,18 @@ pub struct PublicEd25519(Ed25519VerificationKey2020);
 
 #[wasm_bindgen]
 impl PublicEd25519 {
+    /// Get the verification method identifier.
+    #[wasm_bindgen(getter)]
+    pub fn id(&self) -> String {
+        self.0.id.to_string()
+    }
+
+    /// Get the verification method controller.
+    #[wasm_bindgen(getter)]
+    pub fn controller(&self) -> String {
+        self.0.controller.to_string()
+    }
+
     /// Get the JWK value (without the private key) of the Ed25519 key within the current keypair.
     #[wasm_bindgen(js_name = "toJWK")]
     pub fn to_jwk(&self) -> JWK {
@@ -376,6 +400,18 @@ pub struct PublicX25519(X25519KeyAgreementKey2020);
 
 #[wasm_bindgen]
 impl PublicX25519 {
+    /// Get the verification method identifier.
+    #[wasm_bindgen(getter)]
+    pub fn id(&self) -> String {
+        self.0.id.to_string()
+    }
+
+    /// Get the verification method controller.
+    #[wasm_bindgen(getter)]
+    pub fn controller(&self) -> String {
+        self.0.controller.to_string()
+    }
+
     /// Get the JWK value (without the private key) of the X25519 key within the current keypair.
     #[wasm_bindgen(js_name = "toJWK")]
     pub fn to_jwk(&self) -> JWK {

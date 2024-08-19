@@ -25,7 +25,10 @@ describe("can execute ed25519 operations", () => {
     const key = PrivateEd25519.fromBytes(seed);
     const did = key.toDIDKey();
 
-    expect(thirdPartyDid).toStrictEqual(did);
+    expect(thirdPartyDid).toStrictEqual(key.toDIDKey());
+    expect(thirdPartyKey.fingerprint()).toStrictEqual(
+      key.toDIDKeyURLFragment(),
+    );
   });
 
   it("can extract JWK values", async () => {

@@ -15,6 +15,7 @@ use ssi_jwk::{Algorithm, Params};
 use ssi_jws::{
     decode_jws_parts, decode_verify, encode_sign_custom_header, split_jws, verify_bytes, Header,
 };
+use ssi_security::MultibaseBuf;
 use ssi_verification_methods::{
     ControllerError, ControllerProvider, GenericVerificationMethod, InvalidVerificationMethod,
     ProofPurpose,
@@ -269,6 +270,10 @@ impl PrivateEd25519 {
         DIDKey.generate(&self.inner.verifying_key())
     }
 
+    pub fn to_did_key_url_fragment(&self) -> MultibaseBuf {
+        DIDKey.generate_ed25519_fragment(&self.inner.verifying_key())
+    }
+
     pub fn to_verification_method(
         &self,
         id: IriBuf,
@@ -304,6 +309,10 @@ impl PrivateX25519 {
 
     pub fn to_private_jwk(&self) -> JWK {
         JWK::from(Params::OKP(self.inner.encode_okp()))
+    }
+
+    pub fn to_did_key_url_fragment(&self) -> MultibaseBuf {
+        DIDKey.generate_x25519_fragment(&x25519_dalek::PublicKey::from(&self.inner))
     }
 
     pub fn to_verification_method(
