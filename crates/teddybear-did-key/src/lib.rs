@@ -2,7 +2,6 @@ use std::{array::TryFromSliceError, collections::BTreeMap};
 
 use ed25519_dalek::VerifyingKey;
 use iref::IriRef;
-use multibase::Base;
 use serde_json::Value;
 use ssi_dids_core::{
     document::{
@@ -14,32 +13,40 @@ use ssi_dids_core::{
     resolution::{self, Error},
     DIDBuf, DIDMethod, DIDMethodResolver, DIDURLBuf, Document,
 };
+use ssi_multicodec::{MultiEncoded, MultiEncodedBuf};
+use ssi_security::{multibase::Base, Multibase, MultibaseBuf};
 use static_iref::iri_ref;
 
 // https://www.w3.org/community/reports/credentials/CG-FINAL-di-eddsa-2020-20220724/#ed25519verificationkey2020
 const ED25519_CONTEXT: &IriRef = iri_ref!("https://w3id.org/security/suites/ed25519-2020/v1");
 const ED25519_TYPE: &str = "Ed25519VerificationKey2020";
-const ED25519_PREFIX: &[u8] = &[0xed, 0x01];
 
 const X25519_CONTEXT: &IriRef = iri_ref!("https://w3id.org/security/suites/x25519-2020/v1");
 const X25519_TYPE: &str = "X25519KeyAgreementKey2020";
-const X25519_PREFIX: &[u8] = &[0xec, 0x01];
 
 pub struct DIDKey;
 
 impl DIDKey {
     pub fn generate(&self, source: &ed25519_dalek::VerifyingKey) -> DIDBuf {
-        DIDBuf::from_string(
-            [
-                "did:key:",
-                &multibase::encode(
-                    Base::Base58Btc,
-                    [ED25519_PREFIX, source.as_bytes()].concat(),
-                ),
-            ]
-            .concat(),
-        )
-        .expect("DidKey is expected to generate a valid did")
+        DIDBuf::from_string(format!(
+            "did:key:{}",
+            self.generate_ed25519_fragment(source)
+        ))
+        .expect("DIDKey is expected to generate a valid DID")
+    }
+
+    pub fn generate_ed25519_fragment(&self, source: &ed25519_dalek::VerifyingKey) -> MultibaseBuf {
+        let multi_encoded =
+            MultiEncodedBuf::encode_bytes(ssi_multicodec::ED25519_PUB, &source.to_bytes());
+
+        MultibaseBuf::encode(Base::Base58Btc, multi_encoded.as_bytes())
+    }
+
+    pub fn generate_x25519_fragment(&self, source: &x25519_dalek::PublicKey) -> MultibaseBuf {
+        let multi_encoded =
+            MultiEncodedBuf::encode_bytes(ssi_multicodec::X25519_PUB, &source.to_bytes());
+
+        MultibaseBuf::encode(Base::Base58Btc, multi_encoded.as_bytes())
     }
 }
 
@@ -53,16 +60,21 @@ impl DIDMethodResolver for DIDKey {
         key: &'a str,
         options: resolution::Options,
     ) -> Result<resolution::Output<Vec<u8>>, Error> {
-        let (_, data) =
-            multibase::decode(key).map_err(|e| Error::InvalidMethodSpecificId(e.to_string()))?;
+        let (_, data) = Multibase::new(key)
+            .decode()
+            .map_err(|e| Error::InvalidMethodSpecificId(e.to_string()))?;
 
         if data.len() < 2 {
             return Err(Error::NotFound);
         }
 
-        let (ED25519_PREFIX, value) = data.split_at(2) else {
+        let (codec, value) = MultiEncoded::new(&data)
+            .map_err(|_| Error::NotFound)?
+            .parts();
+
+        if codec != ssi_multicodec::ED25519_PUB {
             return Err(Error::NotFound);
-        };
+        }
 
         let bytes = value
             .try_into()
@@ -71,11 +83,8 @@ impl DIDMethodResolver for DIDKey {
         let public_key = VerifyingKey::from_bytes(bytes)
             .map_err(|e| Error::InvalidMethodSpecificId(e.to_string()))?;
 
-        let x25519_key = public_key.to_montgomery();
-        let encoded_x25519 = multibase::encode(
-            Base::Base58Btc,
-            [X25519_PREFIX, x25519_key.as_bytes()].concat(),
-        );
+        let x25519_key = x25519_dalek::PublicKey::from(public_key.to_montgomery().to_bytes());
+        let encoded_x25519 = DIDKey.generate_x25519_fragment(&x25519_key).to_string();
 
         let document_did = DIDBuf::from_string(format!("did:key:{}", key))
             .expect("the provided document did:key string is expected to always be valid");

@@ -176,6 +176,10 @@
         uni = pkgs.callPackage ./nix/uni.nix {
           inherit cjs esm;
         };
+
+        docs = pkgs.callPackage ./nix/docs.nix {
+          src = uni;
+        };
       in {
         devShells = {
           default = pkgs.mkShell {
@@ -189,17 +193,13 @@
         };
 
         packages = {
-          inherit cjs esm;
+          inherit cjs esm docs;
 
           default = uni;
-
-          docs = pkgs.callPackage ./nix/docs.nix {
-            src = uni;
-          };
         };
 
         checks = {
-          inherit cjs esm uni;
+          inherit cjs esm uni docs;
 
           e2e-test = pkgs.callPackage ./nix/e2e-testing/vm.nix {
             inherit identity-context placeholder-image thumbnail-image;
@@ -211,7 +211,7 @@
               inherit uni;
 
               src = ./tests;
-              yarnLockHash = "sha256-Zcm5jr6hHq34vmRBq8ATLaqzg9svBIjL41OKcH5Enf4=";
+              yarnLockHash = "sha256-kDHFBHlAI/bxKk4N9/KWsWk2VKSRSW9sNsUJJG8jOnw=";
             };
           };
 

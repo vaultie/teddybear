@@ -17,22 +17,9 @@ stdenvNoCC.mkDerivation {
     deno doc \
       --html \
       --name="Teddybear" \
+      --output="$out" \
       $src/index.d.ts
 
     runHook postBuild
-  '';
-
-  installPhase = ''
-    runHook preInstall
-
-    mkdir -p $out
-
-    # Current deno-doc version ships with a broken CSS on mobile devices
-    substituteInPlace docs/styles.css \
-      --replace-fail "@media not all and (min-width:1024px){.ddoc .toc .documentNavigation{display:none}}" ""
-
-    cp -r docs/. $out
-
-    runHook postInstall
   '';
 }
