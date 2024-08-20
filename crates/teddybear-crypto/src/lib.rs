@@ -236,6 +236,25 @@ pub struct PrivateEd25519 {
     inner: ed25519_dalek::SigningKey,
 }
 
+#[derive(Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct SignOptions {
+    /// Whether to embed a copy of the signing key as a JWK value.
+    pub embed_signing_key: bool,
+
+    /// Key identifier to embed as a `kid` field within the JWS header.
+    pub key_identifier: Option<String>,
+}
+
+impl Default for SignOptions {
+    fn default() -> Self {
+        Self {
+            embed_signing_key: true,
+            key_identifier: None,
+        }
+    }
+}
+
 impl PrivateEd25519 {
     pub fn generate() -> Self {
         Self {
@@ -283,10 +302,11 @@ impl PrivateEd25519 {
         Ed25519VerificationKey2020::from_public_key(id, controller, self.inner.verifying_key())
     }
 
-    pub fn sign(&self, payload: &str, embed_signing_key: bool) -> Result<String, ssi_jws::Error> {
+    pub fn sign(&self, payload: &str, options: SignOptions) -> Result<String, ssi_jws::Error> {
         let header = Header {
             algorithm: Algorithm::EdDSA,
-            jwk: embed_signing_key.then(|| self.to_public_jwk()),
+            key_id: options.key_identifier,
+            jwk: options.embed_signing_key.then(|| self.to_public_jwk()),
             ..Default::default()
         };
 
@@ -327,11 +347,15 @@ impl PrivateX25519 {
     }
 }
 
-pub fn verify_jws(jws: &str, key: &JWK) -> Result<Vec<u8>, ssi_jws::Error> {
-    Ok(decode_verify(jws, key)?.1)
+pub fn verify_jws(jws: &str, key: &JWK) -> Result<(Option<String>, Vec<u8>), ssi_jws::Error> {
+    let decoded = decode_verify(jws, key)?;
+
+    Ok((decoded.0.key_id, decoded.1))
 }
 
-pub fn verify_jws_with_embedded_jwk(jws: &str) -> Result<(JWK, Vec<u8>), ssi_jws::Error> {
+pub fn verify_jws_with_embedded_jwk(
+    jws: &str,
+) -> Result<(JWK, Option<String>, Vec<u8>), ssi_jws::Error> {
     let (header_b64, payload_enc, signature_b64) = split_jws(jws)?;
 
     let (jws, signing_bytes) = decode_jws_parts(header_b64, payload_enc.as_bytes(), signature_b64)?
@@ -341,5 +365,5 @@ pub fn verify_jws_with_embedded_jwk(jws: &str) -> Result<(JWK, Vec<u8>), ssi_jws
 
     verify_bytes(jws.header.algorithm, &signing_bytes, &key, &jws.signature)?;
 
-    Ok((key, jws.payload))
+    Ok((key, jws.header.key_id, jws.payload))
 }

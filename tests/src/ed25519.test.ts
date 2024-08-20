@@ -48,7 +48,7 @@ describe("can execute ed25519 operations", () => {
   it("can sign JWS values", async () => {
     const key = PrivateEd25519.generate();
 
-    const jws = key.signJWS("testvalue", true);
+    const jws = key.signJWS("testvalue");
 
     const { payload } = await compactVerify(
       jws,
@@ -61,7 +61,7 @@ describe("can execute ed25519 operations", () => {
   it("can extract JWS payload", () => {
     const key = PrivateEd25519.generate();
 
-    const jws = key.signJWS("testvalue", true);
+    const jws = key.signJWS("testvalue");
 
     const { jwk, payload } = verifyJWS(jws);
 
@@ -72,11 +72,28 @@ describe("can execute ed25519 operations", () => {
   it("can sign JWS values without embedded keys", async () => {
     const key = PrivateEd25519.generate();
 
-    const jws = key.signJWS("testvalue", false);
+    const jws = key.signJWS("testvalue", {
+      embedSigningKey: false,
+    });
 
-    const { jwk, payload } = verifyJWS(jws, key.toPublicJWK());
+    const { jwk, keyID, payload } = verifyJWS(jws, key.toPublicJWK());
 
     expect(jwk).toBeUndefined();
+    expect(keyID).toBeUndefined();
+    expect(new TextDecoder().decode(payload)).toStrictEqual("testvalue");
+  });
+
+  it("can sign JWS values with embedded key identifiers", async () => {
+    const key = PrivateEd25519.generate();
+
+    const jws = key.signJWS("testvalue", {
+      keyIdentifier: "did:web:example.com",
+    });
+
+    const { jwk, keyID, payload } = verifyJWS(jws);
+
+    expect(jwk).toBeDefined();
+    expect(keyID).toStrictEqual("did:web:example.com");
     expect(new TextDecoder().decode(payload)).toStrictEqual("testvalue");
   });
 

@@ -15,7 +15,7 @@ use ssi_status::bitstring_status_list::{
 use teddybear_c2pa::{Builder, Ed25519Signer, Reader};
 use teddybear_crypto::{
     DIDURLBuf, DocumentResolveOptions, Ed25519VerificationKey2020, IriBuf, JwkVerificationMethod,
-    UriBuf, X25519KeyAgreementKey2020,
+    SignOptions, UriBuf, X25519KeyAgreementKey2020,
 };
 use teddybear_jwe::{A256Gcm, XC20P};
 use wasm_bindgen::prelude::*;
@@ -218,8 +218,14 @@ impl PrivateEd25519 {
 
     /// Sign the provided payload using the Ed25519 key.
     #[wasm_bindgen(js_name = "signJWS")]
-    pub fn sign_jws(&self, payload: &str, embed_signing_key: bool) -> Result<String, JsError> {
-        Ok(self.0.sign(payload, embed_signing_key)?)
+    pub fn sign_jws(&self, payload: &str, options: Option<Object>) -> Result<String, JsError> {
+        let options: SignOptions = options
+            .map(Into::into)
+            .map(serde_wasm_bindgen::from_value)
+            .transpose()?
+            .unwrap_or_default();
+
+        Ok(self.0.sign(payload, options)?)
     }
 
     /// Create a new verifiable credential.
@@ -630,7 +636,7 @@ pub fn encrypt_chacha20(
 ///
 /// @category JOSE
 #[wasm_bindgen(js_name = "JWSVerificationResult")]
-pub struct JwsVerificationResult(Option<teddybear_crypto::JWK>, Uint8Array);
+pub struct JwsVerificationResult(Option<teddybear_crypto::JWK>, Option<String>, Uint8Array);
 
 #[wasm_bindgen(js_class = "JWSVerificationResult")]
 impl JwsVerificationResult {
@@ -638,16 +644,24 @@ impl JwsVerificationResult {
     ///
     /// Corresponds to the `jwk` field within the JWS header.
     ///
-    /// [`None`] if the JWS verification process was not using the embedded key.
+    /// [`None`] if the JWS signing process had been completed without embedding the JWK value.
     #[wasm_bindgen(getter)]
     pub fn jwk(&self) -> Option<JWK> {
         self.0.clone().map(JWK)
     }
 
+    /// Key identifier.
+    ///
+    /// [`None`] if the JWS signing process had been completed without embedding the key identifier.
+    #[wasm_bindgen(getter, js_name = "keyID")]
+    pub fn key_id(&self) -> Option<String> {
+        self.1.clone()
+    }
+
     /// JWS payload.
     #[wasm_bindgen(getter)]
     pub fn payload(&self) -> Uint8Array {
-        self.1.clone()
+        self.2.clone()
     }
 }
 
@@ -658,14 +672,19 @@ impl JwsVerificationResult {
 /// @category JOSE
 #[wasm_bindgen(js_name = "verifyJWS")]
 pub fn verify_jws(jws: &str, key: Option<JWK>) -> Result<JwsVerificationResult, JsError> {
-    let (jwk, payload) = if let Some(key) = key {
-        (None, teddybear_crypto::verify_jws(jws, &key.0)?)
+    let (jwk, key_id, payload) = if let Some(key) = key {
+        let (key_id, payload) = teddybear_crypto::verify_jws(jws, &key.0)?;
+        (None, key_id, payload)
     } else {
-        let (jwk, payload) = teddybear_crypto::verify_jws_with_embedded_jwk(jws)?;
-        (Some(jwk), payload)
+        let (jwk, key_id, payload) = teddybear_crypto::verify_jws_with_embedded_jwk(jws)?;
+        (Some(jwk), key_id, payload)
     };
 
-    Ok(JwsVerificationResult(jwk, payload.as_slice().into()))
+    Ok(JwsVerificationResult(
+        jwk,
+        key_id,
+        payload.as_slice().into(),
+    ))
 }
 
 /// C2PA signing result.
