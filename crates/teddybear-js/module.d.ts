@@ -40,7 +40,7 @@
  * const x25519 = privateKey.toX25519PrivateKey();
  *
  * // Private Ed25519 keys can be used to sign JWS, ...
- * const jws = privateKey.signJWS("testvalue", true);
+ * const jws = privateKey.signJWS("testvalue");
  *
  * // ...issue verifiable credentials, ...
  * const contextLoader = new ContextLoader();
