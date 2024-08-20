@@ -391,7 +391,7 @@ impl PublicEd25519 {
         JWK(self.0.to_jwk().into_owned())
     }
 
-    /// Serialize the current document as an object.
+    /// Serialize the current public key as a verification method object.
     #[wasm_bindgen(js_name = "toJSON")]
     pub fn to_json(&self) -> Result<Object, JsError> {
         Ok(self.0.serialize(&OBJECT_SERIALIZER)?.into())
@@ -424,7 +424,7 @@ impl PublicX25519 {
         JWK(self.0.to_jwk().into_owned())
     }
 
-    /// Serialize the current document as an object.
+    /// Serialize the current public key as a verification method object.
     #[wasm_bindgen(js_name = "toJSON")]
     pub fn to_json(&self) -> Result<Object, JsError> {
         Ok(self.0.serialize(&OBJECT_SERIALIZER)?.into())
