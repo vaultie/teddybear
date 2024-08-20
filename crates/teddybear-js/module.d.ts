@@ -31,9 +31,9 @@
  * const privateJwk = privateKey.toPrivateJWK();
  * const didKey = privateKey.toDIDKey();
  *
- * // To create an entirely new DID document you can use
- * // "toVerificationMethod"
- * const vm = privateKey.toVerificationMethod();
+ * // You can convert private Ed25519 keys to public Ed25519 keys
+ * // by providing the related DID document identifier and controller.
+ * const publicKey = privateKey.toPublicKey("did:web:example.com", "did:web:example.com");
  *
  * // It is possible to convert a private Ed25519 key into a private
  * // X25519 key.

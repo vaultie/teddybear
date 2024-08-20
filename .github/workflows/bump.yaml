@@ -13,17 +13,14 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
       - name: Activate Nix cache
-        uses: nix-community/cache-nix-action@v5
-        with:
-          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', 'flake.lock', '**/Cargo.lock', '**/yarn.lock') }}
-          restore-prefixes-first-match: nix-${{ runner.os }}-
-          gc-max-store-size: 2684354560 # 2.5 GB
+        uses: DeterminateSystems/magic-nix-cache-action@main
       - name: Bump version
         run: nix develop .#ci --command cargo set-version ${{ inputs.version }}
       - name: Create PR

@@ -84,17 +84,17 @@ pub enum Ed25519Error {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Document {
-    inner: ssi_dids_core::Document,
+    pub inner: ssi_dids_core::Document,
 }
 
 #[derive(Default, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct DocumentResolveOptions<'a> {
     /// Whether to require high assurance DID verification.
-    require_high_assurance_verification: bool,
+    pub require_high_assurance_verification: bool,
 
     /// Preferred DNS-over-HTTPS resolver.
-    dns_over_https_resolver: Option<Cow<'a, str>>,
+    pub dns_over_https_resolver: Option<Cow<'a, str>>,
 }
 
 fn proof_purpose_iter<'a, I: IntoIterator<Item = &'a ValueOrReference>>(
@@ -231,6 +231,7 @@ impl Document {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct PrivateEd25519 {
     inner: ed25519_dalek::SigningKey,
 }
@@ -293,6 +294,7 @@ impl PrivateEd25519 {
     }
 }
 
+#[derive(Clone)]
 pub struct PrivateX25519 {
     inner: x25519_dalek::StaticSecret,
 }
