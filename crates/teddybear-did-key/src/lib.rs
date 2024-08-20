@@ -86,13 +86,13 @@ impl DIDMethodResolver for DIDKey {
         let x25519_key = x25519_dalek::PublicKey::from(public_key.to_montgomery().to_bytes());
         let encoded_x25519 = DIDKey.generate_x25519_fragment(&x25519_key).to_string();
 
-        let document_did = DIDBuf::from_string(format!("did:key:{}", key))
+        let document_did = DIDBuf::from_string(format!("did:key:{key}"))
             .expect("the provided document did:key string is expected to always be valid");
 
-        let ed25519_did = DIDURLBuf::from_string(format!("did:key:{}#{}", key, key))
+        let ed25519_did = DIDURLBuf::from_string(format!("did:key:{key}#{key}"))
             .expect("the provided ed25519 did:key string is expected to always be valid");
 
-        let x25519_did = DIDURLBuf::from_string(format!("did:key:{}#{}", key, encoded_x25519))
+        let x25519_did = DIDURLBuf::from_string(format!("did:key:{key}#{encoded_x25519}"))
             .expect("the provided x25519 did:key string is expected to always be valid");
 
         let mut doc = Document::new(document_did.clone());

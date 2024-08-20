@@ -249,7 +249,7 @@ pub fn add_recipient<T: SymmetricEncryptionAlgorithm>(
             producer_info: Base64urlUInt(new_producer_info.to_vec()),
             consumer_info: Base64urlUInt(new_consumer_info.into_bytes()),
         },
-        encrypted_key: Base64urlUInt(cek_buffer.to_vec()),
+        encrypted_key: Base64urlUInt(cek_buffer.clone()),
     })
 }
 
