@@ -14,9 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pages: write
-      packages: write
       id-token: write
+      packages: write
+      pages: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
