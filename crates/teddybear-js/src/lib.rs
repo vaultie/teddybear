@@ -206,14 +206,14 @@ impl PrivateEd25519 {
         self.0.to_did_key_url_fragment().to_string()
     }
 
-    /// Convert private key to verification method object.
-    #[wasm_bindgen(js_name = "toVerificationMethod")]
-    pub fn to_verification_method(&self, id: &str, controller: &str) -> Result<Object, JsError> {
+    /// Derive an Ed25519 public key from the private key.
+    #[wasm_bindgen(js_name = "toPublicKey")]
+    pub fn to_public_key(&self, id: &str, controller: &str) -> Result<PublicEd25519, JsError> {
         let verification_method = self
             .0
             .to_verification_method(IriBuf::from_str(id)?, UriBuf::from_str(controller)?);
 
-        Ok(verification_method.serialize(&OBJECT_SERIALIZER)?.into())
+        Ok(PublicEd25519(verification_method))
     }
 
     /// Sign the provided payload using the Ed25519 key.
@@ -297,14 +297,14 @@ impl PrivateX25519 {
         self.0.to_did_key_url_fragment().to_string()
     }
 
-    /// Convert private key to verification method object.
-    #[wasm_bindgen(js_name = "toVerificationMethod")]
-    pub fn to_verification_method(&self, id: &str, controller: &str) -> Result<Object, JsError> {
+    /// Derive an X25519 public key from the private key.
+    #[wasm_bindgen(js_name = "toPublicKey")]
+    pub fn to_public_key(&self, id: &str, controller: &str) -> Result<PublicX25519, JsError> {
         let verification_method = self
             .0
             .to_verification_method(IriBuf::from_str(id)?, UriBuf::from_str(controller)?);
 
-        Ok(verification_method.serialize(&OBJECT_SERIALIZER)?.into())
+        Ok(PublicX25519(verification_method))
     }
 
     /// Decrypt the provided JWE object using the X25519 key and the A256GCM algorithm.
@@ -390,6 +390,12 @@ impl PublicEd25519 {
     pub fn to_jwk(&self) -> JWK {
         JWK(self.0.to_jwk().into_owned())
     }
+
+    /// Serialize the current document as an object.
+    #[wasm_bindgen(js_name = "toJSON")]
+    pub fn to_json(&self) -> Result<Object, JsError> {
+        Ok(self.0.serialize(&OBJECT_SERIALIZER)?.into())
+    }
 }
 
 /// Public X25519 key.
@@ -416,6 +422,12 @@ impl PublicX25519 {
     #[wasm_bindgen(js_name = "toJWK")]
     pub fn to_jwk(&self) -> JWK {
         JWK(self.0.to_jwk().into_owned())
+    }
+
+    /// Serialize the current document as an object.
+    #[wasm_bindgen(js_name = "toJSON")]
+    pub fn to_json(&self) -> Result<Object, JsError> {
+        Ok(self.0.serialize(&OBJECT_SERIALIZER)?.into())
     }
 }
 
