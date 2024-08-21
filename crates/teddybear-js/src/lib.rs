@@ -14,8 +14,8 @@ use ssi_status::bitstring_status_list::{
 };
 use teddybear_c2pa::{Builder, Ed25519Signer, Reader};
 use teddybear_crypto::{
-    DIDURLBuf, DocumentResolveOptions, Ed25519VerificationKey2020, IriBuf, JwkVerificationMethod,
-    SignOptions, UriBuf, X25519KeyAgreementKey2020,
+    DIDURLBuf, Ed25519VerificationKey2020, IriBuf, JwkVerificationMethod, SignOptions, UriBuf,
+    X25519KeyAgreementKey2020,
 };
 use teddybear_jwe::{A256Gcm, XC20P};
 use wasm_bindgen::prelude::*;
@@ -104,8 +104,14 @@ pub struct Document(teddybear_crypto::Document);
 
 #[wasm_bindgen]
 impl Document {
+    #[wasm_bindgen(constructor)]
+    pub fn new(document: Object) -> Result<Document, JsError> {
+        let document = serde_wasm_bindgen::from_value(document.into())?;
+        Ok(Document(document))
+    }
+
     pub async fn resolve(did: &str, options: Option<Object>) -> Result<Document, JsError> {
-        let options: DocumentResolveOptions = options
+        let options = options
             .map(Into::into)
             .map(serde_wasm_bindgen::from_value)
             .transpose()?
@@ -125,20 +131,14 @@ impl Document {
     #[wasm_bindgen(js_name = "getEd25519VerificationMethod")]
     pub fn get_ed25519_verification_method(&self, id: &str) -> Result<PublicEd25519, JsError> {
         Ok(PublicEd25519(
-            self.0
-                .get_verification_method::<Ed25519VerificationKey2020, _>(&DIDURLBuf::from_str(
-                    id,
-                )?)?,
+            self.0.get_verification_method(&DIDURLBuf::from_str(id)?)?,
         ))
     }
 
     #[wasm_bindgen(js_name = "getX25519VerificationMethod")]
     pub fn get_x25519_verification_method(&self, id: &str) -> Result<PublicX25519, JsError> {
         Ok(PublicX25519(
-            self.0
-                .get_verification_method::<X25519KeyAgreementKey2020, _>(&DIDURLBuf::from_str(
-                    id,
-                )?)?,
+            self.0.get_verification_method(&DIDURLBuf::from_str(id)?)?,
         ))
     }
 
