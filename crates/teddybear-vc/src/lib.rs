@@ -2,15 +2,15 @@ mod credential_ref;
 
 use ed25519_dalek::SigningKey;
 use itertools::Itertools;
+use serde::Serialize;
 use ssi_claims::{
     data_integrity::{
         suites::Ed25519Signature2020, CryptographicSuite, DataIntegrity, ProofOptions,
     },
     Invalid, InvalidClaims, ProofValidationError, SignatureEnvironment, SignatureError,
-    ValidateClaims, ValidateProof, VerifiableClaims, VerificationParameters,
+    ValidateProof, VerificationParameters,
 };
 use ssi_json_ld::IriBuf;
-use ssi_vc::v2::{Credential, Presentation};
 use ssi_verification_methods::{
     Ed25519VerificationKey2020, ProofPurpose, ReferenceOrOwned, SingleSecretSigner,
 };
@@ -18,12 +18,20 @@ use teddybear_crypto::{default_did_method, CustomVerificationMethodDIDResolver};
 
 use crate::credential_ref::CredentialRef;
 
-pub use ssi_json_ld::ContextLoader;
-pub use ssi_vc::v2::syntax::{JsonCredential, JsonPresentation};
+pub use ssi_claims::{ValidateClaims, VerifiableClaims};
+pub use ssi_json_ld::{ContextLoader, Expand, Expandable, JsonLdNodeObject, ValidId};
+pub use ssi_vc::{
+    syntax::{RequiredContext, RequiredContextList, RequiredType, RequiredTypeSet},
+    v2::{
+        syntax::{JsonPresentation, SpecializedJsonCredential},
+        Credential, Presentation,
+    },
+    Identified,
+};
 
 pub type DI<V> = DataIntegrity<V, Ed25519Signature2020>;
 
-type CustomVerificationParameters<'a> =
+pub type CustomVerificationParameters<'a> =
     VerificationParameters<CustomVerificationMethodDIDResolver, &'a mut ContextLoader>;
 
 #[derive(thiserror::Error, Debug)]
@@ -44,14 +52,17 @@ pub enum Error {
     ProofValidationError(#[from] ProofValidationError),
 }
 
-type SignedEd25519Credential<'a> = DI<CredentialRef<'a, JsonCredential>>;
+pub type SignedEd25519Credential<'a, C> = DI<CredentialRef<'a, C>>;
 
-pub async fn issue_vc<'a>(
+pub async fn issue_vc<'a, C>(
     key: SigningKey,
     verification_method: IriBuf,
-    credential: &'a JsonCredential,
+    credential: &'a C,
     context_loader: &mut ContextLoader,
-) -> Result<SignedEd25519Credential<'a>, Error> {
+) -> Result<SignedEd25519Credential<'a, C>, Error>
+where
+    C: Credential + JsonLdNodeObject + Expandable,
+{
     let resolver = CustomVerificationMethodDIDResolver::new(default_did_method());
 
     let params =
@@ -77,16 +88,19 @@ pub async fn issue_vc<'a>(
         .await?)
 }
 
-type SignedEd25519Presentation<'a> = DI<CredentialRef<'a, JsonPresentation>>;
+pub type SignedEd25519Presentation<'a, C> = DI<CredentialRef<'a, JsonPresentation<C>>>;
 
-pub async fn present_vp<'a>(
+pub async fn present_vp<'a, C>(
     key: SigningKey,
     verification_method: IriBuf,
-    presentation: &'a JsonPresentation,
+    presentation: &'a JsonPresentation<C>,
     domain: Option<String>,
     challenge: Option<String>,
     context_loader: &mut ContextLoader,
-) -> Result<SignedEd25519Presentation<'a>, Error> {
+) -> Result<SignedEd25519Presentation<'a, C>, Error>
+where
+    C: Credential + JsonLdNodeObject + Expandable + Serialize,
+{
     let resolver = CustomVerificationMethodDIDResolver::new(default_did_method());
 
     let params =

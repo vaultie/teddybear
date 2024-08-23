@@ -8,8 +8,7 @@ use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use ssi_dids_core::{
     document::{verification_method::ValueOrReference, DIDVerificationMethod, ResourceRef},
-    ssi_json_ld::Iri,
-    DIDBuf, DIDURLReference, DIDURLReferenceBuf, InvalidDIDURL, VerificationMethodDIDResolver,
+    DIDURLReference, DIDURLReferenceBuf, InvalidDIDURL, VerificationMethodDIDResolver,
 };
 use ssi_jwk::{Algorithm, Params};
 use ssi_jws::{
@@ -26,11 +25,14 @@ use teddybear_high_assurance::DnsError;
 use crate::okp_encoder::OKPEncoder;
 
 pub use ssi_dids_core::{
-    ssi_json_ld::{iref::UriBuf, IriBuf},
-    DIDURLBuf, DID, DIDURL,
+    ssi_json_ld::{
+        iref::{Uri, UriBuf},
+        Iri, IriBuf,
+    },
+    DIDBuf, DIDURLBuf, PrimaryDIDURL, PrimaryDIDURLBuf, DID, DIDURL,
 };
 pub use ssi_jwk::JWK;
-pub use ssi_verification_methods::{Ed25519VerificationKey2020, JwkVerificationMethod};
+pub use ssi_verification_methods::{Controller, Ed25519VerificationKey2020, JwkVerificationMethod};
 
 pub use crate::x25519::X25519KeyAgreementKey2020;
 
@@ -67,6 +69,9 @@ pub enum Ed25519Error {
 
     #[error("high assurance verification failed")]
     HighAssuranceVerificationFailed,
+
+    #[error("DID subject mismatch")]
+    SubjectMismatch,
 
     #[error("{0}")]
     ControllerError(String),
@@ -147,11 +152,11 @@ impl Document {
     }
 
     pub async fn resolve(
-        id: &Iri,
+        id: &DID,
         options: DocumentResolveOptions<'_>,
     ) -> Result<Self, Ed25519Error> {
         let inner = CustomVerificationMethodDIDResolver::new(default_did_method())
-            .require_controller(id)
+            .require_controller(id.as_iri())
             .await
             .map_err(|e| match e {
                 ControllerError::NotFound(e) => Ed25519Error::ControllerError(e),
@@ -161,6 +166,12 @@ impl Document {
                 ControllerError::Unsupported(e) => Ed25519Error::ControllerError(e),
                 ControllerError::InternalError(e) => Ed25519Error::ControllerError(e),
             })?;
+
+        // Additionally enforce DID subject to be the same as the
+        // DID used to request the DID document.
+        if inner.id != id {
+            return Err(Ed25519Error::SubjectMismatch);
+        }
 
         if options.require_high_assurance_verification {
             // FIXME: Implement other parts of the RFC.

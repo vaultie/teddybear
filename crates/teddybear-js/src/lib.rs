@@ -15,14 +15,14 @@ use ssi_status::bitstring_status_list::{
 use teddybear_c2pa::{Builder, Ed25519Signer, Reader};
 use teddybear_crypto::{
     DIDURLBuf, Ed25519VerificationKey2020, IriBuf, JwkVerificationMethod, SignOptions, UriBuf,
-    X25519KeyAgreementKey2020,
+    X25519KeyAgreementKey2020, DID,
 };
 use teddybear_jwe::{A256Gcm, XC20P};
 use wasm_bindgen::prelude::*;
 
 use teddybear_vc::{
-    issue_vc, present_vp, verify, ContextLoader as InnerContextLoader, JsonCredential,
-    JsonPresentation, DI,
+    issue_vc, present_vp, verify, ContextLoader as InnerContextLoader, JsonPresentation,
+    SpecializedJsonCredential, DI,
 };
 
 const OBJECT_SERIALIZER: Serializer = Serializer::new().serialize_maps_as_objects(true);
@@ -118,7 +118,7 @@ impl Document {
             .unwrap_or_default();
 
         Ok(Document(
-            teddybear_crypto::Document::resolve(&IriBuf::from_str(did)?, options).await?,
+            teddybear_crypto::Document::resolve(DID::new(did)?, options).await?,
         ))
     }
 
@@ -236,7 +236,7 @@ impl PrivateEd25519 {
         vc: Object,
         context_loader: &mut ContextLoader,
     ) -> Result<Object, JsError> {
-        let credential = serde_wasm_bindgen::from_value(vc.into())?;
+        let credential: SpecializedJsonCredential = serde_wasm_bindgen::from_value(vc.into())?;
         let vm = IriBuf::from_str(verification_method)?;
 
         Ok(issue_vc(
@@ -260,7 +260,8 @@ impl PrivateEd25519 {
         domain: Option<String>,
         challenge: Option<String>,
     ) -> Result<Object, JsError> {
-        let presentation = serde_wasm_bindgen::from_value(vp.into())?;
+        let presentation: JsonPresentation<SpecializedJsonCredential> =
+            serde_wasm_bindgen::from_value(vp.into())?;
         let vm = IriBuf::from_str(verification_method)?;
 
         Ok(present_vp(
@@ -491,7 +492,8 @@ pub async fn js_verify_credential(
     document: Object,
     context_loader: &mut ContextLoader,
 ) -> Result<VerificationResult, JsError> {
-    let credential: DI<JsonCredential> = serde_wasm_bindgen::from_value(document.into())?;
+    let credential: DI<SpecializedJsonCredential> =
+        serde_wasm_bindgen::from_value(document.into())?;
 
     let (key, challenge) = verify(&credential, &mut context_loader.0).await?;
 
