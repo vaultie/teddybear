@@ -467,20 +467,20 @@ impl ContextLoader {
 /// @category W3C VC
 #[wasm_bindgen]
 pub struct VerificationResult {
-    key: PublicEd25519,
+    key: Ed25519VerificationKey2020,
     challenge: Option<String>,
 }
 
 #[wasm_bindgen]
 impl VerificationResult {
     #[wasm_bindgen(getter)]
-    pub fn key(self) -> PublicEd25519 {
-        self.key
+    pub fn key(&self) -> PublicEd25519 {
+        PublicEd25519(self.key.clone())
     }
 
     #[wasm_bindgen(getter)]
-    pub fn challenge(self) -> Option<String> {
-        self.challenge
+    pub fn challenge(&self) -> Option<String> {
+        self.challenge.clone()
     }
 }
 
@@ -498,7 +498,7 @@ pub async fn js_verify_credential(
     let (key, challenge) = verify(&credential, &mut context_loader.0).await?;
 
     Ok(VerificationResult {
-        key: PublicEd25519(key.clone()),
+        key,
         challenge: challenge.map(ToString::to_string),
     })
 }
@@ -516,7 +516,7 @@ pub async fn js_verify_presentation(
     let (key, challenge) = verify(&presentation, &mut context_loader.0).await?;
 
     Ok(VerificationResult {
-        key: PublicEd25519(key.clone()),
+        key,
         challenge: challenge.map(ToString::to_string),
     })
 }

@@ -63,6 +63,7 @@
  *   {
  *     "@context": ["https://www.w3.org/ns/credentials/v2"],
  *     type: ["VerifiablePresentation"],
+ *     holder: "did:web:example.com",
  *     verifiableCredential,
  *   },
  *   contextLoader,
