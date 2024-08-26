@@ -13,8 +13,9 @@ use ssi_claims::{
 use ssi_json_ld::IriBuf;
 use ssi_verification_methods::{
     Ed25519VerificationKey2020, ProofPurpose, ReferenceOrOwned, SingleSecretSigner,
+    VerificationMethodResolutionError, VerificationMethodResolver,
 };
-use teddybear_crypto::{default_did_method, CustomVerificationMethodDIDResolver};
+use teddybear_crypto::{default_did_method, CustomVerificationMethodDIDResolver, Uri, DIDURL};
 
 use crate::credential_ref::CredentialRef;
 
@@ -31,13 +32,19 @@ pub use ssi_vc::{
 
 pub type DI<V> = DataIntegrity<V, Ed25519Signature2020>;
 
-pub type CustomVerificationParameters<'a> =
-    VerificationParameters<CustomVerificationMethodDIDResolver, &'a mut ContextLoader>;
+pub type CustomVerificationParameters<'a, 'b> =
+    VerificationParameters<&'a CustomVerificationMethodDIDResolver, &'b mut ContextLoader>;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("expected a document with a single proof")]
     SingleProofOnly,
+
+    #[error("missing claimed signer")]
+    MissingClaimedSigner,
+
+    #[error("invalid verification method identifier")]
+    InvalidVmIdentifier,
 
     #[error(transparent)]
     SignatureError(#[from] SignatureError),
@@ -50,6 +57,9 @@ pub enum Error {
 
     #[error(transparent)]
     ProofValidationError(#[from] ProofValidationError),
+
+    #[error(transparent)]
+    VerificationMethodResolutionError(#[from] VerificationMethodResolutionError),
 }
 
 pub type SignedEd25519Credential<'a, C> = DI<CredentialRef<'a, C>>;
@@ -131,20 +141,69 @@ where
         .await?)
 }
 
+pub trait HasClaimedSigner {
+    fn claimed_signer(&self) -> Option<&Uri>;
+}
+
+impl<
+        Subject,
+        RequiredContext,
+        RequiredType,
+        Issuer,
+        Status,
+        Evidence,
+        Schema,
+        RefreshService,
+        TermsOfUse,
+        ExtraProperties,
+    > HasClaimedSigner
+    for SpecializedJsonCredential<
+        Subject,
+        RequiredContext,
+        RequiredType,
+        Issuer,
+        Status,
+        Evidence,
+        Schema,
+        RefreshService,
+        TermsOfUse,
+        ExtraProperties,
+    >
+where
+    Issuer: Identified,
+{
+    fn claimed_signer(&self) -> Option<&Uri> {
+        Some(self.issuer.id())
+    }
+}
+
+impl<C> HasClaimedSigner for JsonPresentation<C>
+where
+    Self: Presentation,
+{
+    fn claimed_signer(&self) -> Option<&Uri> {
+        // For now expect only a single credential holder.
+        Some(self.holders().iter().exactly_one().ok()?.id())
+    }
+}
+
 pub async fn verify<'a, 'b, V>(
     value: &'a DI<V>,
     context_loader: &'b mut ContextLoader,
-) -> Result<(&'a Ed25519VerificationKey2020, Option<&'a str>), Error>
+) -> Result<(Ed25519VerificationKey2020, Option<&'a str>), Error>
 where
-    <DI<V> as VerifiableClaims>::Claims:
-        ValidateClaims<CustomVerificationParameters<'b>, <DI<V> as VerifiableClaims>::Proof>,
-    <DI<V> as VerifiableClaims>::Proof:
-        ValidateProof<CustomVerificationParameters<'b>, <DI<V> as VerifiableClaims>::Claims>,
+    V: HasClaimedSigner,
+    for<'r> <DI<V> as VerifiableClaims>::Claims:
+        ValidateClaims<CustomVerificationParameters<'r, 'b>, <DI<V> as VerifiableClaims>::Proof>,
+    for<'r> <DI<V> as VerifiableClaims>::Proof:
+        ValidateProof<CustomVerificationParameters<'r, 'b>, <DI<V> as VerifiableClaims>::Claims>,
 {
+    let claimed_signer = value.claimed_signer().ok_or(Error::MissingClaimedSigner)?;
+
     let resolver = CustomVerificationMethodDIDResolver::new(default_did_method());
 
     let params =
-        VerificationParameters::from_resolver(resolver).with_json_ld_loader(context_loader);
+        VerificationParameters::from_resolver(&resolver).with_json_ld_loader(context_loader);
 
     value.verify(params).await??;
 
@@ -154,10 +213,16 @@ where
         .exactly_one()
         .map_err(|_| Error::SingleProofOnly)?;
 
-    let verification_method = match &proof.verification_method {
-        ReferenceOrOwned::Owned(key) => key,
-        _ => return Err(Error::SingleProofOnly),
-    };
+    let verification_method = resolver
+        .resolve_verification_method(None, Some(proof.verification_method.borrowed()))
+        .await?;
 
-    Ok((verification_method, proof.challenge.as_deref()))
+    let vm_id =
+        DIDURL::new(verification_method.id.as_bytes()).map_err(|_| Error::InvalidVmIdentifier)?;
+
+    if claimed_signer != vm_id.without_fragment().0.did().as_uri() {
+        return Err(Error::InvalidVmIdentifier);
+    }
+
+    Ok((verification_method.into_owned(), proof.challenge.as_deref()))
 }

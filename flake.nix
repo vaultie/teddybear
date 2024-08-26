@@ -211,7 +211,7 @@
               inherit uni;
 
               src = ./tests;
-              yarnLockHash = "sha256-kDHFBHlAI/bxKk4N9/KWsWk2VKSRSW9sNsUJJG8jOnw=";
+              yarnLockHash = "sha256-Om6VzFh/qKP7rYs0ihW66sq7fOv0oqA956wpIMDavg8=";
             };
           };
 
