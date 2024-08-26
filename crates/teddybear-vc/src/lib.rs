@@ -220,7 +220,7 @@ where
     let vm_id =
         DIDURL::new(verification_method.id.as_bytes()).map_err(|_| Error::InvalidVmIdentifier)?;
 
-    if claimed_signer != vm_id.without_fragment().0.as_uri() {
+    if claimed_signer != vm_id.without_fragment().0.did().as_uri() {
         return Err(Error::InvalidVmIdentifier);
     }
 
