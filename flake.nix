@@ -157,11 +157,11 @@
             cargoExtraArgs = "-p teddybear-js --locked";
           });
 
-        mkPackage = buildForNode:
+        mkPackage = target:
           pkgs.callPackage ./nix/package.nix {
             inherit
-              buildForNode
               craneLib
+              target
               wasmArgs
               wasmCargoArtifacts
               wasmSnipPatterns
@@ -170,8 +170,9 @@
               ;
           };
 
-        esm = mkPackage false;
-        cjs = mkPackage true;
+        esm = mkPackage "bundler";
+        cjs = mkPackage "nodejs";
+        deno = mkPackage "deno";
 
         uni = pkgs.callPackage ./nix/uni.nix {
           inherit cjs esm;
@@ -193,7 +194,7 @@
         };
 
         packages = {
-          inherit cjs esm docs;
+          inherit cjs esm deno docs;
 
           default = uni;
         };

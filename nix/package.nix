@@ -1,9 +1,9 @@
 {
   binaryen,
-  buildForNode,
   craneLib,
   lib,
   moreutils,
+  target,
   wabt,
   wasmArgs,
   wasmCargoArtifacts,
@@ -12,10 +12,11 @@
   wasm-pack,
   wasm-snip,
 }: let
-  target =
-    if buildForNode
-    then "nodejs"
-    else "bundler";
+  packageNamePrefix = {
+    "bundler" = "-esm";
+    "nodejs" = "-cjs";
+    "deno" = null;
+  };
 in
   craneLib.buildPackage (wasmArgs
     // {
@@ -68,8 +69,10 @@ in
       doInstallCargoArtifacts = false;
 
       preInstall = ''
-        substituteInPlace crates/teddybear-js/build/package.json \
-          --replace-fail "teddybear-js" "@vaultie/teddybear${lib.optionalString buildForNode "-node"}"
+        ${lib.optionalString (packageNamePrefix.${target} != null) ''
+          substituteInPlace crates/teddybear-js/build/package.json \
+            --replace-fail "teddybear-js" "@vaultie/teddybear${packageNamePrefix.${target}}"
+        ''}
 
         # wasm-bindgen's custom TypeScript sections are merged into random d.ts file locations,
         # so to generate the module documentation we have to use a separate file and merge
