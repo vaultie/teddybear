@@ -747,7 +747,7 @@ impl C2paBuilder {
         Ok(self)
     }
 
-    pub fn sign(
+    pub async fn sign(
         mut self,
         key: &PrivateEd25519,
         certificate: Uint8Array,
@@ -759,7 +759,10 @@ impl C2paBuilder {
 
         let signer = Ed25519Signer::new(key.0.inner().clone(), certificate.to_vec());
 
-        let manifest = self.0.sign(&signer, format, &mut source, &mut dest)?;
+        let manifest = self
+            .0
+            .sign_async(&signer, format, &mut source, &mut dest)
+            .await?;
 
         Ok(C2paSignatureResult(dest.into_inner(), manifest))
     }
@@ -824,9 +827,9 @@ impl C2paVerificationResult {
 ///
 /// @category C2PA
 #[wasm_bindgen(js_name = "verifyC2PA")]
-pub fn verify_c2pa(source: Uint8Array, format: &str) -> Result<C2paVerificationResult, JsError> {
+pub async fn verify_c2pa(source: Uint8Array, format: &str) -> Result<C2paVerificationResult, JsError> {
     let source = Cursor::new(source.to_vec());
-    let reader = Reader::from_stream(format, source)?;
+    let reader = Reader::from_stream_async(format, source).await?;
 
     let validation_errors = reader
         .validation_status()
