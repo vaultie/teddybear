@@ -13,6 +13,8 @@
  * ```ts
  * import {
  *   ContextLoader,
+ *   DID,
+ *   DIDURL,
  *   Document,
  *   PrivateEd25519,
  *   verifyJWS
@@ -33,7 +35,7 @@
  *
  * // You can convert private Ed25519 keys to public Ed25519 keys
  * // by providing the related DID document identifier and controller.
- * const publicKey = privateKey.toPublicKey("did:web:example.com", "did:web:example.com");
+ * const publicKey = privateKey.toPublicKey(new DIDURL("did:web:example.com#key-1"), new DID("did:web:example.com"));
  *
  * // It is possible to convert a private Ed25519 key into a private
  * // X25519 key.
@@ -45,7 +47,7 @@
  * // ...issue verifiable credentials, ...
  * const contextLoader = new ContextLoader();
  * const verifiableCredential = await key.issueVC(
- *   "did:web:example.com#key-1",
+ *   new DIDURL("did:web:example.com#key-1"),
  *   {
  *     "@context": ["https://www.w3.org/ns/credentials/v2"],
  *     type: ["VerifiableCredential"],
@@ -59,7 +61,7 @@
  *
  * // ...present them, ...
  * const vp = await key.presentVP(
- *   "did:web:example.com#key-1",
+ *   new DIDURL("did:web:example.com#key-1"),
  *   {
  *     "@context": ["https://www.w3.org/ns/credentials/v2"],
  *     type: ["VerifiablePresentation"],
@@ -96,12 +98,12 @@
  *
  * // Resolve a DID document. This is essentially an entrypoint
  * // to almost all Teddybear operations.
- * const document = await Document.resolve("did:web:example.com");
+ * const document = await Document.resolve(new DID("did:web:example.com"));
  *
  * // Resolved DID document may contain multiple keys with different
  * // algorithms within it, so usually you would select one based on
  * // key types, operation requirements, etc.
- * const vm = document.verificationMethods().authentication?.[0]!;
+ * const vm = document.verificationMethods().authentication[0]!;
  * const resolvedKey = document.getEd25519VerificationMethod(vm);
  *
  * // Public Ed25519 keys can be used to verify JWS signatures
@@ -112,13 +114,14 @@
  *
  * ```ts
  * import {
+ *   DID,
  *   Document,
  *   encryptAES
  * } from "@vaultie/teddybear";
  *
- * const document = await Document.resolve("did:web:example.com");
+ * const document = await Document.resolve(new DID("did:web:example.com"));
  *
- * const vm = document.verificationMethods().keyAgreement?.[0]!;
+ * const vm = document.verificationMethods().keyAgreement[0]!;
  * const resolvedKey = document.getX25519VerificationMethod(vm);
  *
  * // X25519 public keys can be used to encrypt data for multiple recipients

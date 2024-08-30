@@ -1,4 +1,5 @@
 import {
+  DID,
   Document,
   encryptAES,
   encryptChaCha20,
@@ -26,7 +27,7 @@ const generateX25519 = async (): Promise<{
 }> => {
   const ed25519 = PrivateEd25519.generate();
   const document = await Document.resolve(ed25519.toDIDKey());
-  const x25519VM = document.verificationMethods().keyAgreement?.[0]!;
+  const x25519VM = document.verificationMethods().keyAgreement[0]!;
   const publicX25519 = document.getX25519VerificationMethod(x25519VM);
   const privateX25519 = ed25519.toX25519PrivateKey();
 
@@ -43,7 +44,7 @@ describe("can execute x25519 operations", () => {
   it("can extract did:key-related values", async () => {
     const { ed25519, privateX25519, x25519VM } = await generateX25519();
 
-    expect(x25519VM).toStrictEqual(
+    expect(x25519VM.toString()).toStrictEqual(
       `${ed25519.toDIDKey()}#${privateX25519.toDIDKeyURLFragment()}`,
     );
   });
@@ -101,8 +102,8 @@ describe("can execute x25519 operations", () => {
     keyAgreementKey.controller = did;
     keyAgreementKey.id = `${did}#${keyAgreementKey.fingerprint()}`;
 
-    const document = await Document.resolve(did);
-    const vm = document.verificationMethods().keyAgreement?.[0]!;
+    const document = await Document.resolve(new DID(did));
+    const vm = document.verificationMethods().keyAgreement[0]!;
     const firstKey = document.getX25519VerificationMethod(vm);
 
     const { publicX25519: secondKey } = await generateX25519();
@@ -131,13 +132,14 @@ describe("can execute x25519 operations", () => {
     } = await generateX25519();
 
     const recipients = [
-      { header: { kid: firstKeyDID, alg: "ECDH-ES+A256KW" } },
-      { header: { kid: secondKeyDID, alg: "ECDH-ES+A256KW" } },
+      { header: { kid: firstKeyDID.toString(), alg: "ECDH-ES+A256KW" } },
+      { header: { kid: secondKeyDID.toString(), alg: "ECDH-ES+A256KW" } },
     ];
 
     const documents: Record<string, object> = {
-      [firstKeyDID]: firstKeyDocument.toJSON().verificationMethod[1],
-      [secondKeyDID]: secondKeyDocument.toJSON().verificationMethod[1],
+      [firstKeyDID.toString()]: firstKeyDocument.toJSON().verificationMethod[1],
+      [secondKeyDID.toString()]:
+        secondKeyDocument.toJSON().verificationMethod[1],
     };
 
     const keyResolver = async ({ id }: { id: string }) => documents[id];
