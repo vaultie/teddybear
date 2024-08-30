@@ -10,11 +10,8 @@ pub struct Ed25519Signer {
 }
 
 impl Ed25519Signer {
-    pub fn new(key: SigningKey, certificate: Vec<u8>) -> Self {
-        Self {
-            key,
-            certificates: vec![certificate],
-        }
+    pub fn new(key: SigningKey, certificates: Vec<Vec<u8>>) -> Self {
+        Self { key, certificates }
     }
 }
 

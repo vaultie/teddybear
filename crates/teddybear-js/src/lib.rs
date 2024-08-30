@@ -868,14 +868,17 @@ impl C2paBuilder {
     pub async fn sign(
         mut self,
         key: &PrivateEd25519,
-        certificate: Uint8Array,
+        certificates: Vec<Uint8Array>,
         source: Uint8Array,
         format: &str,
     ) -> Result<C2paSignatureResult, JsError> {
         let mut source = Cursor::new(source.to_vec());
         let mut dest = Cursor::new(Vec::new());
 
-        let signer = Ed25519Signer::new(key.0.inner().clone(), certificate.to_vec());
+        let signer = Ed25519Signer::new(
+            key.0.inner().clone(),
+            certificates.into_iter().map(|val| val.to_vec()).collect(),
+        );
 
         let manifest = self
             .0

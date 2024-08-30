@@ -38,7 +38,7 @@ describe("can execute C2PA operations", () => {
       })
       .sign(
         key,
-        new Uint8Array(certificate),
+        [new Uint8Array(certificate)],
         new Uint8Array(image),
         "image/jpeg",
       );
@@ -76,7 +76,7 @@ describe("can execute C2PA operations", () => {
       .setThumbnail(new Uint8Array(thumbnail), "image/jpeg")
       .sign(
         key,
-        new Uint8Array(certificate),
+        [new Uint8Array(certificate)],
         new Uint8Array(pdf),
         "application/pdf",
       );
@@ -113,7 +113,7 @@ describe("can execute C2PA operations", () => {
       })
       .sign(
         key,
-        new Uint8Array(certificate),
+        [new Uint8Array(certificate)],
         new Uint8Array(pdf),
         "application/pdf",
       );
