@@ -23,9 +23,8 @@ describe("can execute ed25519 operations", () => {
     const thirdPartyDid = `did:key:${thirdPartyKey.fingerprint()}`;
 
     const key = PrivateEd25519.fromBytes(seed);
-    const did = key.toDIDKey();
 
-    expect(thirdPartyDid).toStrictEqual(key.toDIDKey());
+    expect(thirdPartyDid).toStrictEqual(key.toDIDKey().toString());
     expect(thirdPartyKey.fingerprint()).toStrictEqual(
       key.toDIDKeyURLFragment(),
     );

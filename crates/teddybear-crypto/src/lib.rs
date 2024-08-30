@@ -7,7 +7,7 @@ use did_web::DIDWeb;
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use ssi_dids_core::{
-    document::{verification_method::ValueOrReference, DIDVerificationMethod, ResourceRef},
+    document::{DIDVerificationMethod, ResourceRef},
     DIDURLReference, DIDURLReferenceBuf, InvalidDIDURL, VerificationMethodDIDResolver,
 };
 use ssi_jwk::{Algorithm, Params};
@@ -25,6 +25,7 @@ use teddybear_high_assurance::DnsError;
 use crate::okp_encoder::OKPEncoder;
 
 pub use ssi_dids_core::{
+    document::verification_method::ValueOrReference,
     ssi_json_ld::{
         iref::{Uri, UriBuf},
         Iri, IriBuf,

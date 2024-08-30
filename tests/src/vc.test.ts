@@ -1,5 +1,6 @@
 import {
   ContextLoader,
+  DIDURL,
   PrivateEd25519,
   verifyCredential,
   verifyPresentation,
@@ -29,7 +30,7 @@ describe("can execute verifiable credentials operations", () => {
 
   vcTest("can issue a test credential", ({ contextLoader, key }) =>
     key.issueVC(
-      `${key.toDIDKey()}#${key.toDIDKeyURLFragment()}`,
+      new DIDURL(`${key.toDIDKey()}#${key.toDIDKeyURLFragment()}`),
       {
         "@context": [
           "https://www.w3.org/ns/credentials/v2",
@@ -37,7 +38,7 @@ describe("can execute verifiable credentials operations", () => {
         ],
         type: ["VerifiableCredential", "Identity"],
         id: "https://example.com/test",
-        issuer: key.toDIDKey(),
+        issuer: key.toDIDKey().toString(),
         issuanceDate: new Date().toISOString(),
         credentialSubject: {
           type: "Person",
@@ -65,7 +66,7 @@ describe("can execute verifiable credentials operations", () => {
 
   vcTest("can sign a test presentation", async ({ contextLoader, key }) => {
     const verifiableCredential = await key.issueVC(
-      `${key.toDIDKey()}#${key.toDIDKeyURLFragment()}`,
+      new DIDURL(`${key.toDIDKey()}#${key.toDIDKeyURLFragment()}`),
       {
         "@context": [
           "https://www.w3.org/ns/credentials/v2",
@@ -73,7 +74,7 @@ describe("can execute verifiable credentials operations", () => {
         ],
         type: ["VerifiableCredential", "Identity"],
         id: "https://example.com/test",
-        issuer: key.toDIDKey(),
+        issuer: key.toDIDKey().toString(),
         issuanceDate: new Date().toISOString(),
         credentialSubject: {
           type: "Person",
@@ -99,11 +100,11 @@ describe("can execute verifiable credentials operations", () => {
     );
 
     const verifiablePresentation = await key.presentVP(
-      `${key.toDIDKey()}#${key.toDIDKeyURLFragment()}`,
+      new DIDURL(`${key.toDIDKey()}#${key.toDIDKeyURLFragment()}`),
       {
         "@context": ["https://www.w3.org/ns/credentials/v2"],
         type: ["VerifiablePresentation"],
-        holder: key.toDIDKey(),
+        holder: key.toDIDKey().toString(),
         verifiableCredential,
       },
       contextLoader,
@@ -114,7 +115,7 @@ describe("can execute verifiable credentials operations", () => {
     const { key: credentialKey, challenge: credentialChallenge } =
       await verifyCredential(verifiableCredential, contextLoader);
 
-    expect(credentialKey.id).toStrictEqual(
+    expect(credentialKey.id.toString()).toStrictEqual(
       `${key.toDIDKey()}#${key.toDIDKeyURLFragment()}`,
     );
     expect(credentialChallenge).toBeUndefined();
@@ -122,7 +123,7 @@ describe("can execute verifiable credentials operations", () => {
     const { key: presentationKey, challenge: presentationChallenge } =
       await verifyPresentation(verifiablePresentation, contextLoader);
 
-    expect(presentationKey.id).toStrictEqual(
+    expect(presentationKey.id.toString()).toStrictEqual(
       `${key.toDIDKey()}#${key.toDIDKeyURLFragment()}`,
     );
     expect(presentationChallenge).toStrictEqual("123456");

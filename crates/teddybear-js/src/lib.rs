@@ -1,5 +1,11 @@
-// FIXME: https://github.com/rustwasm/wasm-bindgen/issues/3945
-#![allow(clippy::empty_docs)]
+#![allow(
+    // FIXME: https://github.com/rustwasm/wasm-bindgen/issues/3945
+    clippy::empty_docs,
+
+    // This crate is not meant to be used in Rust at all,
+    // so ToString trait impls play no role in here.
+    clippy::inherent_to_string
+)]
 
 extern crate alloc;
 
@@ -14,8 +20,8 @@ use ssi_status::bitstring_status_list::{
 };
 use teddybear_c2pa::{Builder, Ed25519Signer, Reader};
 use teddybear_crypto::{
-    DIDURLBuf, Ed25519VerificationKey2020, IriBuf, JwkVerificationMethod, SignOptions, UriBuf,
-    X25519KeyAgreementKey2020, DID,
+    DIDBuf, DIDURLBuf, Ed25519VerificationKey2020, JwkVerificationMethod, SignOptions,
+    ValueOrReference, X25519KeyAgreementKey2020,
 };
 use teddybear_jwe::{A256Gcm, XC20P};
 use wasm_bindgen::prelude::*;
@@ -63,24 +69,13 @@ export type JWE = {
 };
 
 /**
- * Supported verification method types.
+ * JWS signing options.
  *
- * @category DID
+ * @category JOSE
  */
-export type VerificationMethod =
-    | "assertionMethod"
-    | "authentication"
-    | "capabilityInvocation"
-    | "capabilityDelegation"
-    | "keyAgreement";
-
-/**
- * Verification method map.
- *
- * @category DID
- */
-export type VerificationMethods = {
-    [K in VerificationMethod]?: string[];
+export type JWSOptions = {
+    embedSigningKey?: boolean;
+    keyIdentifier?: string;
 };
 "#;
 
@@ -92,8 +87,88 @@ extern "C" {
     #[wasm_bindgen(typescript_type = "JWE")]
     pub type Jwe;
 
-    #[wasm_bindgen(typescript_type = "VerificationMethods")]
-    pub type VerificationMethods;
+    #[wasm_bindgen(typescript_type = "JWSOptions")]
+    pub type JwsOptions;
+}
+
+/// DID value.
+///
+/// @category DID
+#[wasm_bindgen]
+pub struct DID(DIDBuf);
+
+#[wasm_bindgen]
+impl DID {
+    #[wasm_bindgen(constructor)]
+    pub fn new(value: String) -> Result<DID, JsError> {
+        Ok(DID(DIDBuf::from_string(value)?))
+    }
+
+    #[wasm_bindgen(js_name = "toString")]
+    pub fn to_string(&self) -> String {
+        self.0.to_string()
+    }
+}
+
+/// DIDURL value.
+///
+/// @category DID
+#[wasm_bindgen]
+#[derive(Clone)]
+pub struct DIDURL(DIDURLBuf);
+
+#[wasm_bindgen]
+impl DIDURL {
+    #[wasm_bindgen(constructor)]
+    pub fn new(value: String) -> Result<DIDURL, JsError> {
+        Ok(DIDURL(DIDURLBuf::from_string(value)?))
+    }
+
+    pub fn did(&self) -> DID {
+        DID(self.0.did().to_owned())
+    }
+
+    #[wasm_bindgen(js_name = "toString")]
+    pub fn to_string(&self) -> String {
+        self.0.to_string()
+    }
+}
+
+#[wasm_bindgen]
+pub struct VerificationMethods {
+    assertion_method: Vec<DIDURL>,
+    authentication: Vec<DIDURL>,
+    capability_invocation: Vec<DIDURL>,
+    capability_delegation: Vec<DIDURL>,
+    key_agreement: Vec<DIDURL>,
+}
+
+#[wasm_bindgen]
+impl VerificationMethods {
+    #[wasm_bindgen(js_name = "assertionMethod", getter)]
+    pub fn assertion_method(&self) -> Vec<DIDURL> {
+        self.assertion_method.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn authentication(&self) -> Vec<DIDURL> {
+        self.authentication.clone()
+    }
+
+    #[wasm_bindgen(js_name = "capabilityInvocation", getter)]
+    pub fn capability_invocation(&self) -> Vec<DIDURL> {
+        self.capability_invocation.clone()
+    }
+
+    #[wasm_bindgen(js_name = "capabilityDelegation", getter)]
+    pub fn capability_delegation(&self) -> Vec<DIDURL> {
+        self.capability_delegation.clone()
+    }
+
+    #[wasm_bindgen(js_name = "keyAgreement", getter)]
+    pub fn key_agreement(&self) -> Vec<DIDURL> {
+        self.key_agreement.clone()
+    }
 }
 
 /// DID document.
@@ -110,7 +185,12 @@ impl Document {
         Ok(Document(document))
     }
 
-    pub async fn resolve(did: &str, options: Option<Object>) -> Result<Document, JsError> {
+    #[wasm_bindgen(getter)]
+    pub fn id(&self) -> DID {
+        DID(self.0.inner.id.to_owned())
+    }
+
+    pub async fn resolve(did: &DID, options: Option<Object>) -> Result<Document, JsError> {
         let options = options
             .map(Into::into)
             .map(serde_wasm_bindgen::from_value)
@@ -118,28 +198,59 @@ impl Document {
             .unwrap_or_default();
 
         Ok(Document(
-            teddybear_crypto::Document::resolve(DID::new(did)?, options).await?,
+            teddybear_crypto::Document::resolve(&did.0, options).await?,
         ))
     }
 
     #[wasm_bindgen(js_name = "verificationMethods")]
-    pub fn verification_methods(&self) -> Result<VerificationMethods, JsError> {
-        let grouped = self.0.verification_methods().into_group_map();
-        Ok(grouped.serialize(&OBJECT_SERIALIZER)?.into())
+    pub fn verification_methods(&self) -> VerificationMethods {
+        fn convert_vr(id: &teddybear_crypto::DID, values: &[ValueOrReference]) -> Vec<DIDURL> {
+            values
+                .iter()
+                .map(|vr| DIDURL(vr.id().resolve(id).into_owned()))
+                .collect()
+        }
+
+        VerificationMethods {
+            assertion_method: convert_vr(
+                &self.0.inner.id,
+                &self.0.inner.verification_relationships.assertion_method,
+            ),
+            authentication: convert_vr(
+                &self.0.inner.id,
+                &self.0.inner.verification_relationships.authentication,
+            ),
+            capability_invocation: convert_vr(
+                &self.0.inner.id,
+                &self
+                    .0
+                    .inner
+                    .verification_relationships
+                    .capability_invocation,
+            ),
+            capability_delegation: convert_vr(
+                &self.0.inner.id,
+                &self
+                    .0
+                    .inner
+                    .verification_relationships
+                    .capability_delegation,
+            ),
+            key_agreement: convert_vr(
+                &self.0.inner.id,
+                &self.0.inner.verification_relationships.key_agreement,
+            ),
+        }
     }
 
     #[wasm_bindgen(js_name = "getEd25519VerificationMethod")]
-    pub fn get_ed25519_verification_method(&self, id: &str) -> Result<PublicEd25519, JsError> {
-        Ok(PublicEd25519(
-            self.0.get_verification_method(&DIDURLBuf::from_str(id)?)?,
-        ))
+    pub fn get_ed25519_verification_method(&self, id: &DIDURL) -> Result<PublicEd25519, JsError> {
+        Ok(PublicEd25519(self.0.get_verification_method(&id.0)?))
     }
 
     #[wasm_bindgen(js_name = "getX25519VerificationMethod")]
-    pub fn get_x25519_verification_method(&self, id: &str) -> Result<PublicX25519, JsError> {
-        Ok(PublicX25519(
-            self.0.get_verification_method(&DIDURLBuf::from_str(id)?)?,
-        ))
+    pub fn get_x25519_verification_method(&self, id: &DIDURL) -> Result<PublicX25519, JsError> {
+        Ok(PublicX25519(self.0.get_verification_method(&id.0)?))
     }
 
     /// Serialize the current document as an object.
@@ -196,8 +307,8 @@ impl PrivateEd25519 {
 
     /// Get the did:key document DID value of the Ed25519 key.
     #[wasm_bindgen(js_name = "toDIDKey")]
-    pub fn to_did_key(&self) -> String {
-        self.0.to_did_key().into_string()
+    pub fn to_did_key(&self) -> DID {
+        DID(self.0.to_did_key())
     }
 
     /// Get the did:key DID URL fragment value of the Ed25519 key.
@@ -208,17 +319,17 @@ impl PrivateEd25519 {
 
     /// Derive an Ed25519 public key from the private key.
     #[wasm_bindgen(js_name = "toPublicKey")]
-    pub fn to_public_key(&self, id: &str, controller: &str) -> Result<PublicEd25519, JsError> {
+    pub fn to_public_key(&self, id: &DIDURL, controller: &DID) -> Result<PublicEd25519, JsError> {
         let verification_method = self
             .0
-            .to_verification_method(IriBuf::from_str(id)?, UriBuf::from_str(controller)?);
+            .to_verification_method(id.0.as_iri().to_owned(), controller.0.as_uri().to_owned());
 
         Ok(PublicEd25519(verification_method))
     }
 
     /// Sign the provided payload using the Ed25519 key.
     #[wasm_bindgen(js_name = "signJWS")]
-    pub fn sign_jws(&self, payload: &str, options: Option<Object>) -> Result<String, JsError> {
+    pub fn sign_jws(&self, payload: &str, options: Option<JwsOptions>) -> Result<String, JsError> {
         let options: SignOptions = options
             .map(Into::into)
             .map(serde_wasm_bindgen::from_value)
@@ -232,16 +343,15 @@ impl PrivateEd25519 {
     #[wasm_bindgen(js_name = "issueVC")]
     pub async fn issue_vc(
         &self,
-        verification_method: &str,
+        verification_method: &DIDURL,
         vc: Object,
         context_loader: &mut ContextLoader,
     ) -> Result<Object, JsError> {
         let credential: SpecializedJsonCredential = serde_wasm_bindgen::from_value(vc.into())?;
-        let vm = IriBuf::from_str(verification_method)?;
 
         Ok(issue_vc(
             self.0.inner().clone(),
-            vm,
+            verification_method.0.as_iri().to_owned(),
             &credential,
             &mut context_loader.0,
         )
@@ -254,7 +364,7 @@ impl PrivateEd25519 {
     #[wasm_bindgen(js_name = "presentVP")]
     pub async fn present_vp(
         &self,
-        verification_method: &str,
+        verification_method: &DIDURL,
         vp: Object,
         context_loader: &mut ContextLoader,
         domain: Option<String>,
@@ -262,11 +372,10 @@ impl PrivateEd25519 {
     ) -> Result<Object, JsError> {
         let presentation: JsonPresentation<SpecializedJsonCredential> =
             serde_wasm_bindgen::from_value(vp.into())?;
-        let vm = IriBuf::from_str(verification_method)?;
 
         Ok(present_vp(
             self.0.inner().clone(),
-            vm,
+            verification_method.0.as_iri().to_owned(),
             &presentation,
             domain,
             challenge,
@@ -306,20 +415,24 @@ impl PrivateX25519 {
 
     /// Derive an X25519 public key from the private key.
     #[wasm_bindgen(js_name = "toPublicKey")]
-    pub fn to_public_key(&self, id: &str, controller: &str) -> Result<PublicX25519, JsError> {
+    pub fn to_public_key(&self, id: &DIDURL, controller: &DID) -> Result<PublicX25519, JsError> {
         let verification_method = self
             .0
-            .to_verification_method(IriBuf::from_str(id)?, UriBuf::from_str(controller)?);
+            .to_verification_method(id.0.as_iri().to_owned(), controller.0.as_uri().to_owned());
 
         Ok(PublicX25519(verification_method))
     }
 
     /// Decrypt the provided JWE object using the X25519 key and the A256GCM algorithm.
     #[wasm_bindgen(js_name = "decryptAES")]
-    pub fn decrypt_aes(&self, verification_method: &str, jwe: Jwe) -> Result<Uint8Array, JsError> {
+    pub fn decrypt_aes(
+        &self,
+        verification_method: &DIDURL,
+        jwe: Jwe,
+    ) -> Result<Uint8Array, JsError> {
         let jwe = serde_wasm_bindgen::from_value(jwe.into())?;
         let payload =
-            &*teddybear_jwe::decrypt::<A256Gcm>(&jwe, verification_method, self.0.inner())?;
+            &*teddybear_jwe::decrypt::<A256Gcm>(&jwe, &verification_method.0, self.0.inner())?;
         Ok(payload.into())
     }
 
@@ -327,25 +440,26 @@ impl PrivateX25519 {
     #[wasm_bindgen(js_name = "decryptChaCha20")]
     pub fn decrypt_chacha20(
         &self,
-        verification_method: &str,
+        verification_method: &DIDURL,
         jwe: Jwe,
     ) -> Result<Uint8Array, JsError> {
         let jwe = serde_wasm_bindgen::from_value(jwe.into())?;
-        let payload = &*teddybear_jwe::decrypt::<XC20P>(&jwe, verification_method, self.0.inner())?;
+        let payload =
+            &*teddybear_jwe::decrypt::<XC20P>(&jwe, &verification_method.0, self.0.inner())?;
         Ok(payload.into())
     }
 
     #[wasm_bindgen(js_name = "addAESRecipient")]
     pub fn add_aes_recipient(
         &self,
-        verification_method: &str,
+        verification_method: &DIDURL,
         jwe: Jwe,
         recipient: PublicX25519,
     ) -> Result<JweRecipient, JsError> {
         let jwe = serde_wasm_bindgen::from_value(jwe.into())?;
         let recipient = teddybear_jwe::add_recipient::<A256Gcm>(
             &jwe,
-            verification_method,
+            &verification_method.0,
             self.0.inner(),
             recipient.0.id.as_str().to_owned(),
             recipient.0.public_key.decoded(),
@@ -356,14 +470,14 @@ impl PrivateX25519 {
     #[wasm_bindgen(js_name = "addChaCha20Recipient")]
     pub fn add_chacha20_recipient(
         &self,
-        verification_method: &str,
+        verification_method: &DIDURL,
         jwe: Jwe,
         recipient: PublicX25519,
     ) -> Result<JweRecipient, JsError> {
         let jwe = serde_wasm_bindgen::from_value(jwe.into())?;
         let recipient = teddybear_jwe::add_recipient::<XC20P>(
             &jwe,
-            verification_method,
+            &verification_method.0,
             self.0.inner(),
             recipient.0.id.as_str().to_owned(),
             recipient.0.public_key.decoded(),
@@ -382,14 +496,16 @@ pub struct PublicEd25519(Ed25519VerificationKey2020);
 impl PublicEd25519 {
     /// Get the verification method identifier.
     #[wasm_bindgen(getter)]
-    pub fn id(&self) -> String {
-        self.0.id.to_string()
+    pub fn id(&self) -> Result<DIDURL, JsError> {
+        // FIXME: Remove the unnecessary double-conversion
+        Ok(DIDURL(DIDURLBuf::from_str(&self.0.id)?))
     }
 
     /// Get the verification method controller.
     #[wasm_bindgen(getter)]
-    pub fn controller(&self) -> String {
-        self.0.controller.to_string()
+    pub fn controller(&self) -> Result<DID, JsError> {
+        // FIXME: Remove the unnecessary double-conversion
+        Ok(DID(DIDBuf::from_str(&self.0.controller)?))
     }
 
     /// Get the JWK value (without the private key) of the Ed25519 key within the current keypair.
@@ -415,14 +531,16 @@ pub struct PublicX25519(X25519KeyAgreementKey2020);
 impl PublicX25519 {
     /// Get the verification method identifier.
     #[wasm_bindgen(getter)]
-    pub fn id(&self) -> String {
-        self.0.id.to_string()
+    pub fn id(&self) -> Result<DIDURL, JsError> {
+        // FIXME: Remove the unnecessary double-conversion
+        Ok(DIDURL(DIDURLBuf::from_str(&self.0.id)?))
     }
 
     /// Get the verification method controller.
     #[wasm_bindgen(getter)]
-    pub fn controller(&self) -> String {
-        self.0.controller.to_string()
+    pub fn controller(&self) -> Result<DID, JsError> {
+        // FIXME: Remove the unnecessary double-conversion
+        Ok(DID(DIDBuf::from_str(&self.0.controller)?))
     }
 
     /// Get the JWK value (without the private key) of the X25519 key within the current keypair.
