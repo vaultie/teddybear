@@ -945,7 +945,10 @@ impl C2paVerificationResult {
 ///
 /// @category C2PA
 #[wasm_bindgen(js_name = "verifyC2PA")]
-pub async fn verify_c2pa(source: Uint8Array, format: &str) -> Result<C2paVerificationResult, JsError> {
+pub async fn verify_c2pa(
+    source: Uint8Array,
+    format: &str,
+) -> Result<C2paVerificationResult, JsError> {
     let source = Cursor::new(source.to_vec());
     let reader = Reader::from_stream_async(format, source).await?;
 

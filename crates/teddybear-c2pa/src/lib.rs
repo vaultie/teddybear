@@ -39,6 +39,10 @@ impl AsyncSigner for Ed25519Signer {
     }
 
     fn reserve_size(&self) -> usize {
-        1024 + self.certificates.iter().map(|cert| cert.len()).sum::<usize>()
+        1024 + self
+            .certificates
+            .iter()
+            .map(|cert| cert.len())
+            .sum::<usize>()
     }
 }
