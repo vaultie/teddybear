@@ -7,5 +7,6 @@ repository.workspace = true
 categories.workspace = true
 
 [dependencies]
+async-trait = "0.1.81"
 c2pa = { git = "https://github.com/vaultie/c2pa-rs", features = ["jpeg", "pdf", "png", "unstable_api"] }
 ed25519-dalek = { workspace = true }

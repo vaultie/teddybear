@@ -74,7 +74,7 @@
  * );
  *
  * // ...and embed signed C2PA manifests into files
- * const { signedPayload } = new C2PABuilder()
+ * const { signedPayload } = await new C2PABuilder()
  *   .setManifestDefinition({
  *     title: "Test Image",
  *     assertions: [

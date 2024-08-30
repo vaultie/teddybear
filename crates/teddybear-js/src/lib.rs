@@ -865,19 +865,25 @@ impl C2paBuilder {
         Ok(self)
     }
 
-    pub fn sign(
+    pub async fn sign(
         mut self,
         key: &PrivateEd25519,
-        certificate: Uint8Array,
+        certificates: Vec<Uint8Array>,
         source: Uint8Array,
         format: &str,
     ) -> Result<C2paSignatureResult, JsError> {
         let mut source = Cursor::new(source.to_vec());
         let mut dest = Cursor::new(Vec::new());
 
-        let signer = Ed25519Signer::new(key.0.inner().clone(), certificate.to_vec());
+        let signer = Ed25519Signer::new(
+            key.0.inner().clone(),
+            certificates.into_iter().map(|val| val.to_vec()).collect(),
+        );
 
-        let manifest = self.0.sign(&signer, format, &mut source, &mut dest)?;
+        let manifest = self
+            .0
+            .sign_async(&signer, format, &mut source, &mut dest)
+            .await?;
 
         Ok(C2paSignatureResult(dest.into_inner(), manifest))
     }
@@ -942,9 +948,12 @@ impl C2paVerificationResult {
 ///
 /// @category C2PA
 #[wasm_bindgen(js_name = "verifyC2PA")]
-pub fn verify_c2pa(source: Uint8Array, format: &str) -> Result<C2paVerificationResult, JsError> {
+pub async fn verify_c2pa(
+    source: Uint8Array,
+    format: &str,
+) -> Result<C2paVerificationResult, JsError> {
     let source = Cursor::new(source.to_vec());
-    let reader = Reader::from_stream(format, source)?;
+    let reader = Reader::from_stream_async(format, source).await?;
 
     let validation_errors = reader
         .validation_status()
