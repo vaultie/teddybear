@@ -6,6 +6,7 @@ use serde::Serialize;
 use ssi_claims::{
     data_integrity::{
         suites::Ed25519Signature2020, CryptographicSuite, DataIntegrity, ProofOptions,
+        StandardCryptographicSuite,
     },
     Invalid, InvalidClaims, ProofValidationError, SignatureEnvironment, SignatureError,
     ValidateProof, VerificationParameters,
@@ -177,13 +178,20 @@ where
     }
 }
 
-impl<C> HasClaimedSigner for JsonPresentation<C>
-where
-    Self: Presentation,
-{
+impl<C> HasClaimedSigner for JsonPresentation<C> {
     fn claimed_signer(&self) -> Option<&Uri> {
         // For now expect only a single credential holder.
-        Some(self.holders().iter().exactly_one().ok()?.id())
+        Some(self.holders.iter().exactly_one().ok()?.id())
+    }
+}
+
+impl<T, S> HasClaimedSigner for DataIntegrity<T, S>
+where
+    T: HasClaimedSigner,
+    S: StandardCryptographicSuite,
+{
+    fn claimed_signer(&self) -> Option<&Uri> {
+        self.claims.claimed_signer()
     }
 }
 
