@@ -63,6 +63,16 @@ export type JWE = {
 };
 
 /**
+ * JWS signing options.
+ *
+ * @category JOSE
+ */
+export type JWSOptions = {
+    embedSigningKey?: boolean;
+    keyIdentifier?: string;
+};
+
+/**
  * Supported verification method types.
  *
  * @category DID
@@ -92,6 +102,9 @@ extern "C" {
     #[wasm_bindgen(typescript_type = "JWE")]
     pub type Jwe;
 
+    #[wasm_bindgen(typescript_type = "JWSOptions")]
+    pub type JwsOptions;
+
     #[wasm_bindgen(typescript_type = "VerificationMethods")]
     pub type VerificationMethods;
 }
@@ -120,6 +133,10 @@ impl Document {
         Ok(Document(
             teddybear_crypto::Document::resolve(DID::new(did)?, options).await?,
         ))
+    }
+
+    pub fn id(&self) -> Result<String, JsError> {
+        Ok(self.0.inner.id.to_string())
     }
 
     #[wasm_bindgen(js_name = "verificationMethods")]
@@ -218,7 +235,7 @@ impl PrivateEd25519 {
 
     /// Sign the provided payload using the Ed25519 key.
     #[wasm_bindgen(js_name = "signJWS")]
-    pub fn sign_jws(&self, payload: &str, options: Option<Object>) -> Result<String, JsError> {
+    pub fn sign_jws(&self, payload: &str, options: Option<JwsOptions>) -> Result<String, JsError> {
         let options: SignOptions = options
             .map(Into::into)
             .map(serde_wasm_bindgen::from_value)
