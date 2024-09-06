@@ -27,8 +27,10 @@ use teddybear_jwe::{A256Gcm, XC20P};
 use wasm_bindgen::prelude::*;
 
 use teddybear_vc::{
-    issue_vc, present_vp, verify, ContextLoader as InnerContextLoader, JsonPresentation,
-    SpecializedJsonCredential, DI,
+    issue_vc, present_vp,
+    ssi_json_ld::ContextLoader as InnerContextLoader,
+    ssi_vc::v2::syntax::{JsonPresentation, SpecializedJsonCredential},
+    verify, DI,
 };
 
 const OBJECT_SERIALIZER: Serializer = Serializer::new().serialize_maps_as_objects(true);

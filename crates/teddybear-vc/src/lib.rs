@@ -9,9 +9,16 @@ use ssi_claims::{
         StandardCryptographicSuite,
     },
     Invalid, InvalidClaims, ProofValidationError, SignatureEnvironment, SignatureError,
-    ValidateProof, VerificationParameters,
+    ValidateClaims, ValidateProof, VerifiableClaims, VerificationParameters,
 };
-use ssi_json_ld::IriBuf;
+use ssi_json_ld::{ContextLoader, Expandable, IriBuf, JsonLdNodeObject};
+use ssi_vc::{
+    v2::{
+        syntax::{JsonPresentation, SpecializedJsonCredential},
+        Credential, Presentation,
+    },
+    Identified,
+};
 use ssi_verification_methods::{
     Ed25519VerificationKey2020, ProofPurpose, ReferenceOrOwned, SingleSecretSigner,
     VerificationMethodResolutionError, VerificationMethodResolver,
@@ -20,16 +27,10 @@ use teddybear_crypto::{default_did_method, CustomVerificationMethodDIDResolver, 
 
 use crate::credential_ref::CredentialRef;
 
-pub use ssi_claims::{ValidateClaims, VerifiableClaims};
-pub use ssi_json_ld::{ContextLoader, Expand, Expandable, JsonLdNodeObject, ValidId};
-pub use ssi_vc::{
-    syntax::{RequiredContext, RequiredContextList, RequiredType, RequiredTypeSet},
-    v2::{
-        syntax::{JsonPresentation, SpecializedJsonCredential},
-        Credential, Presentation,
-    },
-    Identified,
-};
+pub use ssi_claims;
+pub use ssi_json_ld;
+pub use ssi_vc;
+pub use ssi_verification_methods;
 
 pub type DI<V> = DataIntegrity<V, Ed25519Signature2020>;
 
