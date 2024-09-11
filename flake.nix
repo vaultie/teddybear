@@ -94,10 +94,6 @@
           rustc = rustToolchain;
         };
 
-        wasm-pack = pkgs.callPackage ./nix/wasm-pack.nix {
-          inherit rustPlatform;
-        };
-
         wasm-snip = pkgs.callPackage ./nix/wasm-snip.nix {
           inherit rustPlatform;
         };
@@ -165,7 +161,6 @@
               wasmArgs
               wasmCargoArtifacts
               wasmSnipPatterns
-              wasm-pack
               wasm-snip
               ;
           };
