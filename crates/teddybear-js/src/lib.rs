@@ -18,7 +18,7 @@ use serde_wasm_bindgen::Serializer;
 use ssi_status::bitstring_status_list::{
     BitstringStatusList, StatusList, StatusPurpose, StatusSize, TimeToLive,
 };
-use teddybear_c2pa::{Builder, Ed25519Signer, Reader};
+use teddybear_c2pa::{Ed25519Signer, Manifest, ManifestStore, ValidationStatus};
 use teddybear_crypto::{
     DIDBuf, DIDURLBuf, Ed25519VerificationKey2020, JwkVerificationMethod, SignOptions,
     ValueOrReference, X25519KeyAgreementKey2020,
@@ -832,18 +832,18 @@ impl C2paSignatureResult {
 ///
 /// @category C2PA
 #[wasm_bindgen(js_name = "C2PABuilder")]
-pub struct C2paBuilder(Builder);
+pub struct C2paBuilder(Manifest);
 
 #[wasm_bindgen(js_class = "C2PABuilder")]
 impl C2paBuilder {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
-        Self(Builder::default())
+        Self(Manifest::default())
     }
 
     #[wasm_bindgen(js_name = "setManifestDefinition")]
     pub fn set_manifest_definition(mut self, definition: Object) -> Result<C2paBuilder, JsError> {
-        self.0.definition = serde_wasm_bindgen::from_value(definition.into())?;
+        self.0 = serde_wasm_bindgen::from_value(definition.into())?;
         Ok(self)
     }
 
@@ -853,15 +853,7 @@ impl C2paBuilder {
         source: Uint8Array,
         format: &str,
     ) -> Result<C2paBuilder, JsError> {
-        let mut source = Cursor::new(source.to_vec());
-        self.0.set_thumbnail(format, &mut source)?;
-        Ok(self)
-    }
-
-    #[wasm_bindgen(js_name = "addResource")]
-    pub fn add_resource(mut self, source: Uint8Array, id: &str) -> Result<C2paBuilder, JsError> {
-        let mut source = Cursor::new(source.to_vec());
-        self.0.add_resource(id, &mut source)?;
+        self.0.set_thumbnail(format, source.to_vec())?;
         Ok(self)
     }
 
@@ -882,7 +874,7 @@ impl C2paBuilder {
 
         let manifest = self
             .0
-            .sign_async(&signer, format, &mut source, &mut dest)
+            .embed_to_stream_async(format, &mut source, &mut dest, &signer)
             .await?;
 
         Ok(C2paSignatureResult(dest.into_inner(), manifest))
@@ -900,23 +892,32 @@ impl Default for C2paBuilder {
 /// @category C2PA
 #[derive(Clone)]
 #[wasm_bindgen(js_name = "C2PAValidationError")]
-pub struct C2paValidationError {
-    code: String,
-    url: Option<String>,
-}
+pub struct C2paValidationError(ValidationStatus);
 
 #[wasm_bindgen(js_class = "C2PAValidationError")]
 impl C2paValidationError {
     /// Validation error code.
     #[wasm_bindgen(getter)]
     pub fn code(&self) -> String {
-        self.code.clone()
+        self.0.code().to_owned()
     }
 
     /// Related resource URL.
     #[wasm_bindgen(getter)]
     pub fn url(&self) -> Option<String> {
-        self.url.clone()
+        self.0.url().map(ToOwned::to_owned)
+    }
+
+    /// Human-readable error explanation.
+    #[wasm_bindgen(getter)]
+    pub fn explanation(&self) -> Option<String> {
+        self.0.explanation().map(ToOwned::to_owned)
+    }
+
+    /// Serialize the current error as an object.
+    #[wasm_bindgen(js_name = "toJSON")]
+    pub fn to_json(&self) -> Result<Object, JsError> {
+        Ok(self.0.serialize(&OBJECT_SERIALIZER)?.into())
     }
 }
 
@@ -953,21 +954,19 @@ pub async fn verify_c2pa(
     format: &str,
 ) -> Result<C2paVerificationResult, JsError> {
     let source = Cursor::new(source.to_vec());
-    let reader = Reader::from_stream_async(format, source).await?;
+    let reader = ManifestStore::from_stream_async(format, source, true).await?;
 
     let validation_errors = reader
         .validation_status()
         .unwrap_or(&[])
         .iter()
         .filter(|v| !v.passed())
-        .map(|v| C2paValidationError {
-            code: v.code().to_owned(),
-            url: v.url().map(ToOwned::to_owned),
-        })
+        .map(|v| C2paValidationError(v.clone()))
         .collect();
 
     let manifests = reader
-        .iter_manifests()
+        .manifests()
+        .values()
         .map(|manifest| manifest.serialize(&OBJECT_SERIALIZER))
         .map_ok(Into::into)
         .try_collect()?;

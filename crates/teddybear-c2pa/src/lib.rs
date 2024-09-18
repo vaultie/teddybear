@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use c2pa::{AsyncSigner, SigningAlg};
 use ed25519_dalek::{Signer as _, SigningKey};
 
-pub use c2pa::{Builder, Error, ManifestDefinition, Reader};
+pub use c2pa::{validation_status::ValidationStatus, Error, Manifest, ManifestStore};
 
 pub struct Ed25519Signer {
     key: SigningKey,
