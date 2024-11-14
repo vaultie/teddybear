@@ -7,14 +7,14 @@ repository.workspace = true
 categories.workspace = true
 
 [dependencies]
-ssi-claims = { workspace = true }
-ssi-json-ld = { workspace = true }
-ssi-rdf = { workspace = true }
-ssi-vc = { workspace = true }
-ssi-verification-methods = { workspace = true }
+ssi-claims.workspace = true
+ssi-json-ld.workspace = true
+ssi-rdf.workspace = true
+ssi-vc.workspace = true
+ssi-verification-methods.workspace = true
 
-ed25519-dalek = { workspace = true }
-itertools = { workspace = true }
-serde = { workspace = true }
-teddybear-crypto  = { workspace = true }
-thiserror = { workspace = true }
+ed25519-dalek.workspace = true
+itertools.workspace = true
+serde.workspace = true
+teddybear-crypto .workspace = true
+thiserror.workspace = true

@@ -1,8 +1,7 @@
-use async_trait::async_trait;
-use c2pa::{AsyncSigner, SigningAlg};
+use c2pa::{Signer, SigningAlg};
 use ed25519_dalek::{Signer as _, SigningKey};
 
-pub use c2pa::{validation_status::ValidationStatus, Error, Manifest, ManifestStore};
+pub use c2pa::{validation_status::ValidationStatus, Builder, Error, ManifestDefinition, Reader};
 
 pub struct Ed25519Signer {
     key: SigningKey,
@@ -15,16 +14,9 @@ impl Ed25519Signer {
     }
 }
 
-#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
-#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
-impl AsyncSigner for Ed25519Signer {
-    async fn sign(&self, data: Vec<u8>) -> c2pa::Result<Vec<u8>> {
-        Ok(self.key.sign(&data).to_vec())
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    async fn send_timestamp_request(&self, _message: &[u8]) -> Option<c2pa::Result<Vec<u8>>> {
-        None
+impl Signer for Ed25519Signer {
+    fn sign(&self, data: &[u8]) -> c2pa::Result<Vec<u8>> {
+        Ok(self.key.sign(data).to_vec())
     }
 
     fn alg(&self) -> SigningAlg {

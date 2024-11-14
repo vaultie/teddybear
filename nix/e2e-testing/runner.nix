@@ -4,20 +4,21 @@
   lib,
   makeWrapper,
   nodejs-slim,
-  src,
   stdenvNoCC,
+  testSrc,
   yarn,
   yarnLockHash,
   uni,
 }:
 stdenvNoCC.mkDerivation {
-  inherit src;
   inherit (uni) version;
 
   pname = "teddybear-tests";
 
+  src = testSrc;
+
   offlineCache = fetchYarnDeps {
-    yarnLock = "${src}/yarn.lock";
+    yarnLock = "${testSrc}/yarn.lock";
     hash = yarnLockHash;
   };
 

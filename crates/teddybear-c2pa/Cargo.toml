@@ -8,5 +8,9 @@ categories.workspace = true
 
 [dependencies]
 async-trait = "0.1.81"
-c2pa = { git = "https://github.com/vaultie/c2pa-rs", features = ["jpeg", "pdf", "png"] }
-ed25519-dalek = { workspace = true }
+ed25519-dalek.workspace = true
+
+[dependencies.c2pa]
+git = "https://github.com/vaultie/c2pa-rs"
+rev = "bb3a51349db8bb50e833d57266d6c248f69e5578"
+features = ["jpeg", "pdf", "png", "unstable_api"]

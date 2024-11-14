@@ -18,7 +18,7 @@ use serde_wasm_bindgen::Serializer;
 use ssi_status::bitstring_status_list::{
     BitstringStatusList, StatusList, StatusPurpose, StatusSize, TimeToLive,
 };
-use teddybear_c2pa::{Ed25519Signer, Manifest, ManifestStore, ValidationStatus};
+use teddybear_c2pa::{Builder, Ed25519Signer, Reader, ValidationStatus};
 use teddybear_crypto::{
     DIDBuf, DIDURLBuf, Ed25519VerificationKey2020, JwkVerificationMethod, SignOptions,
     ValueOrReference, X25519KeyAgreementKey2020,
@@ -832,18 +832,18 @@ impl C2paSignatureResult {
 ///
 /// @category C2PA
 #[wasm_bindgen(js_name = "C2PABuilder")]
-pub struct C2paBuilder(Manifest);
+pub struct C2paBuilder(Builder);
 
 #[wasm_bindgen(js_class = "C2PABuilder")]
 impl C2paBuilder {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
-        Self(Manifest::default())
+        Self(Builder::default())
     }
 
     #[wasm_bindgen(js_name = "setManifestDefinition")]
     pub fn set_manifest_definition(mut self, definition: Object) -> Result<C2paBuilder, JsError> {
-        self.0 = serde_wasm_bindgen::from_value(definition.into())?;
+        self.0.definition = serde_wasm_bindgen::from_value(definition.into())?;
         Ok(self)
     }
 
@@ -853,7 +853,8 @@ impl C2paBuilder {
         source: Uint8Array,
         format: &str,
     ) -> Result<C2paBuilder, JsError> {
-        self.0.set_thumbnail(format, source.to_vec())?;
+        let mut source = Cursor::new(source.to_vec());
+        self.0.set_thumbnail(format, &mut source)?;
         Ok(self)
     }
 
@@ -872,10 +873,7 @@ impl C2paBuilder {
             certificates.into_iter().map(|val| val.to_vec()).collect(),
         );
 
-        let manifest = self
-            .0
-            .embed_to_stream_async(format, &mut source, &mut dest, &signer)
-            .await?;
+        let manifest = self.0.sign(&signer, format, &mut source, &mut dest)?;
 
         Ok(C2paSignatureResult(dest.into_inner(), manifest))
     }
@@ -954,7 +952,7 @@ pub async fn verify_c2pa(
     format: &str,
 ) -> Result<C2paVerificationResult, JsError> {
     let source = Cursor::new(source.to_vec());
-    let reader = ManifestStore::from_stream_async(format, source, true).await?;
+    let reader = Reader::from_stream(format, source)?;
 
     let validation_errors = reader
         .validation_status()
@@ -965,8 +963,7 @@ pub async fn verify_c2pa(
         .collect();
 
     let manifests = reader
-        .manifests()
-        .values()
+        .iter_manifests()
         .map(|manifest| manifest.serialize(&OBJECT_SERIALIZER))
         .map_ok(Into::into)
         .try_collect()?;

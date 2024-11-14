@@ -7,12 +7,12 @@ repository.workspace = true
 categories.workspace = true
 
 [dependencies]
-ssi-dids-core = { workspace = true }
-ssi-multicodec = { workspace = true }
-ssi-security = { workspace = true }
+ssi-dids-core.workspace = true
+ssi-multicodec.workspace = true
+ssi-security.workspace = true
 
-ed25519-dalek = { workspace = true }
-iref = { workspace = true }
-serde_json = { workspace = true }
-static-iref = { workspace = true }
-x25519-dalek = { workspace = true }
+ed25519-dalek.workspace = true
+iref.workspace = true
+serde_json.workspace = true
+static-iref.workspace = true
+x25519-dalek.workspace = true
