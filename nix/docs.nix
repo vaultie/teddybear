@@ -1,13 +1,14 @@
 {
   deno,
   stdenvNoCC,
-  src,
+  uni,
 }:
 stdenvNoCC.mkDerivation {
-  inherit src;
-  inherit (src) version;
+  inherit (uni) version;
 
   pname = "teddybear-docs";
+
+  src = uni;
 
   nativeBuildInputs = [deno];
 

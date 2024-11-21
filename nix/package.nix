@@ -1,6 +1,7 @@
 {
-  binaryen,
   buildForNode,
+  # Deps
+  binaryen,
   craneLib,
   lib,
   moreutils,

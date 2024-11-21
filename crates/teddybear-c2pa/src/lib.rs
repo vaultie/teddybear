@@ -1,7 +1,7 @@
 use c2pa::{Signer, SigningAlg};
 use ed25519_dalek::{Signer as _, SigningKey};
 
-pub use c2pa::{Builder, Error, ManifestDefinition, Reader};
+pub use c2pa::{validation_status::ValidationStatus, Builder, Error, ManifestDefinition, Reader};
 
 pub struct Ed25519Signer {
     key: SigningKey,
@@ -9,11 +9,8 @@ pub struct Ed25519Signer {
 }
 
 impl Ed25519Signer {
-    pub fn new(key: SigningKey, certificate: Vec<u8>) -> Self {
-        Self {
-            key,
-            certificates: vec![certificate],
-        }
+    pub fn new(key: SigningKey, certificates: Vec<Vec<u8>>) -> Self {
+        Self { key, certificates }
     }
 }
 
@@ -31,6 +28,10 @@ impl Signer for Ed25519Signer {
     }
 
     fn reserve_size(&self) -> usize {
-        2048
+        1024 + self
+            .certificates
+            .iter()
+            .map(|cert| cert.len())
+            .sum::<usize>()
     }
 }

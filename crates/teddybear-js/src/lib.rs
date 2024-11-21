@@ -18,7 +18,7 @@ use serde_wasm_bindgen::Serializer;
 use ssi_status::bitstring_status_list::{
     BitstringStatusList, StatusList, StatusPurpose, StatusSize, TimeToLive,
 };
-use teddybear_c2pa::{Builder, Ed25519Signer, Reader};
+use teddybear_c2pa::{Builder, Ed25519Signer, Reader, ValidationStatus};
 use teddybear_crypto::{
     DIDBuf, DIDURLBuf, Ed25519VerificationKey2020, JwkVerificationMethod, SignOptions,
     ValueOrReference, X25519KeyAgreementKey2020,
@@ -860,24 +860,20 @@ impl C2paBuilder {
         Ok(self)
     }
 
-    #[wasm_bindgen(js_name = "addResource")]
-    pub fn add_resource(mut self, source: Uint8Array, id: &str) -> Result<C2paBuilder, JsError> {
-        let mut source = Cursor::new(source.to_vec());
-        self.0.add_resource(id, &mut source)?;
-        Ok(self)
-    }
-
-    pub fn sign(
+    pub async fn sign(
         mut self,
         key: &PrivateEd25519,
-        certificate: Uint8Array,
+        certificates: Vec<Uint8Array>,
         source: Uint8Array,
         format: &str,
     ) -> Result<C2paSignatureResult, JsError> {
         let mut source = Cursor::new(source.to_vec());
         let mut dest = Cursor::new(Vec::new());
 
-        let signer = Ed25519Signer::new(key.0.inner().clone(), certificate.to_vec());
+        let signer = Ed25519Signer::new(
+            key.0.inner().clone(),
+            certificates.into_iter().map(|val| val.to_vec()).collect(),
+        );
 
         let manifest = self.0.sign(&signer, format, &mut source, &mut dest)?;
 
@@ -896,23 +892,32 @@ impl Default for C2paBuilder {
 /// @category C2PA
 #[derive(Clone)]
 #[wasm_bindgen(js_name = "C2PAValidationError")]
-pub struct C2paValidationError {
-    code: String,
-    url: Option<String>,
-}
+pub struct C2paValidationError(ValidationStatus);
 
 #[wasm_bindgen(js_class = "C2PAValidationError")]
 impl C2paValidationError {
     /// Validation error code.
     #[wasm_bindgen(getter)]
     pub fn code(&self) -> String {
-        self.code.clone()
+        self.0.code().to_owned()
     }
 
     /// Related resource URL.
     #[wasm_bindgen(getter)]
     pub fn url(&self) -> Option<String> {
-        self.url.clone()
+        self.0.url().map(ToOwned::to_owned)
+    }
+
+    /// Human-readable error explanation.
+    #[wasm_bindgen(getter)]
+    pub fn explanation(&self) -> Option<String> {
+        self.0.explanation().map(ToOwned::to_owned)
+    }
+
+    /// Serialize the current error as an object.
+    #[wasm_bindgen(js_name = "toJSON")]
+    pub fn to_json(&self) -> Result<Object, JsError> {
+        Ok(self.0.serialize(&OBJECT_SERIALIZER)?.into())
     }
 }
 
@@ -944,7 +949,10 @@ impl C2paVerificationResult {
 ///
 /// @category C2PA
 #[wasm_bindgen(js_name = "verifyC2PA")]
-pub fn verify_c2pa(source: Uint8Array, format: &str) -> Result<C2paVerificationResult, JsError> {
+pub async fn verify_c2pa(
+    source: Uint8Array,
+    format: &str,
+) -> Result<C2paVerificationResult, JsError> {
     let source = Cursor::new(source.to_vec());
     let reader = Reader::from_stream(format, source)?;
 
@@ -953,10 +961,7 @@ pub fn verify_c2pa(source: Uint8Array, format: &str) -> Result<C2paVerificationR
         .unwrap_or(&[])
         .iter()
         .filter(|v| !v.passed())
-        .map(|v| C2paValidationError {
-            code: v.code().to_owned(),
-            url: v.url().map(ToOwned::to_owned),
-        })
+        .map(|v| C2paValidationError(v.clone()))
         .collect();
 
     let manifests = reader

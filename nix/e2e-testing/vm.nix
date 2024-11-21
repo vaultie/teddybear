@@ -26,7 +26,6 @@ testers.runNixOSTest ({lib, ...}: {
       etc.overlay.mutable = false;
       forbiddenDependenciesRegexes = lib.mkForce [];
     };
-    environment.noXlibs = false; # Minimize cache misses
     networking = {
       firewall.enable = false;
       resolvconf.enable = false;

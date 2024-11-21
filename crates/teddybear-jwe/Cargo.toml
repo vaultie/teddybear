@@ -8,13 +8,13 @@ categories.workspace = true
 
 [dependencies]
 askar-crypto = { version = "0.3.0", default-features = false, features = ["aes", "chacha", "ed25519", "std"] }
-base64 = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
-ssi-jwk = { workspace = true }
-x25519-dalek = { workspace = true }
+base64.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+ssi-jwk.workspace = true
+x25519-dalek.workspace = true
 
 [dev-dependencies]
 paste = "1.0.14"
-teddybear-crypto = { workspace = true }
+teddybear-crypto.workspace = true
 tokio = { workspace = true, features = ["test-util"] }

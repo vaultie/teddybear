@@ -21,7 +21,7 @@ const c2paTest: TestAPI<{ key: PrivateEd25519 }> = it.extend({
 
 describe("can execute C2PA operations", () => {
   c2paTest("can sign an image", async ({ key }) => {
-    const { signedPayload } = new C2PABuilder()
+    const { signedPayload } = await new C2PABuilder()
       .setManifestDefinition({
         title: "Test Image",
         assertions: [
@@ -38,12 +38,12 @@ describe("can execute C2PA operations", () => {
       })
       .sign(
         key,
-        new Uint8Array(certificate),
+        [new Uint8Array(certificate)],
         new Uint8Array(image),
         "image/jpeg",
       );
 
-    const { manifests, validationErrors } = verifyC2PA(
+    const { manifests, validationErrors } = await verifyC2PA(
       signedPayload,
       "image/jpeg",
     );
@@ -58,7 +58,7 @@ describe("can execute C2PA operations", () => {
   });
 
   c2paTest("can sign a PDF file", async ({ key }) => {
-    const { signedPayload } = new C2PABuilder()
+    const { signedPayload } = await new C2PABuilder()
       .setManifestDefinition({
         title: "Test PDF",
         assertions: [
@@ -76,12 +76,12 @@ describe("can execute C2PA operations", () => {
       .setThumbnail(new Uint8Array(thumbnail), "image/jpeg")
       .sign(
         key,
-        new Uint8Array(certificate),
+        [new Uint8Array(certificate)],
         new Uint8Array(pdf),
         "application/pdf",
       );
 
-    const { manifests, validationErrors } = verifyC2PA(
+    const { manifests, validationErrors } = await verifyC2PA(
       signedPayload,
       "application/pdf",
     );
@@ -96,7 +96,7 @@ describe("can execute C2PA operations", () => {
   });
 
   c2paTest("can verify a damaged file", async ({ key }) => {
-    const { signedPayload } = new C2PABuilder()
+    const { signedPayload } = await new C2PABuilder()
       .setManifestDefinition({
         title: "Test PDF",
         assertions: [
@@ -113,12 +113,12 @@ describe("can execute C2PA operations", () => {
       })
       .sign(
         key,
-        new Uint8Array(certificate),
+        [new Uint8Array(certificate)],
         new Uint8Array(pdf),
         "application/pdf",
       );
 
-    const { validationErrors } = verifyC2PA(
+    const { validationErrors } = await verifyC2PA(
       signedPayload.fill(123, 500, 600),
       "application/pdf",
     );
