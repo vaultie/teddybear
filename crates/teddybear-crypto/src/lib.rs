@@ -1,4 +1,5 @@
-mod okp_encoder;
+mod encoder;
+mod jwk;
 mod x25519;
 
 use std::borrow::Cow;
@@ -19,11 +20,13 @@ use ssi_verification_methods::{
     ControllerError, ControllerProvider, GenericVerificationMethod, InvalidVerificationMethod,
     ProofPurpose,
 };
-use teddybear_did_key::DIDKey;
+use teddybear_did_key::{DIDKey, KeyType, X25519};
 use teddybear_high_assurance::DnsError;
 
-use crate::okp_encoder::OKPEncoder;
+use crate::encoder::KeyEncoder;
 
+pub use jwk::{jwk_to_verification_method, DynamicVerificationMethod};
+pub use p256::elliptic_curve::sec1::ToEncodedPoint;
 pub use ssi_dids_core::{
     document::verification_method::ValueOrReference,
     ssi_json_ld::{
@@ -33,9 +36,11 @@ pub use ssi_dids_core::{
     DIDBuf, DIDURLBuf, PrimaryDIDURL, PrimaryDIDURLBuf, DID, DIDURL,
 };
 pub use ssi_jwk::JWK;
-pub use ssi_verification_methods::{Controller, Ed25519VerificationKey2020, JwkVerificationMethod};
-
-pub use crate::x25519::X25519KeyAgreementKey2020;
+pub use ssi_verification_methods::{
+    Controller, EcdsaSecp256r1VerificationKey2019, Ed25519VerificationKey2020,
+    JwkVerificationMethod,
+};
+pub use x25519::X25519KeyAgreementKey2020;
 
 const DEFAULT_RESOLVER: &str = "https://cloudflare-dns.com/dns-query";
 
@@ -291,19 +296,20 @@ impl PrivateEd25519 {
     }
 
     pub fn to_public_jwk(&self) -> JWK {
-        JWK::from(Params::OKP(self.inner.verifying_key().encode_okp()))
+        JWK::from(Params::OKP(self.inner.verifying_key().encode()))
     }
 
     pub fn to_private_jwk(&self) -> JWK {
-        JWK::from(Params::OKP(self.inner.encode_okp()))
+        JWK::from(Params::OKP(self.inner.encode()))
     }
 
     pub fn to_did_key(&self) -> DIDBuf {
-        DIDKey.generate(&self.inner.verifying_key())
+        DIDBuf::from_string(format!("did:key:{}", self.to_did_key_url_fragment()))
+            .expect("DIDKey is expected to generate a valid DID")
     }
 
     pub fn to_did_key_url_fragment(&self) -> MultibaseBuf {
-        DIDKey.generate_ed25519_fragment(&self.inner.verifying_key())
+        teddybear_did_key::Ed25519::fragment(&self.inner.verifying_key())
     }
 
     pub fn to_verification_method(
@@ -338,15 +344,15 @@ impl PrivateX25519 {
 
     pub fn to_public_jwk(&self) -> JWK {
         let public_key = x25519_dalek::PublicKey::from(&self.inner);
-        JWK::from(Params::OKP(public_key.encode_okp()))
+        JWK::from(Params::OKP(public_key.encode()))
     }
 
     pub fn to_private_jwk(&self) -> JWK {
-        JWK::from(Params::OKP(self.inner.encode_okp()))
+        JWK::from(Params::OKP(self.inner.encode()))
     }
 
     pub fn to_did_key_url_fragment(&self) -> MultibaseBuf {
-        DIDKey.generate_x25519_fragment(&x25519_dalek::PublicKey::from(&self.inner))
+        X25519::fragment(&x25519_dalek::PublicKey::from(&self.inner))
     }
 
     pub fn to_verification_method(
@@ -356,6 +362,59 @@ impl PrivateX25519 {
     ) -> X25519KeyAgreementKey2020 {
         let public_key = x25519_dalek::PublicKey::from(&self.inner);
         X25519KeyAgreementKey2020::from_public_key(id, controller, public_key)
+    }
+}
+
+#[derive(Clone)]
+pub struct PrivateSecp256r1 {
+    inner: p256::SecretKey,
+}
+
+impl PrivateSecp256r1 {
+    pub fn generate() -> Self {
+        Self {
+            inner: p256::SecretKey::random(&mut OsRng),
+        }
+    }
+
+    pub fn from_bytes(value: &[u8; 32]) -> Result<Self, Ed25519Error> {
+        Ok(Self {
+            inner: p256::SecretKey::from_bytes(value.into())
+                .map_err(|_| Ed25519Error::InvalidPrivateKeyValue)?,
+        })
+    }
+
+    pub fn inner(&self) -> &p256::SecretKey {
+        &self.inner
+    }
+
+    pub fn ecdsa_signing_key(&self) -> p256::ecdsa::SigningKey {
+        (&self.inner).into()
+    }
+
+    pub fn to_public_jwk(&self) -> JWK {
+        JWK::from(Params::EC((&self.inner.public_key()).into()))
+    }
+
+    pub fn to_private_jwk(&self) -> JWK {
+        JWK::from(Params::EC((&self.inner).into()))
+    }
+
+    pub fn to_did_key(&self) -> DIDBuf {
+        DIDBuf::from_string(format!("did:key:{}", self.to_did_key_url_fragment()))
+            .expect("DIDKey is expected to generate a valid DID")
+    }
+
+    pub fn to_did_key_url_fragment(&self) -> MultibaseBuf {
+        teddybear_did_key::P256::fragment(&self.inner.public_key())
+    }
+
+    pub fn to_verification_method(
+        &self,
+        id: IriBuf,
+        controller: UriBuf,
+    ) -> EcdsaSecp256r1VerificationKey2019 {
+        EcdsaSecp256r1VerificationKey2019::from_public_key(id, controller, self.inner.public_key())
     }
 }
 

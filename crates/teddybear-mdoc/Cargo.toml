@@ -1,0 +1,15 @@
+[package]
+name = "teddybear-mdoc"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+categories.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+isomdl.git = "https://github.com/vaultie/isomdl"
+p256.workspace = true
+teddybear-crypto.workspace = true
+thiserror.workspace = true
+time.workspace = true

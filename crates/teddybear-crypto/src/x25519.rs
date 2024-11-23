@@ -10,7 +10,7 @@ use ssi_verification_methods::{
     TypedVerificationMethod, VerificationMethod, VerificationMethodSet,
 };
 
-use crate::okp_encoder::OKPEncoder;
+use crate::encoder::KeyEncoder;
 
 pub const X25519_KEY_AGREEMENT_KEY_TYPE: &str = "X25519KeyAgreementKey2020";
 
@@ -160,7 +160,7 @@ impl TypedVerificationMethod for X25519KeyAgreementKey2020 {
 
 impl JwkVerificationMethod for X25519KeyAgreementKey2020 {
     fn to_jwk(&self) -> Cow<JWK> {
-        Cow::Owned(JWK::from(Params::OKP(self.public_key.decoded.encode_okp())))
+        Cow::Owned(JWK::from(Params::OKP(self.public_key.decoded.encode())))
     }
 }
 
