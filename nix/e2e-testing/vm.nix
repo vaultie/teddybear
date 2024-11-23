@@ -1,6 +1,7 @@
 {
   certificate,
   identity-context,
+  mdoc-certificate,
   placeholder-image,
   placeholder-pdf,
   runner,
@@ -81,6 +82,7 @@ testers.runNixOSTest ({lib, ...}: {
       variables = {
         CERTIFICATE = certificate;
         IDENTITY_CONTEXT = identity-context;
+        MDOC_CERTIFICATE = mdoc-certificate;
         PLACEHOLDER_IMAGE = placeholder-image;
         PLACEHOLDER_PDF = placeholder-pdf;
         THUMBNAIL_IMAGE = thumbnail-image;

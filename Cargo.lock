@@ -116,6 +116,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "anyhow"
+version = "1.0.93"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4c95c10ba0b00a02636238b814946408b1322d5ac4760326e6fb8ec956d85775"
+
+[[package]]
 name = "arrayref"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -302,6 +308,15 @@ dependencies = [
  "event-listener 5.3.1",
  "event-listener-strategy",
  "pin-project-lite",
+]
+
+[[package]]
+name = "async-signature"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "646dcc11163091f40c1618702bcde3d2e152c52b05fc4527fc67cfe077e47c22"
+dependencies = [
+ "signature",
 ]
 
 [[package]]
@@ -941,9 +956,9 @@ dependencies = [
 
 [[package]]
 name = "cpufeatures"
-version = "0.2.15"
+version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ca741a962e1b0bff6d724a1a0958b686406e853bb14061f218562e1896f95e6"
+checksum = "16b80225097f2e5ae4e7179dd2266824648f3e2f49d9134d584b76389d31c4c3"
 dependencies = [
  "libc",
 ]
@@ -1178,6 +1193,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f55bf8e7b65898637379c1b74eb1551107c8294ed26d855ceb9fd1a09cfc9bc0"
 dependencies = [
  "const-oid 0.9.6",
+ "der_derive",
+ "flagset",
  "pem-rfc7468 0.7.0",
  "zeroize",
 ]
@@ -1194,6 +1211,17 @@ dependencies = [
  "num-bigint",
  "num-traits",
  "rusticata-macros",
+]
+
+[[package]]
+name = "der_derive"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8034092389675178f570469e6c3b0465d3d30b4505c294a6550db47f3c17ad18"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.89",
 ]
 
 [[package]]
@@ -1220,7 +1248,7 @@ dependencies = [
 [[package]]
 name = "did-web"
 version = "0.3.0"
-source = "git+https://github.com/vaultie/ssi?branch=pre-merge#d9a8c23477036efcaa34fa84b3a2eeb4c047a857"
+source = "git+https://github.com/vaultie/ssi?branch=pre-merge#7f12a28a510301bb416adc9392aa5b1512ddf5c6"
 dependencies = [
  "http",
  "reqwest",
@@ -1285,6 +1313,7 @@ dependencies = [
  "digest 0.10.7",
  "elliptic-curve",
  "rfc6979",
+ "serdect",
  "signature",
  "spki 0.7.3",
 ]
@@ -1361,6 +1390,7 @@ dependencies = [
  "pkcs8 0.10.2",
  "rand_core",
  "sec1",
+ "serdect",
  "subtle",
  "zeroize",
 ]
@@ -1507,6 +1537,12 @@ checksum = "cfcf0ed7fe52a17a03854ec54a9f76d6d84508d1c0e66bc1793301c73fc8493c"
 dependencies = [
  "static_assertions",
 ]
+
+[[package]]
+name = "flagset"
+version = "0.4.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b3ea1ec5f8307826a5b71094dd91fc04d4ae75d5709b20ad351c7fb4815c86ec"
 
 [[package]]
 name = "flate2"
@@ -2110,6 +2146,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "isomdl"
+version = "0.1.0"
+source = "git+https://github.com/vaultie/isomdl#3de9404127409f383cd768b2a9c09636d8029f44"
+dependencies = [
+ "anyhow",
+ "async-signature",
+ "ciborium",
+ "coset",
+ "digest 0.10.7",
+ "ecdsa",
+ "generic-array",
+ "hmac",
+ "p256",
+ "p384",
+ "rand",
+ "serde",
+ "serde_bytes",
+ "serde_json",
+ "sha2 0.10.8",
+ "signature",
+ "thiserror 2.0.3",
+ "time",
+ "x509-cert",
+]
+
+[[package]]
 name = "itertools"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2379,9 +2441,9 @@ dependencies = [
 
 [[package]]
 name = "konst"
-version = "0.3.11"
+version = "0.3.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0964faf44d2c3e528ade7bd49c3544687cadcdee7641643469d43bd7259a5d88"
+checksum = "ed986a294ccbcc4cbb7de5a1cf8f62e2473d85cf220e72cb01afe20d49194481"
 dependencies = [
  "const_panic",
  "konst_kernel",
@@ -2390,9 +2452,9 @@ dependencies = [
 
 [[package]]
 name = "konst_kernel"
-version = "0.3.10"
+version = "0.3.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "722062725c1fc0d83cc017e873aac6a2a5ff16a88edfa190bdeb8bd393fcfd97"
+checksum = "599c1232f55c72c7fc378335a3efe1c878c92720838c8e6a4fd87784ef7764de"
 dependencies = [
  "typewit",
 ]
@@ -2955,6 +3017,7 @@ dependencies = [
  "ecdsa",
  "elliptic-curve",
  "primeorder",
+ "serdect",
  "sha2 0.10.8",
 ]
 
@@ -2967,6 +3030,7 @@ dependencies = [
  "ecdsa",
  "elliptic-curve",
  "primeorder",
+ "serdect",
  "sha2 0.10.8",
 ]
 
@@ -3302,6 +3366,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "353e1ca18966c16d9deb1c69278edbc5f194139612772bd9537af60ac231e1e6"
 dependencies = [
  "elliptic-curve",
+ "serdect",
 ]
 
 [[package]]
@@ -3340,9 +3405,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.91"
+version = "1.0.92"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "307e3004becf10f5a6e0d59d20f3cd28231b0e0827a96cd3e0ce6d14bc1e4bb3"
+checksum = "37d3544b3f2748c54e147655edb5025752e2303145b5aefb3c3ea2c78b973bb0"
 dependencies = [
  "unicode-ident",
 ]
@@ -3724,9 +3789,9 @@ dependencies = [
 
 [[package]]
 name = "rustls"
-version = "0.23.17"
+version = "0.23.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f1a745511c54ba6d4465e8d5dfbd81b45791756de28d4981af70d6dca128f1e"
+checksum = "9c9cc1d47e243d655ace55ed38201c19ae02c148ae56412ab8750e8f0166ab7f"
 dependencies = [
  "log",
  "once_cell",
@@ -3826,6 +3891,7 @@ dependencies = [
  "der 0.7.9",
  "generic-array",
  "pkcs8 0.10.2",
+ "serdect",
  "subtle",
  "zeroize",
 ]
@@ -4049,6 +4115,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "serdect"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a84f14a19e9a014bb9f4512488d9829a68e04ecabffb0f9904cd1ace94598177"
+dependencies = [
+ "base16ct",
+ "serde",
+]
+
+[[package]]
 name = "sha-1"
 version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4243,7 +4319,7 @@ dependencies = [
 [[package]]
 name = "ssi-caips"
 version = "0.2.0"
-source = "git+https://github.com/vaultie/ssi?branch=pre-merge#d9a8c23477036efcaa34fa84b3a2eeb4c047a857"
+source = "git+https://github.com/vaultie/ssi?branch=pre-merge#7f12a28a510301bb416adc9392aa5b1512ddf5c6"
 dependencies = [
  "bs58",
  "linked-data",
@@ -4256,7 +4332,7 @@ dependencies = [
 [[package]]
 name = "ssi-claims"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi?branch=pre-merge#d9a8c23477036efcaa34fa84b3a2eeb4c047a857"
+source = "git+https://github.com/vaultie/ssi?branch=pre-merge#7f12a28a510301bb416adc9392aa5b1512ddf5c6"
 dependencies = [
  "educe 0.4.23",
  "iref",
@@ -4287,7 +4363,7 @@ dependencies = [
 [[package]]
 name = "ssi-claims-core"
 version = "0.1.1"
-source = "git+https://github.com/vaultie/ssi?branch=pre-merge#d9a8c23477036efcaa34fa84b3a2eeb4c047a857"
+source = "git+https://github.com/vaultie/ssi?branch=pre-merge#7f12a28a510301bb416adc9392aa5b1512ddf5c6"
 dependencies = [
  "chrono",
  "educe 0.4.23",
@@ -4302,12 +4378,12 @@ dependencies = [
 [[package]]
 name = "ssi-contexts"
 version = "0.1.6"
-source = "git+https://github.com/vaultie/ssi?branch=pre-merge#d9a8c23477036efcaa34fa84b3a2eeb4c047a857"
+source = "git+https://github.com/vaultie/ssi?branch=pre-merge#7f12a28a510301bb416adc9392aa5b1512ddf5c6"
 
 [[package]]
 name = "ssi-core"
 version = "0.2.0"
-source = "git+https://github.com/vaultie/ssi?branch=pre-merge#d9a8c23477036efcaa34fa84b3a2eeb4c047a857"
+source = "git+https://github.com/vaultie/ssi?branch=pre-merge#7f12a28a510301bb416adc9392aa5b1512ddf5c6"
 dependencies = [
  "async-trait",
  "pin-project",
@@ -4318,7 +4394,7 @@ dependencies = [
 [[package]]
 name = "ssi-crypto"
 version = "0.2.0"
-source = "git+https://github.com/vaultie/ssi?branch=pre-merge#d9a8c23477036efcaa34fa84b3a2eeb4c047a857"
+source = "git+https://github.com/vaultie/ssi?branch=pre-merge#7f12a28a510301bb416adc9392aa5b1512ddf5c6"
 dependencies = [
  "async-trait",
  "bs58",
@@ -4336,7 +4412,7 @@ dependencies = [
 [[package]]
 name = "ssi-data-integrity"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi?branch=pre-merge#d9a8c23477036efcaa34fa84b3a2eeb4c047a857"
+source = "git+https://github.com/vaultie/ssi?branch=pre-merge#7f12a28a510301bb416adc9392aa5b1512ddf5c6"
 dependencies = [
  "chrono",
  "iref",
@@ -4364,7 +4440,7 @@ dependencies = [
 [[package]]
 name = "ssi-data-integrity-core"
 version = "0.1.1"
-source = "git+https://github.com/vaultie/ssi?branch=pre-merge#d9a8c23477036efcaa34fa84b3a2eeb4c047a857"
+source = "git+https://github.com/vaultie/ssi?branch=pre-merge#7f12a28a510301bb416adc9392aa5b1512ddf5c6"
 dependencies = [
  "chrono",
  "contextual",
@@ -4399,7 +4475,7 @@ dependencies = [
 [[package]]
 name = "ssi-data-integrity-suites"
 version = "0.1.1"
-source = "git+https://github.com/vaultie/ssi?branch=pre-merge#d9a8c23477036efcaa34fa84b3a2eeb4c047a857"
+source = "git+https://github.com/vaultie/ssi?branch=pre-merge#7f12a28a510301bb416adc9392aa5b1512ddf5c6"
 dependencies = [
  "async-trait",
  "base64 0.12.3",
@@ -4446,7 +4522,7 @@ dependencies = [
 [[package]]
 name = "ssi-di-sd-primitives"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi?branch=pre-merge#d9a8c23477036efcaa34fa84b3a2eeb4c047a857"
+source = "git+https://github.com/vaultie/ssi?branch=pre-merge#7f12a28a510301bb416adc9392aa5b1512ddf5c6"
 dependencies = [
  "base64 0.12.3",
  "digest 0.10.7",
@@ -4467,7 +4543,7 @@ dependencies = [
 [[package]]
 name = "ssi-dids-core"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi?branch=pre-merge#d9a8c23477036efcaa34fa84b3a2eeb4c047a857"
+source = "git+https://github.com/vaultie/ssi?branch=pre-merge#7f12a28a510301bb416adc9392aa5b1512ddf5c6"
 dependencies = [
  "async-trait",
  "iref",
@@ -4490,7 +4566,7 @@ dependencies = [
 [[package]]
 name = "ssi-eip712"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi?branch=pre-merge#d9a8c23477036efcaa34fa84b3a2eeb4c047a857"
+source = "git+https://github.com/vaultie/ssi?branch=pre-merge#7f12a28a510301bb416adc9392aa5b1512ddf5c6"
 dependencies = [
  "hex",
  "indexmap 2.6.0",
@@ -4508,7 +4584,7 @@ dependencies = [
 [[package]]
 name = "ssi-json-ld"
 version = "0.3.0"
-source = "git+https://github.com/vaultie/ssi?branch=pre-merge#d9a8c23477036efcaa34fa84b3a2eeb4c047a857"
+source = "git+https://github.com/vaultie/ssi?branch=pre-merge#7f12a28a510301bb416adc9392aa5b1512ddf5c6"
 dependencies = [
  "async-std",
  "combination",
@@ -4532,7 +4608,7 @@ dependencies = [
 [[package]]
 name = "ssi-jwk"
 version = "0.2.1"
-source = "git+https://github.com/vaultie/ssi?branch=pre-merge#d9a8c23477036efcaa34fa84b3a2eeb4c047a857"
+source = "git+https://github.com/vaultie/ssi?branch=pre-merge#7f12a28a510301bb416adc9392aa5b1512ddf5c6"
 dependencies = [
  "base64 0.12.3",
  "ed25519-dalek",
@@ -4544,6 +4620,7 @@ dependencies = [
  "num-bigint",
  "num-derive",
  "num-traits",
+ "p256",
  "rand",
  "serde",
  "serde_jcs",
@@ -4559,7 +4636,7 @@ dependencies = [
 [[package]]
 name = "ssi-jws"
 version = "0.2.1"
-source = "git+https://github.com/vaultie/ssi?branch=pre-merge#d9a8c23477036efcaa34fa84b3a2eeb4c047a857"
+source = "git+https://github.com/vaultie/ssi?branch=pre-merge#7f12a28a510301bb416adc9392aa5b1512ddf5c6"
 dependencies = [
  "base64 0.12.3",
  "blake2",
@@ -4568,6 +4645,7 @@ dependencies = [
  "hex",
  "iref",
  "linked-data",
+ "p256",
  "rand",
  "serde",
  "serde_json",
@@ -4581,7 +4659,7 @@ dependencies = [
 [[package]]
 name = "ssi-jwt"
 version = "0.2.1"
-source = "git+https://github.com/vaultie/ssi?branch=pre-merge#d9a8c23477036efcaa34fa84b3a2eeb4c047a857"
+source = "git+https://github.com/vaultie/ssi?branch=pre-merge#7f12a28a510301bb416adc9392aa5b1512ddf5c6"
 dependencies = [
  "async-trait",
  "chrono",
@@ -4604,7 +4682,7 @@ dependencies = [
 [[package]]
 name = "ssi-multicodec"
 version = "0.2.0"
-source = "git+https://github.com/vaultie/ssi?branch=pre-merge#d9a8c23477036efcaa34fa84b3a2eeb4c047a857"
+source = "git+https://github.com/vaultie/ssi?branch=pre-merge#7f12a28a510301bb416adc9392aa5b1512ddf5c6"
 dependencies = [
  "csv",
  "ed25519-dalek",
@@ -4618,7 +4696,7 @@ dependencies = [
 [[package]]
 name = "ssi-rdf"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi?branch=pre-merge#d9a8c23477036efcaa34fa84b3a2eeb4c047a857"
+source = "git+https://github.com/vaultie/ssi?branch=pre-merge#7f12a28a510301bb416adc9392aa5b1512ddf5c6"
 dependencies = [
  "combination",
  "indexmap 2.6.0",
@@ -4632,7 +4710,7 @@ dependencies = [
 [[package]]
 name = "ssi-sd-jwt"
 version = "0.2.0"
-source = "git+https://github.com/vaultie/ssi?branch=pre-merge#d9a8c23477036efcaa34fa84b3a2eeb4c047a857"
+source = "git+https://github.com/vaultie/ssi?branch=pre-merge#7f12a28a510301bb416adc9392aa5b1512ddf5c6"
 dependencies = [
  "base64 0.12.3",
  "rand",
@@ -4648,7 +4726,7 @@ dependencies = [
 [[package]]
 name = "ssi-security"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi?branch=pre-merge#d9a8c23477036efcaa34fa84b3a2eeb4c047a857"
+source = "git+https://github.com/vaultie/ssi?branch=pre-merge#7f12a28a510301bb416adc9392aa5b1512ddf5c6"
 dependencies = [
  "iref",
  "linked-data",
@@ -4661,7 +4739,7 @@ dependencies = [
 [[package]]
 name = "ssi-status"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi?branch=pre-merge#d9a8c23477036efcaa34fa84b3a2eeb4c047a857"
+source = "git+https://github.com/vaultie/ssi?branch=pre-merge#7f12a28a510301bb416adc9392aa5b1512ddf5c6"
 dependencies = [
  "base64 0.12.3",
  "flate2",
@@ -4688,7 +4766,7 @@ dependencies = [
 [[package]]
 name = "ssi-vc"
 version = "0.3.0"
-source = "git+https://github.com/vaultie/ssi?branch=pre-merge#d9a8c23477036efcaa34fa84b3a2eeb4c047a857"
+source = "git+https://github.com/vaultie/ssi?branch=pre-merge#7f12a28a510301bb416adc9392aa5b1512ddf5c6"
 dependencies = [
  "base64 0.12.3",
  "bitvec 0.20.4",
@@ -4718,7 +4796,7 @@ dependencies = [
 [[package]]
 name = "ssi-vc-jose-cose"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi?branch=pre-merge#d9a8c23477036efcaa34fa84b3a2eeb4c047a857"
+source = "git+https://github.com/vaultie/ssi?branch=pre-merge#7f12a28a510301bb416adc9392aa5b1512ddf5c6"
 dependencies = [
  "serde",
  "serde_json",
@@ -4733,7 +4811,7 @@ dependencies = [
 [[package]]
 name = "ssi-verification-methods"
 version = "0.1.1"
-source = "git+https://github.com/vaultie/ssi?branch=pre-merge#d9a8c23477036efcaa34fa84b3a2eeb4c047a857"
+source = "git+https://github.com/vaultie/ssi?branch=pre-merge#7f12a28a510301bb416adc9392aa5b1512ddf5c6"
 dependencies = [
  "async-trait",
  "derivative",
@@ -4745,6 +4823,7 @@ dependencies = [
  "json-syntax",
  "linked-data",
  "multibase",
+ "p256",
  "pin-project",
  "rand_core",
  "rdf-types",
@@ -4766,7 +4845,7 @@ dependencies = [
 [[package]]
 name = "ssi-verification-methods-core"
 version = "0.1.0"
-source = "git+https://github.com/vaultie/ssi?branch=pre-merge#d9a8c23477036efcaa34fa84b3a2eeb4c047a857"
+source = "git+https://github.com/vaultie/ssi?branch=pre-merge#7f12a28a510301bb416adc9392aa5b1512ddf5c6"
 dependencies = [
  "bs58",
  "educe 0.4.23",
@@ -4925,6 +5004,7 @@ dependencies = [
  "did-web",
  "ed25519-dalek",
  "getrandom",
+ "p256",
  "rand",
  "serde",
  "ssi-dids-core",
@@ -4945,6 +5025,7 @@ version = "0.18.0"
 dependencies = [
  "ed25519-dalek",
  "iref",
+ "p256",
  "serde_json",
  "ssi-dids-core",
  "ssi-multicodec",
@@ -4975,6 +5056,7 @@ dependencies = [
  "teddybear-c2pa",
  "teddybear-crypto",
  "teddybear-jwe",
+ "teddybear-mdoc",
  "teddybear-vc",
  "wasm-bindgen",
  "wasm-bindgen-futures",
@@ -4993,6 +5075,18 @@ dependencies = [
  "teddybear-crypto",
  "tokio",
  "x25519-dalek",
+]
+
+[[package]]
+name = "teddybear-mdoc"
+version = "0.18.0"
+dependencies = [
+ "anyhow",
+ "isomdl",
+ "p256",
+ "teddybear-crypto",
+ "thiserror 2.0.3",
+ "time",
 ]
 
 [[package]]
@@ -5072,6 +5166,7 @@ checksum = "5dfd88e563464686c916c7e46e623e520ddc6d79fa6641390f2e3fa86e83e885"
 dependencies = [
  "deranged",
  "itoa",
+ "js-sys",
  "num-conv",
  "powerfmt",
  "serde",
@@ -5118,6 +5213,27 @@ name = "tinyvec_macros"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
+
+[[package]]
+name = "tls_codec"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b5e78c9c330f8c85b2bae7c8368f2739157db9991235123aa1b15ef9502bfb6a"
+dependencies = [
+ "tls_codec_derive",
+ "zeroize",
+]
+
+[[package]]
+name = "tls_codec_derive"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8d9ef545650e79f30233c0003bcc2504d7efac6dad25fca40744de773fe2049c"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.89",
+]
 
 [[package]]
 name = "tokio"
@@ -5383,7 +5499,7 @@ dependencies = [
  "flate2",
  "log",
  "once_cell",
- "rustls 0.23.17",
+ "rustls 0.23.18",
  "rustls-pki-types",
  "url",
  "webpki-roots 0.26.7",
@@ -5771,6 +5887,18 @@ dependencies = [
  "rand_core",
  "serde",
  "zeroize",
+]
+
+[[package]]
+name = "x509-cert"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1301e935010a701ae5f8655edc0ad17c44bad3ac5ce8c39185f75453b720ae94"
+dependencies = [
+ "const-oid 0.9.6",
+ "der 0.7.9",
+ "spki 0.7.3",
+ "tls_codec",
 ]
 
 [[package]]
