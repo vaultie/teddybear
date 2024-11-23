@@ -31,7 +31,8 @@ impl KeyType for P256 {
     const CODEC: u64 = ssi_multicodec::P256_PUB;
 
     fn fragment(source: &Self::PublicKey) -> MultibaseBuf {
-        let multi_encoded = MultiEncodedBuf::encode_bytes(Self::CODEC, &CompressedPoint::from(source));
+        let multi_encoded =
+            MultiEncodedBuf::encode_bytes(Self::CODEC, &CompressedPoint::from(source));
         MultibaseBuf::encode(Base::Base58Btc, multi_encoded.as_bytes())
     }
 
