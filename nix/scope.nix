@@ -96,6 +96,7 @@ lib.makeScope newScope (self: {
     inherit identity-context placeholder-image thumbnail-image;
 
     certificate = ./e2e-testing/crt.der;
+    mdoc-certificate = ./e2e-testing/mdoc.der;
     placeholder-pdf = ./e2e-testing/blank.pdf;
   };
 
