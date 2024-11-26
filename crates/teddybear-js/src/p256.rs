@@ -98,7 +98,7 @@ impl PublicSecp256r1 {
         Ok(DID(DIDBuf::from_str(&self.0.controller)?))
     }
 
-    /// Get the JWK value (without the private key) of the Ed25519 key within the current keypair.
+    /// Get the JWK value (without the private key) of the Secp256r1 key within the current keypair.
     #[wasm_bindgen(js_name = "toJWK")]
     pub fn to_jwk(&self) -> JWK {
         JWK(self.0.to_jwk().into_owned())
