@@ -100,6 +100,10 @@
           default = teddybearPkgs.uni;
         };
 
+        apps.default = flake-utils.lib.mkApp {
+          drv = teddybearPkgs.repl;
+        };
+
         checks = {
           inherit (teddybearPkgs) cjs esm uni docs e2e-test unit-test clippy fmt;
         };

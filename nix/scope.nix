@@ -84,6 +84,8 @@ lib.makeScope newScope (self: {
   uni = self.callPackage ./uni.nix {};
   docs = self.callPackage ./docs.nix {};
 
+  repl = self.callPackage ./repl.nix {};
+
   clippy = self.callPackage ./clippy.nix {};
   unit-test = self.callPackage ./unit-test.nix {};
   fmt = self.craneLib.cargoFmt self.commonArgs;
