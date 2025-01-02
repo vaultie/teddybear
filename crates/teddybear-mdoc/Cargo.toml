@@ -8,7 +8,7 @@ categories.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-isomdl.git = "https://github.com/vaultie/isomdl"
+isomdl = { git = "https://github.com/vaultie/isomdl", branch = "upstreaming" }
 p256.workspace = true
 teddybear-crypto.workspace = true
 thiserror.workspace = true

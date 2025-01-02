@@ -1,6 +1,6 @@
 use isomdl::{
-    definitions::{CoseKey, DeviceKeyInfo, DigestAlgorithm, EC2Curve, ValidityInfo, EC2Y},
-    issuance::{self, Namespaces, X5Chain},
+    definitions::{CoseKey, DeviceKeyInfo, DigestAlgorithm, EC2Curve, ValidityInfo, EC2Y, x509::X5Chain},
+    issuance::{self, Namespaces},
 };
 use teddybear_crypto::{EcdsaSecp256r1VerificationKey2019, PrivateSecp256r1, ToEncodedPoint};
 use thiserror::Error;
@@ -84,7 +84,7 @@ impl MDocBuilder {
         let mut x5chain_builder = X5Chain::builder();
 
         for certificate in certificates {
-            x5chain_builder = x5chain_builder.with_der(certificate.as_ref())?;
+            x5chain_builder = x5chain_builder.with_der_certificate(certificate.as_ref())?;
         }
 
         let x5chain = x5chain_builder.build()?;
