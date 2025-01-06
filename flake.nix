@@ -76,7 +76,7 @@
           ];
         };
 
-        yarnLockHash = "sha256-c55cMMHe9GpDMhDyQPu4deHGzN/uhZIKcUyeOGl+rAU=";
+        yarnLockHash = "sha256-YBKHgNDr43yT/Uk3RCcVkFV1DFIOQ+C+pVXJg4qkB94=";
         testSrc = ./tests;
 
         teddybearPkgs = pkgs.callPackage ./nix/scope.nix {
