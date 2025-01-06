@@ -1,4 +1,4 @@
-use js_sys::{Object, Uint8Array};
+use js_sys::{Array, JsString, Object, Uint8Array};
 use wasm_bindgen::prelude::*;
 
 use crate::p256::{PrivateSecp256r1, PublicSecp256r1};
@@ -58,4 +58,43 @@ impl MDocBuilder {
             .as_slice()
             .into())
     }
+}
+
+#[wasm_bindgen(js_name = "presentMDoc")]
+pub fn present(
+    device_key: &PrivateSecp256r1,
+    verifier_key: &PublicSecp256r1,
+    documents: Object,
+    requests: Object,
+    permits: Object,
+) -> Result<Uint8Array, JsError> {
+    let documents = Object::entries(&documents).into_iter().map(|val| {
+        let array: Array = val.into();
+
+        let name = JsString::from(array.get(0)).into();
+        let value = Uint8Array::from(array.get(1)).to_vec();
+
+        (name, value)
+    });
+
+    let requests = Object::entries(&requests)
+        .into_iter()
+        .map(|val| {
+            let array: Array = val.into();
+
+            let name = JsString::from(array.get(0)).into();
+            let value = serde_wasm_bindgen::from_value(array.get(1))?;
+
+            Ok((name, value))
+        })
+        .collect::<Result<Vec<_>, JsError>>()?;
+
+    let permits = serde_wasm_bindgen::from_value(permits.into())?;
+
+    let presented =
+        teddybear_mdoc::present(&device_key.0, &verifier_key.0, documents, requests, permits)?
+            .as_slice()
+            .into();
+
+    Ok(presented)
 }

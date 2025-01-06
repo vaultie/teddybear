@@ -1,7 +1,17 @@
+use std::collections::BTreeMap;
+
 use isomdl::{
-    definitions::{CoseKey, DeviceKeyInfo, DigestAlgorithm, EC2Curve, ValidityInfo, EC2Y},
-    issuance::{self, Namespaces, X5Chain},
+    definitions::{
+        device_request::{self, ItemsRequest},
+        helpers::{ByteStr, Tag24},
+        x509::{trust_anchor::TrustAnchorRegistry, X5Chain},
+        CoseKey, DeviceKeyInfo, DigestAlgorithm, EC2Curve, SessionEstablishment, ValidityInfo,
+        EC2Y,
+    },
+    issuance::{self, Mdoc, Namespaces},
+    presentation::device::{self, DeviceSession, SessionManagerInit},
 };
+use p256::ecdsa::{signature::Signer, Signature};
 use teddybear_crypto::{EcdsaSecp256r1VerificationKey2019, PrivateSecp256r1, ToEncodedPoint};
 use thiserror::Error;
 use time::OffsetDateTime;
@@ -16,6 +26,9 @@ pub enum Error {
 
     #[error(transparent)]
     Cbor(#[from] isomdl::cbor::CborError),
+
+    #[error(transparent)]
+    Presentation(#[from] device::Error),
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),
@@ -84,7 +97,7 @@ impl MDocBuilder {
         let mut x5chain_builder = X5Chain::builder();
 
         for certificate in certificates {
-            x5chain_builder = x5chain_builder.with_der(certificate.as_ref())?;
+            x5chain_builder = x5chain_builder.with_der_certificate(certificate.as_ref())?;
         }
 
         let x5chain = x5chain_builder.build()?;
@@ -101,4 +114,73 @@ impl Default for MDocBuilder {
     fn default() -> Self {
         Self::new()
     }
+}
+
+pub fn present<D, R>(
+    device_key: &PrivateSecp256r1,
+    verifier_key: &EcdsaSecp256r1VerificationKey2019,
+    documents: D,
+    requests: R,
+    permits: BTreeMap<String, BTreeMap<String, Vec<String>>>,
+) -> Result<Vec<u8>, Error>
+where
+    D: IntoIterator<Item = (String, Vec<u8>)>,
+    R: IntoIterator<Item = (String, device_request::Namespaces)>,
+{
+    let verifier_key_point = verifier_key.public_key.decoded().to_encoded_point(false);
+
+    let x = verifier_key_point
+        .x()
+        .ok_or(Error::MissingXCoordinate)?
+        .to_vec();
+
+    let y = verifier_key_point
+        .y()
+        .ok_or(Error::MissingYCoordinate)?
+        .to_vec();
+
+    let documents = documents
+        .into_iter()
+        .map(|(name, value)| {
+            let mdoc: Mdoc = isomdl::cbor::from_slice(&value)?;
+            Ok((name, mdoc.into()))
+        })
+        .collect::<Result<BTreeMap<_, device::Document>, Error>>()?;
+
+    let (session, _) = SessionManagerInit::initialise(documents.try_into().unwrap(), None, None)?
+        .qr_engagement()?
+        .0
+        .process_session_establishment(
+            SessionEstablishment {
+                e_reader_key: Tag24::new(CoseKey::EC2 {
+                    crv: EC2Curve::P256,
+                    x,
+                    y: EC2Y::Value(y),
+                })
+                .unwrap(),
+                data: ByteStr::from(vec![]),
+            },
+            TrustAnchorRegistry::from_pem_certificates(vec![])?,
+        )?;
+
+    let mut device_response = session.prepare_response(
+        &requests
+            .into_iter()
+            .map(|(doc_type, namespaces)| ItemsRequest {
+                doc_type,
+                namespaces,
+                request_info: None,
+            })
+            .collect(),
+        permits,
+    );
+
+    while let Some((_, payload)) = device_response.get_next_signature_payload() {
+        let signature: Signature = device_key.ecdsa_signing_key().sign(payload);
+        device_response.submit_next_signature(signature.to_bytes().to_vec());
+    }
+
+    let finalized_response = device_response.finalize_response();
+
+    Ok(isomdl::cbor::to_vec(&finalized_response)?)
 }
