@@ -68,18 +68,14 @@ pub fn present(
     requests: Object,
     permits: Object,
 ) -> Result<Uint8Array, JsError> {
-    let documents = Object::entries(&documents)
-        .into_iter()
-        .map(|val| {
-            let array: Array = val.into();
+    let documents = Object::entries(&documents).into_iter().map(|val| {
+        let array: Array = val.into();
 
-            let name = JsString::from(array.get(0)).into();
-            let value = Uint8Array::from(array.get(1)).to_vec();
+        let name = JsString::from(array.get(0)).into();
+        let value = Uint8Array::from(array.get(1)).to_vec();
 
-            Some((name, value))
-        })
-        .collect::<Option<Vec<_>>>()
-        .ok_or_else(|| JsError::new("documents deserialization error"))?;
+        (name, value)
+    });
 
     let requests = Object::entries(&requests)
         .into_iter()
