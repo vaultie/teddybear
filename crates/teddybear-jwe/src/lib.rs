@@ -4,13 +4,12 @@ use askar_crypto::{
     alg::{
         aes::{A256Kw, AesKey},
         chacha20::Chacha20Key,
-        x25519::X25519KeyPair,
-        KeyAlg,
+        HasKeyAlg, KeyAlg,
     },
     encrypt::{KeyAeadInPlace, KeyAeadMeta},
     generic_array::GenericArray,
     jwk::{FromJwk, ToJwk},
-    kdf::{ecdh_es::EcdhEs, FromKeyDerivation},
+    kdf::{ecdh_es::EcdhEs, FromKeyDerivation, KeyExchange},
     repr::{KeyGen, KeyPublicBytes, KeySecretBytes, ToPublicBytes, ToSecretBytes},
     Error, ErrorKind,
 };
@@ -18,12 +17,80 @@ use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use serde::{Deserialize, Serialize};
 use ssi_jwk::{Base64urlUInt, JWK};
 
-pub use askar_crypto::alg::{aes::A256Gcm, chacha20::XC20P};
+pub use askar_crypto::alg::{
+    aes::{A128Gcm, A256Gcm},
+    chacha20::XC20P,
+    p256::P256KeyPair,
+    x25519::X25519KeyPair,
+};
+
+pub trait ToBytesRepresentation {
+    type Bytes<'a>: AsRef<[u8]>
+    where
+        Self: 'a;
+
+    fn as_bytes(&self) -> Self::Bytes<'_>;
+}
+
+impl ToBytesRepresentation for x25519_dalek::PublicKey {
+    type Bytes<'a> = &'a [u8; 32];
+
+    fn as_bytes(&self) -> Self::Bytes<'_> {
+        self.as_bytes()
+    }
+}
+
+impl ToBytesRepresentation for x25519_dalek::StaticSecret {
+    type Bytes<'a> = &'a [u8; 32];
+
+    fn as_bytes(&self) -> Self::Bytes<'_> {
+        self.as_bytes()
+    }
+}
+
+impl ToBytesRepresentation for p256::PublicKey {
+    type Bytes<'a> = Box<[u8]>;
+
+    fn as_bytes(&self) -> Self::Bytes<'_> {
+        self.to_sec1_bytes()
+    }
+}
+
+impl ToBytesRepresentation for p256::SecretKey {
+    type Bytes<'a> = [u8; 32];
+
+    fn as_bytes(&self) -> Self::Bytes<'_> {
+        self.to_bytes().into()
+    }
+}
+
+pub trait KeyExchangeAlgorithm:
+    KeyExchange + KeyGen + KeySecretBytes + KeyPublicBytes + FromJwk + ToJwk + HasKeyAlg
+{
+    type Public: ToBytesRepresentation;
+    type Private: ToBytesRepresentation;
+}
+
+impl KeyExchangeAlgorithm for X25519KeyPair {
+    type Public = x25519_dalek::PublicKey;
+    type Private = x25519_dalek::StaticSecret;
+}
+
+impl KeyExchangeAlgorithm for P256KeyPair {
+    type Public = p256::PublicKey;
+    type Private = p256::SecretKey;
+}
 
 pub trait SymmetricEncryptionAlgorithm {
     const SHARED_PROTECTED_HEADER_BASE64: &'static str;
 
     type ContentEncryptionKey: KeyAeadInPlace + KeyAeadMeta + KeySecretBytes + KeyGen;
+}
+
+impl SymmetricEncryptionAlgorithm for A128Gcm {
+    const SHARED_PROTECTED_HEADER_BASE64: &'static str = "eyJlbmMiOiJBMTI4R0NNIn0";
+
+    type ContentEncryptionKey = AesKey<A128Gcm>;
 }
 
 impl SymmetricEncryptionAlgorithm for A256Gcm {
@@ -74,7 +141,8 @@ pub struct GeneralJWE<'a> {
 pub fn encrypt<
     'a,
     T: SymmetricEncryptionAlgorithm,
-    I: IntoIterator<Item = (String, &'a x25519_dalek::PublicKey)>,
+    R: KeyExchangeAlgorithm + 'a,
+    I: IntoIterator<Item = (String, &'a R::Public)>,
 >(
     payload: &[u8],
     recipients: I,
@@ -84,10 +152,10 @@ pub fn encrypt<
     let recipients = recipients
         .into_iter()
         .map(|(consumer_info, recipient)| {
-            let ephemeral_key_pair = X25519KeyPair::random()?;
+            let ephemeral_key_pair = R::random()?;
             let producer_info = ephemeral_key_pair.to_public_bytes()?;
 
-            let askar_recipient = X25519KeyPair::from_public_bytes(recipient.as_bytes())?;
+            let askar_recipient = R::from_public_bytes(recipient.as_bytes().as_ref())?;
 
             let kek = create_kek(
                 &ephemeral_key_pair,
@@ -104,7 +172,7 @@ pub fn encrypt<
                     key_id: consumer_info.clone(),
                     algorithm: "ECDH-ES+A256KW".to_string(),
                     ephemeral_key_pair: serde_json::from_str(
-                        &ephemeral_key_pair.to_jwk_public(Some(KeyAlg::X25519))?,
+                        &ephemeral_key_pair.to_jwk_public(Some(ephemeral_key_pair.algorithm()))?,
                     )
                     .expect("JWK serialization should always succeed"),
                     producer_info: Base64urlUInt(producer_info.to_vec()),
@@ -128,10 +196,10 @@ pub fn encrypt<
     })
 }
 
-pub fn decrypt<T: SymmetricEncryptionAlgorithm>(
+pub fn decrypt<T: SymmetricEncryptionAlgorithm, R: KeyExchangeAlgorithm>(
     jwe: &GeneralJWE<'_>,
     consumer_info: &str,
-    recipient: &x25519_dalek::StaticSecret,
+    recipient: &R::Private,
 ) -> Result<Vec<u8>, Error> {
     if jwe.protected != T::SHARED_PROTECTED_HEADER_BASE64 {
         return Err(Error::from_msg(
@@ -140,7 +208,7 @@ pub fn decrypt<T: SymmetricEncryptionAlgorithm>(
         ));
     }
 
-    let askar_recipient = X25519KeyPair::from_secret_bytes(recipient.as_bytes())?;
+    let askar_recipient = R::from_secret_bytes(recipient.as_bytes().as_ref())?;
 
     let matching_recipient = jwe
         .recipients
@@ -151,7 +219,7 @@ pub fn decrypt<T: SymmetricEncryptionAlgorithm>(
         })
         .ok_or_else(|| Error::from_msg(ErrorKind::Encryption, "Recipient not found."))?;
 
-    let ephemeral_key_pair = X25519KeyPair::from_jwk(
+    let ephemeral_key_pair = R::from_jwk(
         &serde_json::to_string(&matching_recipient.header.ephemeral_key_pair)
             .expect("JWK serialization should always succeed"),
     )?;
@@ -186,12 +254,12 @@ pub fn decrypt<T: SymmetricEncryptionAlgorithm>(
     Ok(ciphertext_buf)
 }
 
-pub fn add_recipient<T: SymmetricEncryptionAlgorithm>(
+pub fn add_recipient<T: SymmetricEncryptionAlgorithm, R: KeyExchangeAlgorithm>(
     jwe: &GeneralJWE<'_>,
     existing_consumer_info: &str,
-    existing_recipient: &x25519_dalek::StaticSecret,
+    existing_recipient: &R::Private,
     new_consumer_info: String,
-    new_recipient: &x25519_dalek::PublicKey,
+    new_recipient: &R::Public,
 ) -> Result<Recipient, Error> {
     if jwe.protected != T::SHARED_PROTECTED_HEADER_BASE64 {
         return Err(Error::from_msg(
@@ -200,8 +268,8 @@ pub fn add_recipient<T: SymmetricEncryptionAlgorithm>(
         ));
     }
 
-    let existing_askar_recipient = X25519KeyPair::from_secret_bytes(existing_recipient.as_bytes())?;
-    let new_askar_recipient = X25519KeyPair::from_public_bytes(new_recipient.as_bytes())?;
+    let existing_askar_recipient = R::from_secret_bytes(existing_recipient.as_bytes().as_ref())?;
+    let new_askar_recipient = R::from_public_bytes(new_recipient.as_bytes().as_ref())?;
 
     let matching_recipient = jwe
         .recipients
@@ -212,7 +280,7 @@ pub fn add_recipient<T: SymmetricEncryptionAlgorithm>(
         })
         .ok_or_else(|| Error::from_msg(ErrorKind::Encryption, "Recipient not found."))?;
 
-    let existing_ephemeral_key_pair = X25519KeyPair::from_jwk(
+    let existing_ephemeral_key_pair = R::from_jwk(
         &serde_json::to_string(&matching_recipient.header.ephemeral_key_pair)
             .expect("JWK serialization should always succeed"),
     )?;
@@ -227,7 +295,7 @@ pub fn add_recipient<T: SymmetricEncryptionAlgorithm>(
     let mut cek_buffer = matching_recipient.encrypted_key.0.clone();
     existing_kek.decrypt_in_place(&mut cek_buffer, &[], &[])?;
 
-    let new_ephemeral_key_pair = X25519KeyPair::random()?;
+    let new_ephemeral_key_pair = R::random()?;
     let new_producer_info = new_ephemeral_key_pair.to_public_bytes()?;
 
     let kek = create_kek(
@@ -285,9 +353,9 @@ fn decrypt_with_cek<T: SymmetricEncryptionAlgorithm>(
     Ok(())
 }
 
-fn create_kek(
-    ephemeral_key_pair: &X25519KeyPair,
-    recipient: &X25519KeyPair,
+fn create_kek<R: KeyExchangeAlgorithm>(
+    ephemeral_key_pair: &R,
+    recipient: &R,
     consumer_info: &[u8],
     receive: bool,
 ) -> Result<AesKey<A256Kw>, Error> {
@@ -309,7 +377,7 @@ fn create_kek(
 
 #[cfg(test)]
 mod tests {
-    use askar_crypto::alg::{aes::A256Gcm, chacha20::XC20P};
+    use askar_crypto::alg::{aes::A256Gcm, chacha20::XC20P, x25519::X25519KeyPair};
     use teddybear_crypto::PrivateEd25519;
     use x25519_dalek::PublicKey;
 
@@ -322,10 +390,10 @@ mod tests {
                 async fn [<single_recipient_ $name>]() {
                     let value = b"Hello, world";
                     let key = PrivateEd25519::generate();
-                    let jwe = encrypt::<$symmetric_algorithm, _>(value, [
+                    let jwe = encrypt::<$symmetric_algorithm, X25519KeyPair, _>(value, [
                         (String::from("key1"), &PublicKey::from(key.to_x25519_private_key().inner()))
                     ]).unwrap();
-                    let decrypted = decrypt::<$symmetric_algorithm>(&jwe, "key1", key.to_x25519_private_key().inner()).unwrap();
+                    let decrypted = decrypt::<$symmetric_algorithm, X25519KeyPair>(&jwe, "key1", key.to_x25519_private_key().inner()).unwrap();
                     assert_eq!(decrypted, value);
                 }
 
@@ -337,7 +405,7 @@ mod tests {
                     let key2 = PrivateEd25519::generate();
                     let key3 = PrivateEd25519::generate();
 
-                    let jwe = encrypt::<$symmetric_algorithm, _>(
+                    let jwe = encrypt::<$symmetric_algorithm, X25519KeyPair, _>(
                         value,
                         [
                             (String::from("key1"), &PublicKey::from(key.to_x25519_private_key().inner())),
@@ -347,7 +415,7 @@ mod tests {
                     )
                     .unwrap();
 
-                    let decrypted = decrypt::<$symmetric_algorithm>(&jwe, "key2", key2.to_x25519_private_key().inner()).unwrap();
+                    let decrypted = decrypt::<$symmetric_algorithm, X25519KeyPair>(&jwe, "key2", key2.to_x25519_private_key().inner()).unwrap();
 
                     assert_eq!(decrypted, value);
                 }
@@ -356,10 +424,10 @@ mod tests {
                 async fn [<unknown_key_ $name>]() {
                     let value = b"Hello, world";
                     let key = PrivateEd25519::generate();
-                    let jwe = encrypt::<$symmetric_algorithm, _>(value, [
+                    let jwe = encrypt::<$symmetric_algorithm, X25519KeyPair, _>(value, [
                         (String::from("key1"), &PublicKey::from(key.to_x25519_private_key().inner()))
                     ]).unwrap();
-                    assert!(decrypt::<$symmetric_algorithm>(
+                    assert!(decrypt::<$symmetric_algorithm, X25519KeyPair>(
                         &jwe,
                         "key1",
                         PrivateEd25519::generate().to_x25519_private_key().inner()
@@ -371,10 +439,10 @@ mod tests {
                 async fn [<large_payload_ $name>]() {
                     let value = vec![0; 4096];
                     let key = PrivateEd25519::generate();
-                    let jwe = encrypt::<$symmetric_algorithm, _>(&value, [
+                    let jwe = encrypt::<$symmetric_algorithm, X25519KeyPair, _>(&value, [
                         (String::from("key1"), &PublicKey::from(key.to_x25519_private_key().inner()))
                     ]).unwrap();
-                    let decrypted = decrypt::<$symmetric_algorithm>(&jwe, "key1", key.to_x25519_private_key().inner()).unwrap();
+                    let decrypted = decrypt::<$symmetric_algorithm, X25519KeyPair>(&jwe, "key1", key.to_x25519_private_key().inner()).unwrap();
                     assert_eq!(decrypted, value);
                 }
 
@@ -385,7 +453,7 @@ mod tests {
                     let key = PrivateEd25519::generate();
                     let key2 = PrivateEd25519::generate();
 
-                    let mut jwe = encrypt::<$symmetric_algorithm, _>(
+                    let mut jwe = encrypt::<$symmetric_algorithm, X25519KeyPair, _>(
                         value,
                         [
                             (String::from("key1"), &PublicKey::from(key.to_x25519_private_key().inner())),
@@ -396,7 +464,7 @@ mod tests {
 
                     let key3 = PrivateEd25519::generate();
 
-                    let recipient = add_recipient::<$symmetric_algorithm>(
+                    let recipient = add_recipient::<$symmetric_algorithm, X25519KeyPair>(
                         &mut jwe,
                         "key1",
                         key.to_x25519_private_key().inner(),
@@ -407,8 +475,8 @@ mod tests {
 
                     jwe.recipients.push(recipient);
 
-                    let decrypted_one = decrypt::<$symmetric_algorithm>(&jwe, "key2", key2.to_x25519_private_key().inner()).unwrap();
-                    let decrypted_two = decrypt::<$symmetric_algorithm>(&jwe, "key3", key3.to_x25519_private_key().inner()).unwrap();
+                    let decrypted_one = decrypt::<$symmetric_algorithm, X25519KeyPair>(&jwe, "key2", key2.to_x25519_private_key().inner()).unwrap();
+                    let decrypted_two = decrypt::<$symmetric_algorithm, X25519KeyPair>(&jwe, "key3", key3.to_x25519_private_key().inner()).unwrap();
 
                     assert_eq!(decrypted_one, decrypted_two);
                 }

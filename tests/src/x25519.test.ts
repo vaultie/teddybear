@@ -1,8 +1,7 @@
 import {
   DID,
+  DIDURL,
   Document,
-  encryptAES,
-  encryptChaCha20,
   PrivateEd25519,
   PrivateX25519,
   PublicX25519,
@@ -23,7 +22,7 @@ const generateX25519 = async (): Promise<{
   publicX25519: PublicX25519;
   privateX25519: PrivateX25519;
   document: Document;
-  x25519VM: string;
+  x25519VM: DIDURL;
 }> => {
   const ed25519 = PrivateEd25519.generate();
   const document = await Document.resolve(ed25519.toDIDKey());
@@ -68,7 +67,7 @@ describe("can execute x25519 operations", () => {
 
     const value = new TextEncoder().encode("Hello, world");
 
-    const encrypted = encryptAES(value, [publicX25519]);
+    const encrypted = PublicX25519.encryptAES(value, [publicX25519]);
 
     expect(privateX25519.decryptAES(x25519VM, encrypted)).toStrictEqual(value);
   });
@@ -84,7 +83,11 @@ describe("can execute x25519 operations", () => {
 
     const value = new TextEncoder().encode("Hello, world");
 
-    const encrypted = encryptAES(value, [firstKey, secondKey, thirdKeyPub]);
+    const encrypted = PublicX25519.encryptAES(value, [
+      firstKey,
+      secondKey,
+      thirdKeyPub,
+    ]);
 
     expect(thirdKeyPriv.decryptAES(thirdKeyVM, encrypted)).toStrictEqual(value);
   });
@@ -108,7 +111,7 @@ describe("can execute x25519 operations", () => {
 
     const { publicX25519: secondKey } = await generateX25519();
 
-    const jwe = encryptChaCha20(data, [firstKey, secondKey]);
+    const jwe = PublicX25519.encryptChaCha20(data, [firstKey, secondKey]);
 
     const cipher = new Cipher();
 
@@ -162,7 +165,7 @@ describe("can execute x25519 operations", () => {
 
     const value = new TextEncoder().encode("Hello, world");
 
-    const encrypted = encryptAES(value, [firstKeyPub, secondKey]);
+    const encrypted = PublicX25519.encryptAES(value, [firstKeyPub, secondKey]);
 
     const {
       publicX25519: thirdKeyPub,

@@ -68,6 +68,10 @@ impl KeyType for P256 {
 
         doc.verification_relationships
             .assertion_method
+            .push(ValueOrReference::Reference(p256_did.clone().into()));
+
+        doc.verification_relationships
+            .key_agreement
             .push(ValueOrReference::Reference(p256_did.into()));
 
         let content_type = options.accept.unwrap_or(representation::MediaType::JsonLd);
