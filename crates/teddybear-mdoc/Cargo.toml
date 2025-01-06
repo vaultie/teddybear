@@ -8,6 +8,7 @@ categories.workspace = true
 
 [dependencies]
 anyhow.workspace = true
+ciborium = "0.2.2"
 isomdl = { git = "https://github.com/vaultie/isomdl", branch = "upstreaming" }
 p256.workspace = true
 teddybear-crypto.workspace = true

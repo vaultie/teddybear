@@ -5596,6 +5596,7 @@ name = "teddybear-mdoc"
 version = "0.18.2"
 dependencies = [
  "anyhow",
+ "ciborium",
  "isomdl",
  "p256",
  "teddybear-crypto",

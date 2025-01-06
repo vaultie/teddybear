@@ -84,7 +84,10 @@ describe("can execute p256 operations", () => {
 
     const value = new TextEncoder().encode("Hello, world");
 
-    const encrypted = PublicSecp256r1.encryptAES(value, [firstKeyPub, secondKey]);
+    const encrypted = PublicSecp256r1.encryptAES(value, [
+      firstKeyPub,
+      secondKey,
+    ]);
 
     const {
       publicKey: thirdKeyPub,

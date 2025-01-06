@@ -2,7 +2,7 @@ import {
   JWK,
   MDocBuilder,
   PrivateSecp256r1,
-  StatusListCredential,
+  namespaces,
   presentMDoc,
 } from "@vaultie/teddybear";
 import { readFileSync } from "fs";
@@ -63,6 +63,15 @@ describe("can execute mdoc-related operations", () => {
       .issue(resolvedIssuerKey, [certificate]);
 
     expect(mdoc).toBeDefined();
+
+    const extractedNamespaces = namespaces(mdoc);
+
+    expect(extractedNamespaces).toMatchObject({
+      "org.iso.18013.5.1": {
+        given_name: "John",
+        family_name: "Doe",
+      },
+    });
 
     presentMDoc(
       resolvedPrivateDeviceKey,
