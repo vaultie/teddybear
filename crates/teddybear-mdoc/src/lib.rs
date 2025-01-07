@@ -116,6 +116,30 @@ impl Default for MDocBuilder {
     }
 }
 
+pub fn namespaces(
+    document: &[u8],
+) -> Result<BTreeMap<String, BTreeMap<String, ciborium::Value>>, Error> {
+    let mdoc: Mdoc = isomdl::cbor::from_slice(document)?;
+
+    Ok(mdoc
+        .namespaces
+        .into_inner()
+        .into_iter()
+        .map(|(name, entries)| {
+            let value = entries
+                .into_inner()
+                .into_iter()
+                .map(|v| {
+                    let item = v.into_inner();
+                    (item.element_identifier, item.element_value)
+                })
+                .collect();
+
+            (name, value)
+        })
+        .collect())
+}
+
 pub fn present<D, R>(
     device_key: &PrivateSecp256r1,
     verifier_key: &EcdsaSecp256r1VerificationKey2019,

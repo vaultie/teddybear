@@ -3,11 +3,13 @@ use std::str::FromStr;
 use js_sys::{Object, Uint8Array};
 use serde::Serialize;
 use teddybear_crypto::{DIDBuf, DIDURLBuf, JwkVerificationMethod};
+use teddybear_jwe::{A256Gcm, P256KeyPair, XC20P};
 use teddybear_vc::ssi_verification_methods::EcdsaSecp256r1VerificationKey2019;
 use wasm_bindgen::prelude::*;
 
 use crate::{
     document::{DID, DIDURL},
+    jwe::{Jwe, JweRecipient},
     jwk::JWK,
     OBJECT_SERIALIZER,
 };
@@ -74,6 +76,74 @@ impl PrivateSecp256r1 {
 
         Ok(PublicSecp256r1(verification_method))
     }
+
+    /// Decrypt the provided JWE object using the X25519 key and the A256GCM algorithm.
+    #[wasm_bindgen(js_name = "decryptAES")]
+    pub fn decrypt_aes(
+        &self,
+        verification_method: &DIDURL,
+        jwe: Jwe,
+    ) -> Result<Uint8Array, JsError> {
+        let jwe = serde_wasm_bindgen::from_value(jwe.into())?;
+        let payload = &*teddybear_jwe::decrypt::<A256Gcm, P256KeyPair>(
+            &jwe,
+            &verification_method.0,
+            self.0.inner(),
+        )?;
+        Ok(payload.into())
+    }
+
+    /// Decrypt the provided JWE object using the X25519 key and the XC20P algorithm.
+    #[wasm_bindgen(js_name = "decryptChaCha20")]
+    pub fn decrypt_chacha20(
+        &self,
+        verification_method: &DIDURL,
+        jwe: Jwe,
+    ) -> Result<Uint8Array, JsError> {
+        let jwe = serde_wasm_bindgen::from_value(jwe.into())?;
+        let payload = &*teddybear_jwe::decrypt::<XC20P, P256KeyPair>(
+            &jwe,
+            &verification_method.0,
+            self.0.inner(),
+        )?;
+        Ok(payload.into())
+    }
+
+    #[wasm_bindgen(js_name = "addAESRecipient")]
+    pub fn add_aes_recipient(
+        &self,
+        verification_method: &DIDURL,
+        jwe: Jwe,
+        recipient: PublicSecp256r1,
+    ) -> Result<JweRecipient, JsError> {
+        let jwe = serde_wasm_bindgen::from_value(jwe.into())?;
+        let recipient = teddybear_jwe::add_recipient::<A256Gcm, P256KeyPair>(
+            &jwe,
+            &verification_method.0,
+            self.0.inner(),
+            recipient.0.id.as_str().to_owned(),
+            recipient.0.public_key.decoded(),
+        )?;
+        Ok(recipient.serialize(&OBJECT_SERIALIZER)?.into())
+    }
+
+    #[wasm_bindgen(js_name = "addChaCha20Recipient")]
+    pub fn add_chacha20_recipient(
+        &self,
+        verification_method: &DIDURL,
+        jwe: Jwe,
+        recipient: PublicSecp256r1,
+    ) -> Result<JweRecipient, JsError> {
+        let jwe = serde_wasm_bindgen::from_value(jwe.into())?;
+        let recipient = teddybear_jwe::add_recipient::<XC20P, P256KeyPair>(
+            &jwe,
+            &verification_method.0,
+            self.0.inner(),
+            recipient.0.id.as_str().to_owned(),
+            recipient.0.public_key.decoded(),
+        )?;
+        Ok(recipient.serialize(&OBJECT_SERIALIZER)?.into())
+    }
 }
 
 /// Public Secp256r1 key.
@@ -108,5 +178,37 @@ impl PublicSecp256r1 {
     #[wasm_bindgen(js_name = "toJSON")]
     pub fn to_json(&self) -> Result<Object, JsError> {
         Ok(self.0.serialize(&OBJECT_SERIALIZER)?.into())
+    }
+
+    /// Encrypt the provided payload for the provided recipient array using A256GCM algorithm.
+    #[wasm_bindgen(js_name = "encryptAES")]
+    pub fn encrypt_aes(
+        payload: Uint8Array,
+        recipients: Vec<PublicSecp256r1>,
+    ) -> Result<Jwe, JsError> {
+        let jwe = teddybear_jwe::encrypt::<A256Gcm, P256KeyPair, _>(
+            &payload.to_vec(),
+            recipients
+                .iter()
+                .map(|val| (val.0.id.as_str().to_owned(), val.0.public_key.decoded())),
+        )?;
+
+        Ok(jwe.serialize(&OBJECT_SERIALIZER)?.into())
+    }
+
+    /// Encrypt the provided payload for the provided recipient array using XC20P algorithm.
+    #[wasm_bindgen(js_name = "encryptChaCha20")]
+    pub fn encrypt_chacha20(
+        payload: Uint8Array,
+        recipients: Vec<PublicSecp256r1>,
+    ) -> Result<Jwe, JsError> {
+        let jwe = teddybear_jwe::encrypt::<XC20P, P256KeyPair, _>(
+            &payload.to_vec(),
+            recipients
+                .iter()
+                .map(|val| (val.0.id.as_str().to_owned(), val.0.public_key.decoded())),
+        )?;
+
+        Ok(jwe.serialize(&OBJECT_SERIALIZER)?.into())
     }
 }

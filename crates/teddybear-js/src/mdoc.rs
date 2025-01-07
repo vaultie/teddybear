@@ -1,7 +1,11 @@
 use js_sys::{Array, JsString, Object, Uint8Array};
+use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
-use crate::p256::{PrivateSecp256r1, PublicSecp256r1};
+use crate::{
+    p256::{PrivateSecp256r1, PublicSecp256r1},
+    OBJECT_SERIALIZER,
+};
 
 #[wasm_bindgen]
 pub struct MDocBuilder(teddybear_mdoc::MDocBuilder);
@@ -58,6 +62,12 @@ impl MDocBuilder {
             .as_slice()
             .into())
     }
+}
+
+#[wasm_bindgen]
+pub fn namespaces(document: Uint8Array) -> Result<Object, JsError> {
+    let namespaces = teddybear_mdoc::namespaces(&document.to_vec())?;
+    Ok(namespaces.serialize(&OBJECT_SERIALIZER)?.into())
 }
 
 #[wasm_bindgen(js_name = "presentMDoc")]
