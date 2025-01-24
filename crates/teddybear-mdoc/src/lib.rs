@@ -172,7 +172,7 @@ impl PendingPresentation {
         documents: D,
     ) -> Result<Self, Error>
     where
-        D: IntoIterator<Item = (String, Vec<u8>)>,
+        D: IntoIterator<Item = DeviceInternalMDoc>,
     {
         let verifier_key_point = verifier_key.public_key.decoded().to_encoded_point(false);
 
@@ -188,11 +188,8 @@ impl PendingPresentation {
 
         let documents = documents
             .into_iter()
-            .map(|(name, value)| {
-                let mdoc: Mdoc = isomdl::cbor::from_slice(&value)?;
-                Ok((name, mdoc.into()))
-            })
-            .collect::<Result<BTreeMap<_, device::Document>, Error>>()?;
+            .map(|document| (document.doc_type().to_owned(), document.0))
+            .collect::<BTreeMap<_, _>>();
 
         let (session, _) =
             SessionManagerInit::initialise(documents.try_into().unwrap(), None, None)?

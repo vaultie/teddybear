@@ -139,21 +139,12 @@ impl PendingMDocPresentation {
     #[wasm_bindgen(constructor)]
     pub fn new(
         verifier_key: &PublicSecp256r1,
-        documents: Object,
+        documents: Vec<DeviceInternalMDoc>,
     ) -> Result<PendingMDocPresentation, JsError> {
-        let documents = Object::entries(&documents).into_iter().map(|val| {
-            let array: Array = val.into();
-
-            let name = JsString::from(array.get(0)).into();
-            let value = Uint8Array::from(array.get(1)).to_vec();
-
-            (name, value)
-        });
-
         let initialized = teddybear_mdoc::PendingPresentation::start(
             &verifier_key.0,
             Default::default(),
-            documents,
+            documents.into_iter().map(|d| d.0),
         )?;
 
         Ok(Self(initialized))
