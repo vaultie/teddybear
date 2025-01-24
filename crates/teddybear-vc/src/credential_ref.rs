@@ -12,7 +12,7 @@ use ssi_rdf::{LdEnvironment, LinkedDataResource, LinkedDataSubject};
 #[derive(Serialize)]
 pub struct CredentialRef<'a, T>(pub &'a T);
 
-impl<'a, T> JsonLdObject for CredentialRef<'a, T>
+impl<T> JsonLdObject for CredentialRef<'_, T>
 where
     T: JsonLdObject,
 {
@@ -21,7 +21,7 @@ where
     }
 }
 
-impl<'a, T> JsonLdNodeObject for CredentialRef<'a, T>
+impl<T> JsonLdNodeObject for CredentialRef<'_, T>
 where
     T: JsonLdNodeObject,
 {
@@ -30,15 +30,17 @@ where
     }
 }
 
-impl<'a, T> Expandable for CredentialRef<'a, T>
+impl<T> Expandable for CredentialRef<'_, T>
 where
     T: Expandable,
 {
     type Error = T::Error;
 
-    type Expanded<I: Interpretation, V: VocabularyMut> = T::Expanded<I, V> where
-    V::Iri: LinkedDataResource<I, V> + LinkedDataSubject<I, V>,
-    V::BlankId: LinkedDataResource<I, V> + LinkedDataSubject<I, V>;
+    type Expanded<I: Interpretation, V: VocabularyMut>
+        = T::Expanded<I, V>
+    where
+        V::Iri: LinkedDataResource<I, V> + LinkedDataSubject<I, V>,
+        V::BlankId: LinkedDataResource<I, V> + LinkedDataSubject<I, V>;
 
     async fn expand_with<I, V>(
         &self,
