@@ -75,9 +75,7 @@ describe("can execute mdoc-related operations", () => {
       },
     });
 
-    const presenter = new PendingMDocPresentation(resolvedVerifierKey, {
-      "org.iso.18013.5.1.mDL": mdoc,
-    });
+    const presenter = new PendingMDocPresentation(resolvedVerifierKey, [deviceInternalMDoc]);
 
     presenter.consent(
       resolvedPrivateDeviceKey,
