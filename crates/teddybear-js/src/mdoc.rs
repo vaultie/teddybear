@@ -65,46 +65,124 @@ impl MDocBuilder {
 }
 
 #[wasm_bindgen]
-pub fn namespaces(document: Uint8Array) -> Result<Object, JsError> {
-    let namespaces = teddybear_mdoc::namespaces(&document.to_vec())?;
-    Ok(namespaces.serialize(&OBJECT_SERIALIZER)?.into())
+pub struct MDocValidityInfo(#[allow(dead_code)] teddybear_mdoc::ValidityInfo);
+
+#[wasm_bindgen]
+impl MDocValidityInfo {
+    #[cfg(target_family = "wasm")]
+    pub fn signed(&self) -> js_sys::Date {
+        self.0.signed.into()
+    }
+
+    #[cfg(target_family = "wasm")]
+    #[wasm_bindgen(js_name = "validFrom")]
+    pub fn valid_from(&self) -> js_sys::Date {
+        self.0.valid_from.into()
+    }
+
+    #[cfg(target_family = "wasm")]
+    #[wasm_bindgen(js_name = "validUntil")]
+    pub fn valid_until(&self) -> js_sys::Date {
+        self.0.valid_until.into()
+    }
+
+    #[cfg(target_family = "wasm")]
+    #[wasm_bindgen(js_name = "expectedUpdate")]
+    pub fn expected_update(&self) -> Option<js_sys::Date> {
+        self.0.expected_update.map(Into::into)
+    }
 }
 
-#[wasm_bindgen(js_name = "presentMDoc")]
-pub fn present(
-    device_key: &PrivateSecp256r1,
-    verifier_key: &PublicSecp256r1,
-    documents: Object,
-    requests: Object,
-    permits: Object,
-) -> Result<Uint8Array, JsError> {
-    let documents = Object::entries(&documents).into_iter().map(|val| {
-        let array: Array = val.into();
+#[wasm_bindgen]
+pub struct DeviceInternalMDoc(teddybear_mdoc::DeviceInternalMDoc);
 
-        let name = JsString::from(array.get(0)).into();
-        let value = Uint8Array::from(array.get(1)).to_vec();
+#[wasm_bindgen]
+impl DeviceInternalMDoc {
+    #[wasm_bindgen(constructor)]
+    pub fn new(value: Uint8Array) -> Result<DeviceInternalMDoc, JsError> {
+        Ok(Self(teddybear_mdoc::DeviceInternalMDoc::from_bytes(
+            &value.to_vec(),
+        )?))
+    }
 
-        (name, value)
-    });
+    #[wasm_bindgen(js_name = "fromIssuedBytes")]
+    pub fn from_issued_bytes(value: Uint8Array) -> Result<DeviceInternalMDoc, JsError> {
+        Ok(Self(teddybear_mdoc::DeviceInternalMDoc::from_issued_bytes(
+            &value.to_vec(),
+        )?))
+    }
 
-    let requests = Object::entries(&requests)
-        .into_iter()
-        .map(|val| {
+    #[wasm_bindgen(js_name = "docType")]
+    pub fn doc_type(&self) -> String {
+        self.0.doc_type().into()
+    }
+
+    pub fn namespaces(&self) -> Result<Object, JsError> {
+        Ok(self.0.namespaces().serialize(&OBJECT_SERIALIZER)?.into())
+    }
+
+    pub fn validity_info(&self) -> MDocValidityInfo {
+        MDocValidityInfo(self.0.validity_info().clone())
+    }
+
+    #[wasm_bindgen(js_name = "toBytes")]
+    pub fn to_bytes(&self) -> Result<Uint8Array, JsError> {
+        Ok(self.0.to_bytes()?.as_slice().into())
+    }
+}
+
+#[wasm_bindgen]
+pub struct PendingMDocPresentation(teddybear_mdoc::PendingPresentation);
+
+#[wasm_bindgen]
+impl PendingMDocPresentation {
+    #[wasm_bindgen(constructor)]
+    pub fn new(
+        verifier_key: &PublicSecp256r1,
+        documents: Object,
+    ) -> Result<PendingMDocPresentation, JsError> {
+        let documents = Object::entries(&documents).into_iter().map(|val| {
             let array: Array = val.into();
 
             let name = JsString::from(array.get(0)).into();
-            let value = serde_wasm_bindgen::from_value(array.get(1))?;
+            let value = Uint8Array::from(array.get(1)).to_vec();
 
-            Ok((name, value))
-        })
-        .collect::<Result<Vec<_>, JsError>>()?;
+            (name, value)
+        });
 
-    let permits = serde_wasm_bindgen::from_value(permits.into())?;
+        let initialized = teddybear_mdoc::PendingPresentation::start(
+            &verifier_key.0,
+            Default::default(),
+            documents,
+        )?;
 
-    let presented =
-        teddybear_mdoc::present(&device_key.0, &verifier_key.0, documents, requests, permits)?
+        Ok(Self(initialized))
+    }
+
+    pub fn consent(
+        self,
+        device_key: &PrivateSecp256r1,
+        requests: Object,
+        permits: Object,
+    ) -> Result<Uint8Array, JsError> {
+        let requests = Object::entries(&requests)
+            .into_iter()
+            .map(|val| {
+                let array: Array = val.into();
+
+                let name = JsString::from(array.get(0)).into();
+                let value = serde_wasm_bindgen::from_value(array.get(1))?;
+
+                Ok((name, value))
+            })
+            .collect::<Result<Vec<_>, JsError>>()?;
+
+        let permits = serde_wasm_bindgen::from_value(permits.into())?;
+
+        Ok(self
+            .0
+            .consent(&device_key.0, requests, permits)?
             .as_slice()
-            .into();
-
-    Ok(presented)
+            .into())
+    }
 }

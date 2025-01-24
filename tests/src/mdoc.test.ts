@@ -1,9 +1,9 @@
 import {
+  DeviceInternalMDoc,
   JWK,
   MDocBuilder,
+  PendingMDocPresentation,
   PrivateSecp256r1,
-  namespaces,
-  presentMDoc,
 } from "@vaultie/teddybear";
 import { readFileSync } from "fs";
 import { describe, expect, it } from "vitest";
@@ -64,8 +64,10 @@ describe("can execute mdoc-related operations", () => {
 
     expect(mdoc).toBeDefined();
 
-    const extractedNamespaces = namespaces(mdoc);
+    const deviceInternalMDoc = DeviceInternalMDoc.fromIssuedBytes(mdoc);
+    expect(deviceInternalMDoc.docType(), "org.iso.18013.5.1.mDL");
 
+    const extractedNamespaces = deviceInternalMDoc.namespaces();
     expect(extractedNamespaces).toMatchObject({
       "org.iso.18013.5.1": {
         given_name: "John",
@@ -73,12 +75,12 @@ describe("can execute mdoc-related operations", () => {
       },
     });
 
-    presentMDoc(
+    const presenter = new PendingMDocPresentation(resolvedVerifierKey, {
+      "org.iso.18013.5.1.mDL": mdoc,
+    });
+
+    presenter.consent(
       resolvedPrivateDeviceKey,
-      resolvedVerifierKey,
-      {
-        "org.iso.18013.5.1.mDL": mdoc,
-      },
       {
         "org.iso.18013.5.1.mDL": {
           "org.iso.18013.5.1": {
