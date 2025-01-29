@@ -14,13 +14,15 @@
 }:
 lib.makeScope newScope (self: {
   # https://webassembly.org/features
-  # https://github.com/rust-lang/rust/blob/master/compiler/rustc_target/src/target_features.rs#L323-L337
-  enabledWasmFeatures = [
-    "bulk-memory"
-    "mutable-globals"
-    "nontrapping-fptoint"
-    "sign-ext"
-    "simd128"
+  # https://github.com/rust-lang/rust/blob/a1d7676d6a8c6ff13f9165e98cc25eeec66cb592/compiler/rustc_target/src/target_features.rs#L520-L536
+  wasmFeatures = [
+    "+bulk-memory"
+    "+multivalue"
+    "+mutable-globals"
+    "+nontrapping-fptoint"
+    "+sign-ext"
+    "+simd128"
+    "-reference-types"
   ];
 
   # Potentially, some unused code may be introduced into the resulting WASM blob,
@@ -52,31 +54,37 @@ lib.makeScope newScope (self: {
   wasmArgs =
     self.commonArgs
     // {
-      RUSTFLAGS = let
-        fmt = lib.concatMapStringsSep "," (f: "+${f}") self.enabledWasmFeatures;
-      in "-C target-feature=${fmt}";
+      cargoVendorDir = self.craneLib.vendorMultipleCargoDeps {
+        inherit (self.craneLib.findCargoFiles src) cargoConfigs;
 
+        cargoLockList = [
+          "${src}/Cargo.lock"
+          "${self.fenix.complete.rust-src}/lib/rustlib/src/rust/library/Cargo.lock"
+        ];
+      };
+
+      RUSTFLAGS = "-Ctarget-cpu=mvp -C target-feature=${lib.concatStringsSep "," self.wasmFeatures}";
       CARGO_BUILD_TARGET = "wasm32-unknown-unknown";
     };
 
-  rustToolchain = with fenix.packages.${system};
+  fenix = fenix.packages.${system};
+  rustToolchain = with self.fenix;
     combine [
-      stable.rustc
-      stable.cargo
-      stable.clippy
-      stable.rustfmt
-
-      targets.wasm32-unknown-unknown.stable.rust-std
+      complete.rustc
+      complete.cargo
+      complete.clippy
+      complete.rustfmt
+      complete.rust-src
     ];
 
   craneLib = (crane.mkLib self).overrideToolchain self.rustToolchain;
 
   cargoArtifacts = self.craneLib.buildDepsOnly self.nativeArgs;
+
   wasmCargoArtifacts = self.craneLib.buildDepsOnly (self.wasmArgs
     // {
       doCheck = false;
-
-      cargoExtraArgs = "-p teddybear-js --locked";
+      cargoExtraArgs = "-Z build-std=std,panic_abort -p teddybear-js --locked";
     });
 
   esm = self.callPackage ./package.nix {buildForNode = false;};
