@@ -1,5 +1,6 @@
-import { C2PABuilder, PrivateEd25519, verifyC2PA } from "@vaultie/teddybear";
+import { C2PABuilder, ContextLoader, DIDURL, PrivateEd25519, verifyC2PA } from "@vaultie/teddybear";
 import { readFileSync } from "fs";
+import { readFile } from "fs/promises";
 import { TestAPI, describe, expect, it } from "vitest";
 
 const image = readFileSync(process.env.PLACEHOLDER_IMAGE!);
@@ -58,6 +59,48 @@ describe("can execute C2PA operations", () => {
   });
 
   c2paTest("can sign a PDF file", async ({ key }) => {
+    const contextLoader = new ContextLoader({
+      "https://w3c.credential.nexus/identity": (
+        await readFile(process.env.IDENTITY_CONTEXT!)
+      ).toString("utf-8"),
+    });
+
+    const credentialKey = PrivateEd25519.generate();
+    const vc = await credentialKey.issueVC(
+      new DIDURL(`${credentialKey.toDIDKey()}#${credentialKey.toDIDKeyURLFragment()}`),
+      {
+        "@context": [
+          "https://www.w3.org/ns/credentials/v2",
+          "https://w3c.credential.nexus/identity",
+        ],
+        type: ["VerifiableCredential", "Identity"],
+        id: "https://example.com/test",
+        issuer: key.toDIDKey().toString(),
+        issuanceDate: new Date().toISOString(),
+        credentialSubject: {
+          id: "https://example.com",
+          type: "Person",
+          givenName: "John",
+          familyName: "Doe",
+          birthDate: "2000-01-01",
+          document: {
+            type: "Document",
+            identifier: {
+              type: "Identifier",
+              idType: "documentNumber",
+              idValue: "123-123-123",
+            },
+            documentType: "identificationCard",
+            issuingCountry: "AA",
+            issuingState: "AA",
+            issuanceDate: "2020-01-01",
+            expirationDate: "2030-01-01",
+          },
+        },
+      },
+      contextLoader
+    )
+
     const { signedPayload } = await new C2PABuilder()
       .setManifestDefinition({
         title: "Test PDF",
@@ -73,6 +116,7 @@ describe("can execute C2PA operations", () => {
           },
         ],
       })
+      .addVerifiableCredential(vc)
       .setThumbnail(new Uint8Array(thumbnail), "image/jpeg")
       .sign(
         key,
@@ -93,6 +137,8 @@ describe("can execute C2PA operations", () => {
     expect(manifests[0].assertions[0].data.url).toStrictEqual(
       "https://example.com",
     );
+
+    expect(manifests[0].credentials).toHaveLength(1);
   });
 
   c2paTest("can verify a damaged file", async ({ key }) => {
