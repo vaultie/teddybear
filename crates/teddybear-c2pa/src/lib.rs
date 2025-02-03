@@ -1,7 +1,7 @@
 use c2pa::{Signer, SigningAlg};
 use ed25519_dalek::{Signer as _, SigningKey};
 
-pub use c2pa::{validation_status::ValidationStatus, Builder, Error, ManifestDefinition, Reader};
+pub use c2pa::{validation_status::ValidationStatus, Error, Manifest, Reader};
 
 pub struct Ed25519Signer {
     key: SigningKey,

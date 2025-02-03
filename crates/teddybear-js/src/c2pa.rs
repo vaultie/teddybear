@@ -3,7 +3,7 @@ use std::io::Cursor;
 use itertools::Itertools;
 use js_sys::{Object, Uint8Array};
 use serde::Serialize;
-use teddybear_c2pa::{Builder, Ed25519Signer, Reader, ValidationStatus};
+use teddybear_c2pa::{Ed25519Signer, Manifest, Reader, ValidationStatus};
 use wasm_bindgen::prelude::*;
 
 use crate::{ed25519::PrivateEd25519, OBJECT_SERIALIZER};
@@ -33,18 +33,18 @@ impl C2paSignatureResult {
 ///
 /// @category C2PA
 #[wasm_bindgen(js_name = "C2PABuilder")]
-pub struct C2paBuilder(Builder);
+pub struct C2paBuilder(Manifest);
 
 #[wasm_bindgen(js_class = "C2PABuilder")]
 impl C2paBuilder {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
-        Self(Builder::default())
+        Self(Manifest::default())
     }
 
     #[wasm_bindgen(js_name = "setManifestDefinition")]
     pub fn set_manifest_definition(mut self, definition: Object) -> Result<C2paBuilder, JsError> {
-        self.0.definition = serde_wasm_bindgen::from_value(definition.into())?;
+        self.0 = serde_wasm_bindgen::from_value(definition.into())?;
         Ok(self)
     }
 
@@ -54,8 +54,14 @@ impl C2paBuilder {
         source: Uint8Array,
         format: &str,
     ) -> Result<C2paBuilder, JsError> {
-        let mut source = Cursor::new(source.to_vec());
-        self.0.set_thumbnail(format, &mut source)?;
+        self.0.set_thumbnail(format, source.to_vec())?;
+        Ok(self)
+    }
+
+    #[wasm_bindgen(js_name = "addVerifiableCredential")]
+    pub fn add_verifiable_credential(mut self, credential: Object) -> Result<C2paBuilder, JsError> {
+        let value: serde_json::Value = serde_wasm_bindgen::from_value(credential.into())?;
+        self.0.add_verifiable_credential(&value)?;
         Ok(self)
     }
 
@@ -74,7 +80,9 @@ impl C2paBuilder {
             certificates.into_iter().map(|val| val.to_vec()).collect(),
         );
 
-        let manifest = self.0.sign(&signer, format, &mut source, &mut dest)?;
+        let manifest = self
+            .0
+            .embed_to_stream(format, &mut source, &mut dest, &signer)?;
 
         Ok(C2paSignatureResult(dest.into_inner(), manifest))
     }
