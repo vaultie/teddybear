@@ -16,6 +16,7 @@ mod jwk;
 mod jws;
 mod mdoc;
 mod p256;
+mod sd_jwt;
 mod w3c;
 mod x25519;
 

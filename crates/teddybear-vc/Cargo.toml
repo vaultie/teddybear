@@ -16,5 +16,5 @@ ssi-verification-methods.workspace = true
 ed25519-dalek.workspace = true
 itertools.workspace = true
 serde.workspace = true
-teddybear-crypto .workspace = true
+teddybear-crypto.workspace = true
 thiserror.workspace = true
