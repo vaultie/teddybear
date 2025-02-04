@@ -5,6 +5,7 @@ use serde::Serialize;
 use teddybear_crypto::{DIDBuf, DIDURLBuf, JwkVerificationMethod, X25519KeyAgreementKey2020};
 use teddybear_jwe::{A256Gcm, X25519KeyPair, XC20P};
 use wasm_bindgen::prelude::*;
+use wasm_bindgen_derive::{try_from_js_array, TryFromJsValue};
 
 use crate::{
     document::{DID, DIDURL},
@@ -12,6 +13,12 @@ use crate::{
     jwk::JWK,
     OBJECT_SERIALIZER,
 };
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "PublicX25519[]")]
+    pub type PublicX25519Array;
+}
 
 /// Private X25519 key.
 ///
@@ -54,7 +61,7 @@ impl PrivateX25519 {
     pub fn decrypt_aes(
         &self,
         verification_method: &DIDURL,
-        jwe: Jwe,
+        jwe: &Jwe,
     ) -> Result<Uint8Array, JsError> {
         let jwe = serde_wasm_bindgen::from_value(jwe.into())?;
         let payload = &*teddybear_jwe::decrypt::<A256Gcm, X25519KeyPair>(
@@ -70,7 +77,7 @@ impl PrivateX25519 {
     pub fn decrypt_chacha20(
         &self,
         verification_method: &DIDURL,
-        jwe: Jwe,
+        jwe: &Jwe,
     ) -> Result<Uint8Array, JsError> {
         let jwe = serde_wasm_bindgen::from_value(jwe.into())?;
         let payload = &*teddybear_jwe::decrypt::<XC20P, X25519KeyPair>(
@@ -85,8 +92,8 @@ impl PrivateX25519 {
     pub fn add_aes_recipient(
         &self,
         verification_method: &DIDURL,
-        jwe: Jwe,
-        recipient: PublicX25519,
+        jwe: &Jwe,
+        recipient: &PublicX25519,
     ) -> Result<JweRecipient, JsError> {
         let jwe = serde_wasm_bindgen::from_value(jwe.into())?;
         let recipient = teddybear_jwe::add_recipient::<A256Gcm, X25519KeyPair>(
@@ -103,8 +110,8 @@ impl PrivateX25519 {
     pub fn add_chacha20_recipient(
         &self,
         verification_method: &DIDURL,
-        jwe: Jwe,
-        recipient: PublicX25519,
+        jwe: &Jwe,
+        recipient: &PublicX25519,
     ) -> Result<JweRecipient, JsError> {
         let jwe = serde_wasm_bindgen::from_value(jwe.into())?;
         let recipient = teddybear_jwe::add_recipient::<XC20P, X25519KeyPair>(
@@ -121,7 +128,9 @@ impl PrivateX25519 {
 /// Public X25519 key.
 ///
 /// @category Keys
+#[derive(TryFromJsValue)]
 #[wasm_bindgen]
+#[derive(Clone)]
 pub struct PublicX25519(pub(crate) X25519KeyAgreementKey2020);
 
 #[wasm_bindgen]
@@ -154,7 +163,12 @@ impl PublicX25519 {
 
     /// Encrypt the provided payload for the provided recipient array using A256GCM algorithm.
     #[wasm_bindgen(js_name = "encryptAES")]
-    pub fn encrypt_aes(payload: Uint8Array, recipients: Vec<PublicX25519>) -> Result<Jwe, JsError> {
+    pub fn encrypt_aes(
+        payload: Uint8Array,
+        recipients: &PublicX25519Array,
+    ) -> Result<Jwe, JsError> {
+        let recipients = try_from_js_array::<PublicX25519>(recipients).unwrap();
+
         let jwe = teddybear_jwe::encrypt::<A256Gcm, X25519KeyPair, _>(
             &payload.to_vec(),
             recipients
@@ -169,8 +183,10 @@ impl PublicX25519 {
     #[wasm_bindgen(js_name = "encryptChaCha20")]
     pub fn encrypt_chacha20(
         payload: Uint8Array,
-        recipients: Vec<PublicX25519>,
+        recipients: &PublicX25519Array,
     ) -> Result<Jwe, JsError> {
+        let recipients = try_from_js_array::<PublicX25519>(recipients).unwrap();
+
         let jwe = teddybear_jwe::encrypt::<XC20P, X25519KeyPair, _>(
             &payload.to_vec(),
             recipients
