@@ -107,4 +107,18 @@ describe("can execute p256 operations", () => {
       value,
     );
   });
+
+  it("can re-use the same recipient twice", async () => {
+    const { publicKey, privateKey, vm } = await generateP256();
+
+    const value = new TextEncoder().encode("Hello, world");
+
+    const first = PublicSecp256r1.encryptAES(value, [publicKey]);
+    const second = PublicSecp256r1.encryptAES(value, [publicKey]);
+
+    const firstDecrypted = privateKey.decryptAES(vm, first);
+    const secondDecrypted = privateKey.decryptAES(vm, second);
+
+    expect(firstDecrypted).toStrictEqual(secondDecrypted);
+  });
 });

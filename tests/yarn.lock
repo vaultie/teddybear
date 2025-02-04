@@ -332,10 +332,10 @@
   dependencies:
     undici-types "~6.19.2"
 
-"@vaultie/teddybear@^0.18.2":
-  version "0.18.2"
-  resolved "https://registry.yarnpkg.com/@vaultie/teddybear/-/teddybear-0.18.2.tgz#25c1d079b43e5ae590e71d923002e33eacb9a28e"
-  integrity sha512-Sgndy9791TZbWzBvDCrsyf7vUXtAweqsfq5JST10CTS6eeoaNeSpdbPO7aLod9a9i35XTcDu/aMcDrvxsKPumA==
+"@vaultie/teddybear@^0.20.3":
+  version "0.20.3"
+  resolved "https://registry.yarnpkg.com/@vaultie/teddybear/-/teddybear-0.20.3.tgz#feeb07e75c6f98dbe239fe5cf06bcf45fe3d4e17"
+  integrity sha512-+L6F02QYOT/asW6L8I0Eid1V5KVJVZrR5kkn20cQu25o9MGFV9ZQPy+hJ1nNY3JMpQRc9/yWMqmRWcWXqRdyLQ==
 
 "@vitest/expect@1.6.0":
   version "1.6.0"

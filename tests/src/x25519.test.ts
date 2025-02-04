@@ -185,4 +185,18 @@ describe("can execute x25519 operations", () => {
       value,
     );
   });
+
+  it("can re-use the same recipient twice", async () => {
+    const { publicX25519, privateX25519, x25519VM } = await generateX25519();
+
+    const value = new TextEncoder().encode("Hello, world");
+
+    const first = PublicX25519.encryptAES(value, [publicX25519]);
+    const second = PublicX25519.encryptAES(value, [publicX25519]);
+
+    const firstDecrypted = privateX25519.decryptAES(x25519VM, first);
+    const secondDecrypted = privateX25519.decryptAES(x25519VM, second);
+
+    expect(firstDecrypted).toStrictEqual(secondDecrypted);
+  });
 });

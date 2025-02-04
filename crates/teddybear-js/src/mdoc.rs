@@ -1,11 +1,18 @@
 use js_sys::{Array, JsString, Object, Uint8Array};
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
+use wasm_bindgen_derive::{try_from_js_array, TryFromJsValue};
 
 use crate::{
     p256::{PrivateSecp256r1, PublicSecp256r1},
     OBJECT_SERIALIZER,
 };
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "DeviceInternalMDoc[]")]
+    pub type DeviceInternalMDocArray;
+}
 
 #[wasm_bindgen]
 pub struct MDocBuilder(teddybear_mdoc::MDocBuilder);
@@ -93,7 +100,9 @@ impl MDocValidityInfo {
     }
 }
 
+#[derive(TryFromJsValue)]
 #[wasm_bindgen]
+#[derive(Clone)]
 pub struct DeviceInternalMDoc(teddybear_mdoc::DeviceInternalMDoc);
 
 #[wasm_bindgen]
@@ -139,8 +148,10 @@ impl PendingMDocPresentation {
     #[wasm_bindgen(constructor)]
     pub fn new(
         verifier_key: &PublicSecp256r1,
-        documents: Vec<DeviceInternalMDoc>,
+        documents: &DeviceInternalMDocArray,
     ) -> Result<PendingMDocPresentation, JsError> {
+        let documents = try_from_js_array::<DeviceInternalMDoc>(documents).unwrap();
+
         let initialized = teddybear_mdoc::PendingPresentation::start(
             &verifier_key.0,
             Default::default(),

@@ -5270,6 +5270,7 @@ dependencies = [
  "teddybear-sd-jwt",
  "teddybear-vc",
  "wasm-bindgen",
+ "wasm-bindgen-derive",
  "wasm-bindgen-futures",
 ]
 
@@ -5850,6 +5851,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "wasm-bindgen-derive"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8ab8fdb87408dab27d43267c311c89135b35d13f8b3081e88451ddeff742c93a"
+dependencies = [
+ "js-sys",
+ "wasm-bindgen",
+ "wasm-bindgen-derive-macro",
+]
+
+[[package]]
+name = "wasm-bindgen-derive-macro"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f2fbc080f15cb38f447d52bbae64630c2d4925a9ecb5d140d56c0910b69b4cc7"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
 name = "wasm-bindgen-futures"
 version = "0.4.50"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6106,9 +6129,9 @@ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 
 [[package]]
 name = "winnow"
-version = "0.7.1"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "86e376c75f4f43f44db463cf729e0d3acbf954d13e22c51e26e4c264b4ab545f"
+checksum = "7e49d2d35d3fad69b39b94139037ecfb4f359f08958b9c11e7315ce770462419"
 dependencies = [
  "memchr",
 ]

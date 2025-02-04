@@ -117,6 +117,7 @@ impl Default for MDocBuilder {
     }
 }
 
+#[derive(Clone)]
 pub struct DeviceInternalMDoc(Document);
 
 impl DeviceInternalMDoc {
