@@ -10,19 +10,20 @@ repository = "https://github.com/vaultie/teddybear"
 categories = ["cryptography", "wasm"]
 
 [workspace.dependencies]
-ssi-claims = { git = "https://github.com/vaultie/ssi", branch = "pre-merge", default-features = false, features = ["ed25519", "w3c"] }
-ssi-dids-core = { git = "https://github.com/vaultie/ssi", branch = "pre-merge", default-features = false }
-ssi-json-ld = { git = "https://github.com/vaultie/ssi", branch = "pre-merge", default-features = false }
-ssi-jwk = { git = "https://github.com/vaultie/ssi", branch = "pre-merge", default-features = false, features = ["ed25519", "secp256r1"] }
-ssi-jws = { git = "https://github.com/vaultie/ssi", branch = "pre-merge", default-features = false, features = ["ed25519"] }
-ssi-multicodec = { git = "https://github.com/vaultie/ssi", branch = "pre-merge", default-features = false }
-ssi-rdf = { git = "https://github.com/vaultie/ssi", branch = "pre-merge", default-features = false }
-ssi-security = { git = "https://github.com/vaultie/ssi", branch = "pre-merge", default-features = false }
-ssi-status = { git = "https://github.com/vaultie/ssi", branch = "pre-merge", default-features = false }
-ssi-vc = { git = "https://github.com/vaultie/ssi", branch = "pre-merge", default-features = false }
-ssi-verification-methods = { git = "https://github.com/vaultie/ssi", branch = "pre-merge", default-features = false, features = ["ed25519", "secp256r1"] }
+ssi-claims = { git = "https://github.com/spruceid/ssi", default-features = false, features = ["ed25519", "w3c"] }
+ssi-dids-core = { git = "https://github.com/spruceid/ssi", default-features = false }
+ssi-json-ld = { git = "https://github.com/spruceid/ssi", default-features = false }
+ssi-jwk = { git = "https://github.com/spruceid/ssi", default-features = false, features = ["ed25519", "secp256r1"] }
+ssi-jws = { git = "https://github.com/spruceid/ssi", default-features = false, features = ["ed25519"] }
+ssi-jwt = { git = "https://github.com/spruceid/ssi", default-features = false }
+ssi-multicodec = { git = "https://github.com/spruceid/ssi", default-features = false }
+ssi-rdf = { git = "https://github.com/spruceid/ssi", default-features = false }
+ssi-security = { git = "https://github.com/spruceid/ssi", default-features = false }
+ssi-sd-jwt = { git = "https://github.com/spruceid/ssi", default-features = false }
+ssi-vc = { git = "https://github.com/spruceid/ssi", default-features = false }
+ssi-verification-methods = { git = "https://github.com/spruceid/ssi", default-features = false, features = ["ed25519", "secp256r1"] }
 
-did-web = { git = "https://github.com/vaultie/ssi", branch = "pre-merge", default-features = false }
+did-web = { git = "https://github.com/spruceid/ssi", default-features = false }
 
 anyhow = "1.0.93"
 base64 = "0.22.1"
@@ -45,6 +46,7 @@ teddybear-did-key.path = "crates/teddybear-did-key"
 teddybear-high-assurance.path = "crates/teddybear-high-assurance"
 teddybear-jwe.path = "crates/teddybear-jwe"
 teddybear-mdoc.path = "crates/teddybear-mdoc"
+teddybear-sd-jwt.path = "crates/teddybear-sd-jwt"
 teddybear-vc.path = "crates/teddybear-vc"
 
 [profile.release]

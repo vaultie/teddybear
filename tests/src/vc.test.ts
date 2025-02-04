@@ -39,7 +39,7 @@ describe("can execute verifiable credentials operations", () => {
         type: ["VerifiableCredential", "Identity"],
         id: "https://example.com/test",
         issuer: key.toDIDKey().toString(),
-        issuanceDate: new Date().toISOString(),
+        validFrom: new Date().toISOString(),
         credentialSubject: {
           type: "Person",
           givenName: "John",
@@ -75,7 +75,7 @@ describe("can execute verifiable credentials operations", () => {
         type: ["VerifiableCredential", "Identity"],
         id: "https://example.com/test",
         issuer: key.toDIDKey().toString(),
-        issuanceDate: new Date().toISOString(),
+        validFrom: new Date().toISOString(),
         credentialSubject: {
           type: "Person",
           givenName: "John",

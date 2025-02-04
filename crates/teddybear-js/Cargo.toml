@@ -14,9 +14,8 @@ teddybear-c2pa.workspace = true
 teddybear-crypto.workspace = true
 teddybear-jwe.workspace = true
 teddybear-mdoc.workspace = true
+teddybear-sd-jwt.workspace = true
 teddybear-vc.workspace = true
-
-ssi-status.workspace = true
 
 itertools.workspace = true
 serde.workspace = true

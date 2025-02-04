@@ -1,4 +1,10 @@
-import { C2PABuilder, ContextLoader, DIDURL, PrivateEd25519, verifyC2PA } from "@vaultie/teddybear";
+import {
+  C2PABuilder,
+  ContextLoader,
+  DIDURL,
+  PrivateEd25519,
+  verifyC2PA,
+} from "@vaultie/teddybear";
 import { readFileSync } from "fs";
 import { readFile } from "fs/promises";
 import { TestAPI, describe, expect, it } from "vitest";
@@ -67,7 +73,9 @@ describe("can execute C2PA operations", () => {
 
     const credentialKey = PrivateEd25519.generate();
     const vc = await credentialKey.issueVC(
-      new DIDURL(`${credentialKey.toDIDKey()}#${credentialKey.toDIDKeyURLFragment()}`),
+      new DIDURL(
+        `${credentialKey.toDIDKey()}#${credentialKey.toDIDKeyURLFragment()}`,
+      ),
       {
         "@context": [
           "https://www.w3.org/ns/credentials/v2",
@@ -76,7 +84,7 @@ describe("can execute C2PA operations", () => {
         type: ["VerifiableCredential", "Identity"],
         id: "https://example.com/test",
         issuer: key.toDIDKey().toString(),
-        issuanceDate: new Date().toISOString(),
+        validFrom: new Date().toISOString(),
         credentialSubject: {
           id: "https://example.com",
           type: "Person",
@@ -98,8 +106,8 @@ describe("can execute C2PA operations", () => {
           },
         },
       },
-      contextLoader
-    )
+      contextLoader,
+    );
 
     const { signedPayload } = await new C2PABuilder()
       .setManifestDefinition({

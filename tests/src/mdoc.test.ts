@@ -75,7 +75,9 @@ describe("can execute mdoc-related operations", () => {
       },
     });
 
-    const presenter = new PendingMDocPresentation(resolvedVerifierKey, [deviceInternalMDoc]);
+    const presenter = new PendingMDocPresentation(resolvedVerifierKey, [
+      deviceInternalMDoc,
+    ]);
 
     presenter.consent(
       resolvedPrivateDeviceKey,

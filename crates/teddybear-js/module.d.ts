@@ -53,7 +53,7 @@
  *     type: ["VerifiableCredential"],
  *     id: "https://example.com/test",
  *     issuer: "did:web:example.com",
- *     issuanceDate: new Date().toISOString(),
+ *     validFrom: new Date().toISOString(),
  *     credentialSubject: {}
  *   },
  *   contextLoader,

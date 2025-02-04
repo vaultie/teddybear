@@ -432,7 +432,7 @@ pub fn verify_jws_with_embedded_jwk(
     let (jws, signing_bytes) = decode_jws_parts(header_b64, payload_enc.as_bytes(), signature_b64)?
         .into_jws_and_signing_bytes();
 
-    let key = jws.header.jwk.ok_or(ssi_jws::Error::InvalidJWS)?;
+    let key = jws.header.jwk.ok_or(ssi_jws::Error::InvalidJws)?;
 
     verify_bytes(jws.header.algorithm, &signing_bytes, &key, &jws.signature)?;
 
