@@ -261,6 +261,10 @@ pub struct SignOptions {
 
     /// Key identifier to embed as a `kid` field within the JWS header.
     pub key_identifier: Option<String>,
+
+    /// `typ` JWS header field value.
+    #[serde(rename = "type")]
+    pub ty: Option<String>,
 }
 
 impl Default for SignOptions {
@@ -268,6 +272,7 @@ impl Default for SignOptions {
         Self {
             embed_signing_key: true,
             key_identifier: None,
+            ty: None,
         }
     }
 }
@@ -325,6 +330,7 @@ impl PrivateEd25519 {
             algorithm: Algorithm::EdDSA,
             key_id: options.key_identifier,
             jwk: options.embed_signing_key.then(|| self.to_public_jwk()),
+            type_: options.ty,
             ..Default::default()
         };
 
@@ -415,6 +421,18 @@ impl PrivateSecp256r1 {
         controller: UriBuf,
     ) -> EcdsaSecp256r1VerificationKey2019 {
         EcdsaSecp256r1VerificationKey2019::from_public_key(id, controller, self.inner.public_key())
+    }
+
+    pub fn sign(&self, payload: &str, options: SignOptions) -> Result<String, ssi_jws::Error> {
+        let header = Header {
+            algorithm: Algorithm::ES256,
+            key_id: options.key_identifier,
+            jwk: options.embed_signing_key.then(|| self.to_public_jwk()),
+            type_: options.ty,
+            ..Default::default()
+        };
+
+        encode_sign_custom_header(payload, &self.to_private_jwk(), &header)
     }
 }
 

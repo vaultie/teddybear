@@ -15,16 +15,11 @@ use teddybear_vc::{
 use crate::{
     document::{DID, DIDURL},
     jwk::JWK,
+    jws::JwsOptions,
     w3c::ContextLoader,
     x25519::PrivateX25519,
     OBJECT_SERIALIZER,
 };
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(typescript_type = "JWSOptions")]
-    pub type JwsOptions;
-}
 
 /// Private Ed25519 key.
 ///

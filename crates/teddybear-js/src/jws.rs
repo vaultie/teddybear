@@ -3,6 +3,12 @@ use wasm_bindgen::prelude::*;
 
 use crate::jwk::JWK;
 
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "JWSOptions")]
+    pub type JwsOptions;
+}
+
 /// JWS verification result.
 ///
 /// @category JOSE
