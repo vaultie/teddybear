@@ -68,5 +68,6 @@ export type JWE = {
 export type JWSOptions = {
     embedSigningKey?: boolean;
     keyIdentifier?: string;
+    type?: string;
 };
 "#;
