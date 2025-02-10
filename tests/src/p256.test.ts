@@ -4,7 +4,9 @@ import {
   Document,
   PrivateSecp256r1,
   PublicSecp256r1,
+  verifyJWS,
 } from "@vaultie/teddybear";
+import { compactVerify, importJWK, JWK } from "jose";
 import { describe, it, expect } from "vitest";
 
 const generateP256 = async (): Promise<{
@@ -120,5 +122,29 @@ describe("can execute p256 operations", () => {
     const secondDecrypted = privateKey.decryptAES(vm, second);
 
     expect(firstDecrypted).toStrictEqual(secondDecrypted);
+  });
+
+  it("can sign JWS values", async () => {
+    const key = PrivateSecp256r1.generate();
+
+    const jws = key.signJWS("testvalue");
+
+    const { payload } = await compactVerify(
+      jws,
+      await importJWK(key.toPublicJWK().toJSON() as JWK),
+    );
+
+    expect(new TextDecoder().decode(payload)).toStrictEqual("testvalue");
+  });
+
+  it("can extract JWS payload", () => {
+    const key = PrivateSecp256r1.generate();
+
+    const jws = key.signJWS("testvalue");
+
+    const { jwk, payload } = verifyJWS(jws);
+
+    expect(jwk!.toJSON()).toStrictEqual(key.toPublicJWK().toJSON());
+    expect(new TextDecoder().decode(payload)).toStrictEqual("testvalue");
   });
 });

@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use js_sys::{Object, Uint8Array};
 use serde::Serialize;
-use teddybear_crypto::{DIDBuf, DIDURLBuf, JwkVerificationMethod};
+use teddybear_crypto::{DIDBuf, DIDURLBuf, JwkVerificationMethod, SignOptions};
 use teddybear_jwe::{A256Gcm, P256KeyPair, XC20P};
 use teddybear_vc::ssi_verification_methods::EcdsaSecp256r1VerificationKey2019;
 use wasm_bindgen::prelude::*;
@@ -12,6 +12,7 @@ use crate::{
     document::{DID, DIDURL},
     jwe::{Jwe, JweRecipient},
     jwk::JWK,
+    jws::JwsOptions,
     OBJECT_SERIALIZER,
 };
 
@@ -82,6 +83,18 @@ impl PrivateSecp256r1 {
             .to_verification_method(id.0.as_iri().to_owned(), controller.0.as_uri().to_owned());
 
         Ok(PublicSecp256r1(verification_method))
+    }
+
+    /// Sign the provided payload using the Secp256r1 key.
+    #[wasm_bindgen(js_name = "signJWS")]
+    pub fn sign_jws(&self, payload: &str, options: Option<JwsOptions>) -> Result<String, JsError> {
+        let options: SignOptions = options
+            .map(Into::into)
+            .map(serde_wasm_bindgen::from_value)
+            .transpose()?
+            .unwrap_or_default();
+
+        Ok(self.0.sign(payload, options)?)
     }
 
     /// Decrypt the provided JWE object using the X25519 key and the A256GCM algorithm.
