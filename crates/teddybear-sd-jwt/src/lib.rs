@@ -1,3 +1,5 @@
+mod claims;
+
 use std::str::FromStr;
 
 use ssi_jwk::JWK;
@@ -29,8 +31,8 @@ impl SdJwt {
         ))
     }
 
-    pub fn parse_untrusted(&self) -> Result<JWTClaims, Error> {
-        let revealed = self.0.decode_reveal_any().map_err(|_| Error::InvalidJwt)?;
+    pub fn parse_untrusted(&self) -> Result<JWTClaims<claims::AnyClaims>, Error> {
+        let revealed = self.0.decode_reveal().map_err(|_| Error::InvalidJwt)?;
         Ok(revealed.into_claims())
     }
 
@@ -55,10 +57,9 @@ impl SdJwt {
             })
             .collect::<Result<Vec<_>, _>>()?;
 
-        let cloned = self.clone();
-        let decoded = cloned
+        let decoded = self
             .0
-            .decode_reveal_any()
+            .decode_reveal::<claims::AnyClaims>()
             .map_err(|_| Error::InvalidJwt)?
             .retaining(&pointers);
 

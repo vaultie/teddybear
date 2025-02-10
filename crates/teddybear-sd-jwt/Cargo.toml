@@ -7,9 +7,11 @@ repository.workspace = true
 categories.workspace = true
 
 [dependencies]
+json-syntax = "0.12.5"
 ssi-jwk.workspace = true
 ssi-jws.workspace = true
 ssi-jwt.workspace = true
 ssi-sd-jwt.workspace = true
 
+serde.workspace = true
 thiserror.workspace = true

@@ -5307,6 +5307,8 @@ dependencies = [
 name = "teddybear-sd-jwt"
 version = "0.20.4"
 dependencies = [
+ "json-syntax",
+ "serde",
  "ssi-jwk 0.3.1",
  "ssi-jws",
  "ssi-jwt",
