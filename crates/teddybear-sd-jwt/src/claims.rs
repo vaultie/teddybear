@@ -1,3 +1,6 @@
+// A re-implementation of https://github.com/spruceid/ssi/blob/c281303f32eb5fc3fbb5bbeca6e820760b5d62d2/crates/claims/crates/jwt/src/claims/any.rs
+// using json_syntax instead of serde_json to correctly serialize numbers even with "arbitrary_precision" feature enabled.
+
 use std::{borrow::Cow, collections::BTreeMap};
 
 use json_syntax::Value;
