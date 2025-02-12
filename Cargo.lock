@@ -659,9 +659,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.2.11"
+version = "1.2.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4730490333d58093109dc02c23174c3f4d490998c3fed3cc8e82d57afedb9cf"
+checksum = "c7777341816418c02e033934a09f20dc0ccaf65a5201ef8a450ae0105a573fda"
 dependencies = [
  "shlex",
 ]
@@ -760,9 +760,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.27"
+version = "4.5.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "769b0145982b4b48713e01ec42d61614425f27b7058bda7180a3a41f30104796"
+checksum = "3e77c3243bd94243c03672cb5154667347c457ca271254724f9f393aee1c05ff"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -791,9 +791,9 @@ dependencies = [
 
 [[package]]
 name = "clap_derive"
-version = "4.5.24"
+version = "4.5.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54b755194d6389280185988721fffba69495eed5ee9feeee9a599b53db80318c"
+checksum = "bf4ced95c6f4a675af3da73304b9ac4ed991640c36374e4b46795c49e17cf1ed"
 dependencies = [
  "heck 0.5.0",
  "proc-macro2",
@@ -1111,15 +1111,15 @@ dependencies = [
 
 [[package]]
 name = "data-encoding"
-version = "2.7.0"
+version = "2.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e60eed09d8c01d3cee5b7d30acb059b76614c918fa0f992e0dd6eeb10daad6f"
+checksum = "575f75dfd25738df5b91b8e43e14d44bda14637a58fae779fd2b064f8bf3e010"
 
 [[package]]
 name = "data-encoding-macro"
-version = "0.1.16"
+version = "0.1.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b16d9d0d88a5273d830dac8b78ceb217ffc9b1d5404e5597a3542515329405b"
+checksum = "9f9724adfcf41f45bf652b3995837669d73c4d49a1b5ac1ff82905ac7d9b5558"
 dependencies = [
  "data-encoding",
  "data-encoding-macro-internal",
@@ -1127,9 +1127,9 @@ dependencies = [
 
 [[package]]
 name = "data-encoding-macro-internal"
-version = "0.1.14"
+version = "0.1.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1145d32e826a7748b69ee8fc62d3e6355ff7f1051df53141e7048162fc90481b"
+checksum = "18e4fdb82bd54a12e42fb58a800dcae6b9e13982238ce2296dc3570b92148e1f"
 dependencies = [
  "data-encoding",
  "syn 2.0.98",
@@ -1223,7 +1223,7 @@ dependencies = [
 [[package]]
 name = "did-web"
 version = "0.3.3"
-source = "git+https://github.com/spruceid/ssi#8ac7211b2aa3de22199386f15a17407b3d5f5252"
+source = "git+https://github.com/spruceid/ssi#c281303f32eb5fc3fbb5bbeca6e820760b5d62d2"
 dependencies = [
  "http",
  "reqwest",
@@ -1797,9 +1797,9 @@ checksum = "b07f60793ff0a4d9cef0f18e63b5357e06209987153a64648c972c1e5aff336f"
 
 [[package]]
 name = "hickory-proto"
-version = "0.24.2"
+version = "0.24.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "447afdcdb8afb9d0a852af6dc65d9b285ce720ed7a59e42a8bf2e931c67bc1b5"
+checksum = "2ad3d6d98c648ed628df039541a5577bee1a7c83e9e16fe3dbedeea4cdfeb971"
 dependencies = [
  "async-trait",
  "cfg-if",
@@ -2984,9 +2984,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.20.2"
+version = "1.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1261fe7e33c73b354eab43b1273a57c8f967d0391e80353e51f764ac02cf6775"
+checksum = "945462a4b81e43c4e3ba96bd7b49d834c6f61198356aa858733bc4acf3cbe62e"
 
 [[package]]
 name = "opaque-debug"
@@ -3102,9 +3102,9 @@ dependencies = [
 
 [[package]]
 name = "p384"
-version = "0.13.0"
+version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70786f51bcc69f6a4c0360e063a4cac5419ef7c5cd5b3c99ad70f3be5ba79209"
+checksum = "fe42f1670a52a47d448f14b6a5c61dd78fce51856e68edaa38f7ae3a46b8d6b6"
 dependencies = [
  "ecdsa",
  "elliptic-curve",
@@ -4356,7 +4356,7 @@ dependencies = [
 [[package]]
 name = "ssi-caips"
 version = "0.2.1"
-source = "git+https://github.com/spruceid/ssi#8ac7211b2aa3de22199386f15a17407b3d5f5252"
+source = "git+https://github.com/spruceid/ssi#c281303f32eb5fc3fbb5bbeca6e820760b5d62d2"
 dependencies = [
  "bs58",
  "linked-data",
@@ -4369,7 +4369,7 @@ dependencies = [
 [[package]]
 name = "ssi-claims"
 version = "0.2.0"
-source = "git+https://github.com/spruceid/ssi#8ac7211b2aa3de22199386f15a17407b3d5f5252"
+source = "git+https://github.com/spruceid/ssi#c281303f32eb5fc3fbb5bbeca6e820760b5d62d2"
 dependencies = [
  "educe 0.4.23",
  "iref",
@@ -4416,7 +4416,7 @@ dependencies = [
 [[package]]
 name = "ssi-claims-core"
 version = "0.1.3"
-source = "git+https://github.com/spruceid/ssi#8ac7211b2aa3de22199386f15a17407b3d5f5252"
+source = "git+https://github.com/spruceid/ssi#c281303f32eb5fc3fbb5bbeca6e820760b5d62d2"
 dependencies = [
  "chrono",
  "educe 0.4.23",
@@ -4437,7 +4437,7 @@ checksum = "53b9b14b02742a39a37d33c79d5fc6b0db9656089eabb6b5dc554aa1ddf9aa69"
 [[package]]
 name = "ssi-contexts"
 version = "0.1.9"
-source = "git+https://github.com/spruceid/ssi#8ac7211b2aa3de22199386f15a17407b3d5f5252"
+source = "git+https://github.com/spruceid/ssi#c281303f32eb5fc3fbb5bbeca6e820760b5d62d2"
 
 [[package]]
 name = "ssi-core"
@@ -4454,7 +4454,7 @@ dependencies = [
 [[package]]
 name = "ssi-core"
 version = "0.2.2"
-source = "git+https://github.com/spruceid/ssi#8ac7211b2aa3de22199386f15a17407b3d5f5252"
+source = "git+https://github.com/spruceid/ssi#c281303f32eb5fc3fbb5bbeca6e820760b5d62d2"
 dependencies = [
  "async-trait",
  "pin-project",
@@ -4465,7 +4465,7 @@ dependencies = [
 [[package]]
 name = "ssi-cose"
 version = "0.1.0"
-source = "git+https://github.com/spruceid/ssi#8ac7211b2aa3de22199386f15a17407b3d5f5252"
+source = "git+https://github.com/spruceid/ssi#c281303f32eb5fc3fbb5bbeca6e820760b5d62d2"
 dependencies = [
  "ciborium",
  "coset",
@@ -4502,7 +4502,7 @@ dependencies = [
 [[package]]
 name = "ssi-crypto"
 version = "0.2.1"
-source = "git+https://github.com/spruceid/ssi#8ac7211b2aa3de22199386f15a17407b3d5f5252"
+source = "git+https://github.com/spruceid/ssi#c281303f32eb5fc3fbb5bbeca6e820760b5d62d2"
 dependencies = [
  "async-trait",
  "bs58",
@@ -4522,7 +4522,7 @@ dependencies = [
 [[package]]
 name = "ssi-data-integrity"
 version = "0.1.1"
-source = "git+https://github.com/spruceid/ssi#8ac7211b2aa3de22199386f15a17407b3d5f5252"
+source = "git+https://github.com/spruceid/ssi#c281303f32eb5fc3fbb5bbeca6e820760b5d62d2"
 dependencies = [
  "chrono",
  "iref",
@@ -4550,7 +4550,7 @@ dependencies = [
 [[package]]
 name = "ssi-data-integrity-core"
 version = "0.2.1"
-source = "git+https://github.com/spruceid/ssi#8ac7211b2aa3de22199386f15a17407b3d5f5252"
+source = "git+https://github.com/spruceid/ssi#c281303f32eb5fc3fbb5bbeca6e820760b5d62d2"
 dependencies = [
  "chrono",
  "contextual",
@@ -4585,7 +4585,7 @@ dependencies = [
 [[package]]
 name = "ssi-data-integrity-suites"
 version = "0.1.2"
-source = "git+https://github.com/spruceid/ssi#8ac7211b2aa3de22199386f15a17407b3d5f5252"
+source = "git+https://github.com/spruceid/ssi#c281303f32eb5fc3fbb5bbeca6e820760b5d62d2"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -4632,7 +4632,7 @@ dependencies = [
 [[package]]
 name = "ssi-di-sd-primitives"
 version = "0.2.0"
-source = "git+https://github.com/spruceid/ssi#8ac7211b2aa3de22199386f15a17407b3d5f5252"
+source = "git+https://github.com/spruceid/ssi#c281303f32eb5fc3fbb5bbeca6e820760b5d62d2"
 dependencies = [
  "base64 0.22.1",
  "digest 0.10.7",
@@ -4654,7 +4654,7 @@ dependencies = [
 [[package]]
 name = "ssi-dids-core"
 version = "0.1.2"
-source = "git+https://github.com/spruceid/ssi#8ac7211b2aa3de22199386f15a17407b3d5f5252"
+source = "git+https://github.com/spruceid/ssi#c281303f32eb5fc3fbb5bbeca6e820760b5d62d2"
 dependencies = [
  "async-trait",
  "iref",
@@ -4696,7 +4696,7 @@ dependencies = [
 [[package]]
 name = "ssi-eip712"
 version = "0.1.0"
-source = "git+https://github.com/spruceid/ssi#8ac7211b2aa3de22199386f15a17407b3d5f5252"
+source = "git+https://github.com/spruceid/ssi#c281303f32eb5fc3fbb5bbeca6e820760b5d62d2"
 dependencies = [
  "hex",
  "indexmap 2.7.1",
@@ -4733,7 +4733,7 @@ dependencies = [
 [[package]]
 name = "ssi-json-ld"
 version = "0.3.1"
-source = "git+https://github.com/spruceid/ssi#8ac7211b2aa3de22199386f15a17407b3d5f5252"
+source = "git+https://github.com/spruceid/ssi#c281303f32eb5fc3fbb5bbeca6e820760b5d62d2"
 dependencies = [
  "combination",
  "iref",
@@ -4782,7 +4782,7 @@ dependencies = [
 [[package]]
 name = "ssi-jwk"
 version = "0.3.1"
-source = "git+https://github.com/spruceid/ssi#8ac7211b2aa3de22199386f15a17407b3d5f5252"
+source = "git+https://github.com/spruceid/ssi#c281303f32eb5fc3fbb5bbeca6e820760b5d62d2"
 dependencies = [
  "base64 0.22.1",
  "ed25519-dalek",
@@ -4810,7 +4810,7 @@ dependencies = [
 [[package]]
 name = "ssi-jws"
 version = "0.3.0"
-source = "git+https://github.com/spruceid/ssi#8ac7211b2aa3de22199386f15a17407b3d5f5252"
+source = "git+https://github.com/spruceid/ssi#c281303f32eb5fc3fbb5bbeca6e820760b5d62d2"
 dependencies = [
  "base64 0.22.1",
  "blake2",
@@ -4833,7 +4833,7 @@ dependencies = [
 [[package]]
 name = "ssi-jwt"
 version = "0.3.0"
-source = "git+https://github.com/spruceid/ssi#8ac7211b2aa3de22199386f15a17407b3d5f5252"
+source = "git+https://github.com/spruceid/ssi#c281303f32eb5fc3fbb5bbeca6e820760b5d62d2"
 dependencies = [
  "async-trait",
  "chrono",
@@ -4867,7 +4867,7 @@ dependencies = [
 [[package]]
 name = "ssi-multicodec"
 version = "0.2.0"
-source = "git+https://github.com/spruceid/ssi#8ac7211b2aa3de22199386f15a17407b3d5f5252"
+source = "git+https://github.com/spruceid/ssi#c281303f32eb5fc3fbb5bbeca6e820760b5d62d2"
 dependencies = [
  "csv",
  "ed25519-dalek",
@@ -4896,7 +4896,7 @@ dependencies = [
 [[package]]
 name = "ssi-rdf"
 version = "0.1.0"
-source = "git+https://github.com/spruceid/ssi#8ac7211b2aa3de22199386f15a17407b3d5f5252"
+source = "git+https://github.com/spruceid/ssi#c281303f32eb5fc3fbb5bbeca6e820760b5d62d2"
 dependencies = [
  "combination",
  "indexmap 2.7.1",
@@ -4910,7 +4910,7 @@ dependencies = [
 [[package]]
 name = "ssi-sd-jwt"
 version = "0.3.0"
-source = "git+https://github.com/spruceid/ssi#8ac7211b2aa3de22199386f15a17407b3d5f5252"
+source = "git+https://github.com/spruceid/ssi#c281303f32eb5fc3fbb5bbeca6e820760b5d62d2"
 dependencies = [
  "base64 0.22.1",
  "indexmap 2.7.1",
@@ -4929,7 +4929,7 @@ dependencies = [
 [[package]]
 name = "ssi-security"
 version = "0.1.0"
-source = "git+https://github.com/spruceid/ssi#8ac7211b2aa3de22199386f15a17407b3d5f5252"
+source = "git+https://github.com/spruceid/ssi#c281303f32eb5fc3fbb5bbeca6e820760b5d62d2"
 dependencies = [
  "iref",
  "linked-data",
@@ -4942,7 +4942,7 @@ dependencies = [
 [[package]]
 name = "ssi-vc"
 version = "0.4.1"
-source = "git+https://github.com/spruceid/ssi#8ac7211b2aa3de22199386f15a17407b3d5f5252"
+source = "git+https://github.com/spruceid/ssi#c281303f32eb5fc3fbb5bbeca6e820760b5d62d2"
 dependencies = [
  "base64 0.22.1",
  "bitvec 0.20.4",
@@ -4972,7 +4972,7 @@ dependencies = [
 [[package]]
 name = "ssi-vc-jose-cose"
 version = "0.2.0"
-source = "git+https://github.com/spruceid/ssi#8ac7211b2aa3de22199386f15a17407b3d5f5252"
+source = "git+https://github.com/spruceid/ssi#c281303f32eb5fc3fbb5bbeca6e820760b5d62d2"
 dependencies = [
  "base64 0.22.1",
  "ciborium",
@@ -4992,7 +4992,7 @@ dependencies = [
 [[package]]
 name = "ssi-verification-methods"
 version = "0.1.3"
-source = "git+https://github.com/spruceid/ssi#8ac7211b2aa3de22199386f15a17407b3d5f5252"
+source = "git+https://github.com/spruceid/ssi#c281303f32eb5fc3fbb5bbeca6e820760b5d62d2"
 dependencies = [
  "async-trait",
  "derivative",
@@ -5026,7 +5026,7 @@ dependencies = [
 [[package]]
 name = "ssi-verification-methods-core"
 version = "0.1.1"
-source = "git+https://github.com/spruceid/ssi#8ac7211b2aa3de22199386f15a17407b3d5f5252"
+source = "git+https://github.com/spruceid/ssi#c281303f32eb5fc3fbb5bbeca6e820760b5d62d2"
 dependencies = [
  "bs58",
  "educe 0.4.23",
@@ -5454,9 +5454,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tls_codec"
-version = "0.4.1"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5e78c9c330f8c85b2bae7c8368f2739157db9991235123aa1b15ef9502bfb6a"
+checksum = "0de2e01245e2bb89d6f05801c564fa27624dbd7b1846859876c7dad82e90bf6b"
 dependencies = [
  "tls_codec_derive",
  "zeroize",
@@ -5464,9 +5464,9 @@ dependencies = [
 
 [[package]]
 name = "tls_codec_derive"
-version = "0.4.1"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d9ef545650e79f30233c0003bcc2504d7efac6dad25fca40744de773fe2049c"
+checksum = "2d2e76690929402faae40aebdda620a2c0e25dd6d3b9afe48867dfd95991f4bd"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5535,9 +5535,9 @@ dependencies = [
 
 [[package]]
 name = "toml"
-version = "0.8.19"
+version = "0.8.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1ed1f98e3fdc28d6d910e6737ae6ab1a93bf1985935a1193e68f93eeb68d24e"
+checksum = "cd87a5cdd6ffab733b2f74bc4fd7ee5fff6634124999ac278c35fc78c6120148"
 dependencies = [
  "serde",
  "serde_spanned",
@@ -5556,9 +5556,9 @@ dependencies = [
 
 [[package]]
 name = "toml_edit"
-version = "0.22.23"
+version = "0.22.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02a8b472d1a3d7c18e2d61a489aee3453fd9031c33e4f55bd533f4a7adca1bee"
+checksum = "17b4795ff5edd201c7cd6dca065ae59972ce77d1b80fa0a84d94950ece7d1474"
 dependencies = [
  "indexmap 2.7.1",
  "serde",
@@ -5780,12 +5780,13 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "uuid"
-version = "1.12.1"
+version = "1.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3758f5e68192bb96cc8f9b7e2c2cfdabb435499a28499a42f8f984092adad4b"
+checksum = "ced87ca4be083373936a67f8de945faa23b6b42384bd5b64434850802c6dccd0"
 dependencies = [
  "atomic",
- "getrandom 0.2.15",
+ "getrandom 0.3.1",
+ "js-sys",
  "serde",
  "wasm-bindgen",
 ]
@@ -6131,9 +6132,9 @@ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 
 [[package]]
 name = "winnow"
-version = "0.7.0"
+version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e49d2d35d3fad69b39b94139037ecfb4f359f08958b9c11e7315ce770462419"
+checksum = "59690dea168f2198d1a3b0cac23b8063efcd11012f10ae4698f284808c8ef603"
 dependencies = [
  "memchr",
 ]

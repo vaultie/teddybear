@@ -69,6 +69,7 @@ in
       '';
 
       doInstallCargoArtifacts = false;
+      doNotPostBuildInstallCargoBinaries = true;
 
       preInstall = ''
         substituteInPlace crates/teddybear-js/build/package.json \

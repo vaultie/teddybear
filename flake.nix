@@ -11,7 +11,7 @@
       type = "github";
       owner = "ipetkov";
       repo = "crane";
-      ref = "v0.19.1";
+      ref = "v0.20.1";
     };
 
     fenix = {
@@ -76,7 +76,7 @@
           ];
         };
 
-        yarnLockHash = "sha256-1veRS6xC8QW5+a6tfpwJ+GOxTeCleX73inTRHbJwuec=";
+        yarnLockHash = "sha256-iTs/L3MN+SFMcFP9GcVYFHow+0pYjMzGH8jeQft+keo=";
         testSrc = ./tests;
 
         teddybearPkgs = pkgs.callPackage ./nix/scope.nix {
