@@ -11,7 +11,6 @@
       type = "github";
       owner = "ipetkov";
       repo = "crane";
-      ref = "v0.20.1";
     };
 
     fenix = {
