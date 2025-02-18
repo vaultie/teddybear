@@ -5,7 +5,8 @@ use isomdl::{
         device_request::{self, ItemsRequest},
         helpers::{ByteStr, Tag24},
         x509::{trust_anchor::TrustAnchorRegistry, X5Chain},
-        CoseKey, DeviceKeyInfo, DigestAlgorithm, EC2Curve, SessionEstablishment, EC2Y,
+        CoseKey, DeviceKeyInfo, DigestAlgorithm, EC2Curve, IssuerSigned, Mso, SessionEstablishment,
+        EC2Y,
     },
     issuance::{self, Mdoc, Namespaces},
     presentation::device::{self, DeviceSession, Document, SessionManager, SessionManagerInit},
@@ -24,6 +25,12 @@ pub enum Error {
 
     #[error("the provided key is missing the y coordinate")]
     MissingYCoordinate,
+
+    #[error("the provided credential is missing namespaces")]
+    MissingNamespaces,
+
+    #[error("the provided credential has an invalid issuer authentication")]
+    InvalidIssuerAuth,
 
     #[error(transparent)]
     Cbor(#[from] isomdl::cbor::CborError),
@@ -127,8 +134,27 @@ impl DeviceInternalMDoc {
     }
 
     pub fn from_issued_bytes(value: &[u8]) -> Result<Self, Error> {
-        let mdoc: Mdoc = isomdl::cbor::from_slice(value)?;
-        Ok(Self(mdoc.into()))
+        let issuer_signed: IssuerSigned = isomdl::cbor::from_slice(value)?;
+
+        let mso_bytes = issuer_signed
+            .issuer_auth
+            .payload
+            .as_ref()
+            .ok_or(Error::InvalidIssuerAuth)?;
+
+        let mso = isomdl::cbor::from_slice::<Tag24<Mso>>(mso_bytes)
+            .map_err(|_| Error::InvalidIssuerAuth)?
+            .into_inner();
+
+        Ok(Self(
+            Mdoc {
+                doc_type: mso.doc_type.clone(),
+                mso,
+                issuer_auth: issuer_signed.issuer_auth,
+                namespaces: issuer_signed.namespaces.ok_or(Error::MissingNamespaces)?,
+            }
+            .into(),
+        ))
     }
 
     pub fn doc_type(&self) -> &str {
@@ -143,8 +169,11 @@ impl DeviceInternalMDoc {
                 let value = entries
                     .iter()
                     .map(|(_, value)| {
-                        let value = value.clone().into_inner();
-                        (value.element_identifier, value.element_value)
+                        let item = value.clone().into_inner();
+                        (
+                            item.element_identifier,
+                            untag_value(&mut 0, item.element_value),
+                        )
                     })
                     .collect();
 
@@ -241,5 +270,27 @@ impl PendingPresentation {
         let finalized_response = device_response.finalize_response();
 
         Ok(isomdl::cbor::to_vec(&finalized_response)?)
+    }
+}
+
+fn untag_value(depth: &mut u8, value: ciborium::Value) -> ciborium::Value {
+    if *depth >= 16 {
+        return ciborium::Value::Null;
+    }
+
+    *depth += 1;
+
+    match value {
+        ciborium::Value::Tag(_, value) => *value,
+        ciborium::Value::Array(value) => {
+            ciborium::Value::Array(value.into_iter().map(|v| untag_value(depth, v)).collect())
+        }
+        ciborium::Value::Map(value) => ciborium::Value::Map(
+            value
+                .into_iter()
+                .map(|(a, b)| (a, untag_value(depth, b)))
+                .collect(),
+        ),
+        value => value,
     }
 }
