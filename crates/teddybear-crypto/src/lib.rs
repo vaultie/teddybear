@@ -5,6 +5,7 @@ mod x25519;
 use std::borrow::Cow;
 
 use did_web::DIDWeb;
+use p256::pkcs8::DecodePrivateKey;
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use ssi_dids_core::{
@@ -386,6 +387,13 @@ impl PrivateSecp256r1 {
     pub fn from_bytes(value: &[u8; 32]) -> Result<Self, Ed25519Error> {
         Ok(Self {
             inner: p256::SecretKey::from_bytes(value.into())
+                .map_err(|_| Ed25519Error::InvalidPrivateKeyValue)?,
+        })
+    }
+
+    pub fn from_pkcs8_pem(value: &str) -> Result<Self, Ed25519Error> {
+        Ok(Self {
+            inner: p256::SecretKey::from_pkcs8_pem(value)
                 .map_err(|_| Ed25519Error::InvalidPrivateKeyValue)?,
         })
     }
