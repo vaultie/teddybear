@@ -49,7 +49,7 @@ impl PrivateSecp256r1 {
     #[wasm_bindgen(js_name = "fromPKCS8PEM")]
     pub fn from_pkcs8_pem(value: &str) -> Result<PrivateSecp256r1, JsError> {
         Ok(PrivateSecp256r1(
-            teddybear_crypto::PrivateSecp256r1::from_pkcs8_pem(&value)?,
+            teddybear_crypto::PrivateSecp256r1::from_pkcs8_pem(value)?,
         ))
     }
 
