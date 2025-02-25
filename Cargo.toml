@@ -27,7 +27,7 @@ did-web = { git = "https://github.com/spruceid/ssi", default-features = false }
 
 anyhow = "1.0.93"
 base64 = "0.22.1"
-ed25519-dalek = "2.1.0"
+ed25519-dalek = { version = "2.1.0", features = ["pkcs8"] }
 iref = "3.1.4"
 itertools = "0.13.0"
 multibase = { version = "0.9.1", default-features = false }

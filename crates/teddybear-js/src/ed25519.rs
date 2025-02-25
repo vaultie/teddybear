@@ -42,6 +42,14 @@ impl PrivateEd25519 {
         PrivateEd25519(teddybear_crypto::PrivateEd25519::from_bytes(&dst))
     }
 
+    /// Convert private key PKCS#8 PEM value into a public/private Ed25519 keypair.
+    #[wasm_bindgen(js_name = "fromPKCS8PEM")]
+    pub fn from_pkcs8_pem(value: &str) -> Result<PrivateEd25519, JsError> {
+        Ok(PrivateEd25519(
+            teddybear_crypto::PrivateEd25519::from_pkcs8_pem(value)?,
+        ))
+    }
+
     /// Get Ed25519 private key bytes.
     #[wasm_bindgen(js_name = "toBytes")]
     pub fn to_bytes(&self) -> Uint8Array {

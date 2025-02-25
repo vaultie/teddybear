@@ -291,6 +291,13 @@ impl PrivateEd25519 {
         }
     }
 
+    pub fn from_pkcs8_pem(value: &str) -> Result<Self, Ed25519Error> {
+        Ok(Self {
+            inner: ed25519_dalek::SigningKey::from_pkcs8_pem(value)
+                .map_err(|_| Ed25519Error::InvalidPrivateKeyValue)?,
+        })
+    }
+
     pub fn inner(&self) -> &ed25519_dalek::SigningKey {
         &self.inner
     }
