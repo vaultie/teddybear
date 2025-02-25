@@ -3,8 +3,7 @@ use std::str::FromStr;
 use js_sys::{Object, Uint8Array};
 use serde::Serialize;
 use teddybear_crypto::{
-    DIDBuf, DIDURLBuf, Ed25519VerificationKey2020, JwkVerificationMethod,
-    SignOptions,
+    DIDBuf, DIDURLBuf, Ed25519VerificationKey2020, JwkVerificationMethod, SignOptions,
 };
 use wasm_bindgen::prelude::*;
 
