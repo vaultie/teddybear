@@ -4,6 +4,8 @@ import {
   MDocBuilder,
   PendingMDocPresentation,
   PrivateSecp256r1,
+  PresentedMDoc,
+  DIDURL,
 } from "@vaultie/teddybear";
 import { readFileSync } from "fs";
 import { describe, expect, it } from "vitest";
@@ -79,7 +81,7 @@ describe("can execute mdoc-related operations", () => {
       deviceInternalMDoc,
     ]);
 
-    presenter.consent(
+    const presented = presenter.consent(
       resolvedPrivateDeviceKey,
       {
         "org.iso.18013.5.1.mDL": {
@@ -94,6 +96,20 @@ describe("can execute mdoc-related operations", () => {
         },
       },
     );
+
+    const presentedMDoc = new PresentedMDoc(presented);
+
+    const issuerId = new DIDURL(
+      `${resolvedIssuerKey.toDIDKey().toString()}#${resolvedIssuerKey.toDIDKeyURLFragment()}`,
+    );
+
+    expect(
+      presentedMDoc.verify(
+        resolvedIssuerKey.toPublicKey(issuerId, resolvedIssuerKey.toDIDKey()),
+      ),
+    ).toBeTruthy();
+
+    expect(presentedMDoc.verify(resolvedPublicDeviceKey)).toBeFalsy();
   });
 
   it("can read external MDocs", () => {
@@ -113,7 +129,7 @@ describe("can execute mdoc-related operations", () => {
         driving_privileges: [
           { issue_date: "2000-01-01", vehicle_category_code: "AM" },
         ],
-      }
+      },
     });
 
     const resolvedPrivateDeviceKey = PrivateSecp256r1.fromBytes(

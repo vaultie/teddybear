@@ -5,13 +5,13 @@ use isomdl::{
         device_request::{self, ItemsRequest},
         helpers::{ByteStr, Tag24},
         x509::{trust_anchor::TrustAnchorRegistry, X5Chain},
-        CoseKey, DeviceKeyInfo, DigestAlgorithm, EC2Curve, IssuerSigned, Mso, SessionEstablishment,
-        EC2Y,
+        CoseKey, DeviceKeyInfo, DeviceResponse, DigestAlgorithm, EC2Curve, IssuerSigned, Mso,
+        SessionEstablishment, EC2Y,
     },
     issuance::{self, Mdoc, Namespaces},
     presentation::device::{self, DeviceSession, Document, SessionManager, SessionManagerInit},
 };
-use p256::ecdsa::{signature::Signer, Signature};
+use p256::ecdsa::{signature::Signer, Signature, VerifyingKey};
 use teddybear_crypto::{EcdsaSecp256r1VerificationKey2019, PrivateSecp256r1, ToEncodedPoint};
 use thiserror::Error;
 use time::OffsetDateTime;
@@ -188,6 +188,33 @@ impl DeviceInternalMDoc {
 
     pub fn to_bytes(&self) -> Result<Vec<u8>, Error> {
         Ok(isomdl::cbor::to_vec(&self.0)?)
+    }
+}
+
+pub struct PresentedMDoc(DeviceResponse);
+
+impl PresentedMDoc {
+    pub fn from_bytes(value: &[u8]) -> Result<Self, Error> {
+        let response = isomdl::cbor::from_slice(value)?;
+        Ok(Self(response))
+    }
+
+    pub fn verify(&self, issuer_key: &EcdsaSecp256r1VerificationKey2019) -> bool {
+        if let Some(documents) = self.0.documents.as_ref() {
+            for document in documents.iter() {
+                let outcome = document.issuer_signed.issuer_auth.verify::<_, Signature>(
+                    &VerifyingKey::from(issuer_key.public_key.decoded()),
+                    None,
+                    None,
+                );
+
+                if !outcome.is_success() {
+                    return false;
+                }
+            }
+        }
+
+        true
     }
 }
 

@@ -141,6 +141,23 @@ impl DeviceInternalMDoc {
 }
 
 #[wasm_bindgen]
+pub struct PresentedMDoc(teddybear_mdoc::PresentedMDoc);
+
+#[wasm_bindgen]
+impl PresentedMDoc {
+    #[wasm_bindgen(constructor)]
+    pub fn new(value: Uint8Array) -> Result<PresentedMDoc, JsError> {
+        Ok(Self(teddybear_mdoc::PresentedMDoc::from_bytes(
+            &value.to_vec(),
+        )?))
+    }
+
+    pub fn verify(&self, issuer_key: &PublicSecp256r1) -> bool {
+        self.0.verify(&issuer_key.0)
+    }
+}
+
+#[wasm_bindgen]
 pub struct PendingMDocPresentation(teddybear_mdoc::PendingPresentation);
 
 #[wasm_bindgen]
