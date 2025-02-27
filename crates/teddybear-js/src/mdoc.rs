@@ -141,6 +141,21 @@ impl DeviceInternalMDoc {
 }
 
 #[wasm_bindgen]
+pub struct PresentedDocument(teddybear_mdoc::PresentedDocument);
+
+#[wasm_bindgen]
+impl PresentedDocument {
+    #[wasm_bindgen(js_name = "docType")]
+    pub fn doc_type(&self) -> String {
+        self.0.doc_type().to_string()
+    }
+
+    pub fn namespaces(&self) -> Result<Object, JsError> {
+        Ok(self.0.namespaces().serialize(&OBJECT_SERIALIZER)?.into())
+    }
+}
+
+#[wasm_bindgen]
 pub struct PresentedMDoc(teddybear_mdoc::PresentedMDoc);
 
 #[wasm_bindgen]
@@ -152,8 +167,12 @@ impl PresentedMDoc {
         )?))
     }
 
-    pub fn verify(&self, issuer_key: &PublicSecp256r1) -> bool {
-        self.0.verify(&issuer_key.0)
+    pub fn documents(self) -> Vec<PresentedDocument> {
+        self.0
+            .into_documents()
+            .into_iter()
+            .map(PresentedDocument)
+            .collect()
     }
 }
 

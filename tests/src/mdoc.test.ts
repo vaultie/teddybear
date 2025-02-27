@@ -99,17 +99,17 @@ describe("can execute mdoc-related operations", () => {
 
     const presentedMDoc = new PresentedMDoc(presented);
 
-    const issuerId = new DIDURL(
-      `${resolvedIssuerKey.toDIDKey().toString()}#${resolvedIssuerKey.toDIDKeyURLFragment()}`,
+    const mapped = Object.fromEntries(
+      presentedMDoc.documents().map((doc) => [doc.docType(), doc.namespaces()]),
     );
 
-    expect(
-      presentedMDoc.verify(
-        resolvedIssuerKey.toPublicKey(issuerId, resolvedIssuerKey.toDIDKey()),
-      ),
-    ).toBeTruthy();
-
-    expect(presentedMDoc.verify(resolvedPublicDeviceKey)).toBeFalsy();
+    expect(mapped).toMatchObject({
+      "org.iso.18013.5.1.mDL": {
+        "org.iso.18013.5.1": {
+          given_name: "John"
+        }
+      }
+    });
   });
 
   it("can read external MDocs", () => {

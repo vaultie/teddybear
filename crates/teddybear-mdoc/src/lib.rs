@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use isomdl::{
     definitions::{
@@ -11,7 +11,7 @@ use isomdl::{
     issuance::{self, Mdoc, Namespaces},
     presentation::device::{self, DeviceSession, Document, SessionManager, SessionManagerInit},
 };
-use p256::ecdsa::{signature::Signer, Signature, VerifyingKey};
+use p256::ecdsa::{signature::Signer, Signature};
 use teddybear_crypto::{EcdsaSecp256r1VerificationKey2019, PrivateSecp256r1, ToEncodedPoint};
 use thiserror::Error;
 use time::OffsetDateTime;
@@ -191,6 +191,37 @@ impl DeviceInternalMDoc {
     }
 }
 
+pub struct PresentedDocument(isomdl::definitions::device_response::Document);
+
+impl PresentedDocument {
+    pub fn doc_type(&self) -> &str {
+        &self.0.doc_type
+    }
+
+    pub fn namespaces(&self) -> HashMap<String, HashMap<String, ciborium::Value>> {
+        self.0
+            .issuer_signed
+            .namespaces
+            .iter()
+            .flat_map(|val| val.iter())
+            .map(|(namespace, entries)| {
+                let value = entries
+                    .iter()
+                    .map(|value| {
+                        let item = value.clone().into_inner();
+                        (
+                            item.element_identifier,
+                            untag_value(&mut 0, item.element_value),
+                        )
+                    })
+                    .collect();
+
+                (namespace.clone(), value)
+            })
+            .collect()
+    }
+}
+
 pub struct PresentedMDoc(DeviceResponse);
 
 impl PresentedMDoc {
@@ -199,22 +230,12 @@ impl PresentedMDoc {
         Ok(Self(response))
     }
 
-    pub fn verify(&self, issuer_key: &EcdsaSecp256r1VerificationKey2019) -> bool {
-        if let Some(documents) = self.0.documents.as_ref() {
-            for document in documents.iter() {
-                let outcome = document.issuer_signed.issuer_auth.verify::<_, Signature>(
-                    &VerifyingKey::from(issuer_key.public_key.decoded()),
-                    None,
-                    None,
-                );
-
-                if !outcome.is_success() {
-                    return false;
-                }
-            }
-        }
-
-        true
+    pub fn into_documents(self) -> impl IntoIterator<Item = PresentedDocument> {
+        self.0
+            .documents
+            .into_iter()
+            .flat_map(|v| v.into_inner().into_iter())
+            .map(PresentedDocument)
     }
 }
 
