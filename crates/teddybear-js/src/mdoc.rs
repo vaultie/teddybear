@@ -141,6 +141,42 @@ impl DeviceInternalMDoc {
 }
 
 #[wasm_bindgen]
+pub struct PresentedDocument(teddybear_mdoc::PresentedDocument);
+
+#[wasm_bindgen]
+impl PresentedDocument {
+    #[wasm_bindgen(js_name = "docType")]
+    pub fn doc_type(&self) -> String {
+        self.0.doc_type().to_string()
+    }
+
+    pub fn namespaces(&self) -> Result<Object, JsError> {
+        Ok(self.0.namespaces().serialize(&OBJECT_SERIALIZER)?.into())
+    }
+}
+
+#[wasm_bindgen]
+pub struct PresentedMDoc(teddybear_mdoc::PresentedMDoc);
+
+#[wasm_bindgen]
+impl PresentedMDoc {
+    #[wasm_bindgen(constructor)]
+    pub fn new(value: Uint8Array) -> Result<PresentedMDoc, JsError> {
+        Ok(Self(teddybear_mdoc::PresentedMDoc::from_bytes(
+            &value.to_vec(),
+        )?))
+    }
+
+    pub fn documents(self) -> Vec<PresentedDocument> {
+        self.0
+            .into_documents()
+            .into_iter()
+            .map(PresentedDocument)
+            .collect()
+    }
+}
+
+#[wasm_bindgen]
 pub struct PendingMDocPresentation(teddybear_mdoc::PendingPresentation);
 
 #[wasm_bindgen]

@@ -1,12 +1,12 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use isomdl::{
     definitions::{
         device_request::{self, ItemsRequest},
         helpers::{ByteStr, Tag24},
         x509::{trust_anchor::TrustAnchorRegistry, X5Chain},
-        CoseKey, DeviceKeyInfo, DigestAlgorithm, EC2Curve, IssuerSigned, Mso, SessionEstablishment,
-        EC2Y,
+        CoseKey, DeviceKeyInfo, DeviceResponse, DigestAlgorithm, EC2Curve, IssuerSigned, Mso,
+        SessionEstablishment, EC2Y,
     },
     issuance::{self, Mdoc, Namespaces},
     presentation::device::{self, DeviceSession, Document, SessionManager, SessionManagerInit},
@@ -188,6 +188,54 @@ impl DeviceInternalMDoc {
 
     pub fn to_bytes(&self) -> Result<Vec<u8>, Error> {
         Ok(isomdl::cbor::to_vec(&self.0)?)
+    }
+}
+
+pub struct PresentedDocument(isomdl::definitions::device_response::Document);
+
+impl PresentedDocument {
+    pub fn doc_type(&self) -> &str {
+        &self.0.doc_type
+    }
+
+    pub fn namespaces(&self) -> HashMap<String, HashMap<String, ciborium::Value>> {
+        self.0
+            .issuer_signed
+            .namespaces
+            .iter()
+            .flat_map(|val| val.iter())
+            .map(|(namespace, entries)| {
+                let value = entries
+                    .iter()
+                    .map(|value| {
+                        let item = value.clone().into_inner();
+                        (
+                            item.element_identifier,
+                            untag_value(&mut 0, item.element_value),
+                        )
+                    })
+                    .collect();
+
+                (namespace.clone(), value)
+            })
+            .collect()
+    }
+}
+
+pub struct PresentedMDoc(DeviceResponse);
+
+impl PresentedMDoc {
+    pub fn from_bytes(value: &[u8]) -> Result<Self, Error> {
+        let response = isomdl::cbor::from_slice(value)?;
+        Ok(Self(response))
+    }
+
+    pub fn into_documents(self) -> impl IntoIterator<Item = PresentedDocument> {
+        self.0
+            .documents
+            .into_iter()
+            .flat_map(|v| v.into_inner().into_iter())
+            .map(PresentedDocument)
     }
 }
 
