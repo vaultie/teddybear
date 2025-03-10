@@ -5320,7 +5320,9 @@ name = "teddybear-vc"
 version = "0.20.11"
 dependencies = [
  "ed25519-dalek",
+ "flate2",
  "itertools 0.13.0",
+ "multibase",
  "serde",
  "ssi-claims",
  "ssi-json-ld 0.3.1 (git+https://github.com/spruceid/ssi)",

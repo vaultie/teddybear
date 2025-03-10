@@ -14,7 +14,9 @@ ssi-vc.workspace = true
 ssi-verification-methods.workspace = true
 
 ed25519-dalek.workspace = true
+flate2 = "1.1.0"
 itertools.workspace = true
+multibase.workspace = true
 serde.workspace = true
 teddybear-crypto.workspace = true
 thiserror.workspace = true

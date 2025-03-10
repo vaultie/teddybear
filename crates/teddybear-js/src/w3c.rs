@@ -7,6 +7,7 @@ use wasm_bindgen::prelude::*;
 use teddybear_vc::{
     ssi_json_ld::ContextLoader as InnerContextLoader,
     ssi_vc::v2::syntax::{JsonPresentation, SpecializedJsonCredential},
+    status_list::StatusList,
     verify, DI,
 };
 
@@ -55,6 +56,27 @@ impl VerificationResult {
     #[wasm_bindgen(getter)]
     pub fn challenge(&self) -> Option<String> {
         self.challenge.clone()
+    }
+}
+
+/// Bitstring status list credential subject.
+///
+/// @category W3C VC
+#[wasm_bindgen]
+pub struct BitstringStatusList(StatusList);
+
+#[wasm_bindgen]
+impl BitstringStatusList {
+    #[wasm_bindgen(constructor)]
+    pub fn new(credential_subject: Object) -> Result<Self, JsError> {
+        let credential: teddybear_vc::status_list::BitstringStatusList =
+            serde_wasm_bindgen::from_value(credential_subject.into())?;
+
+        Ok(Self(credential.decode()?))
+    }
+
+    pub fn get(&self, index: usize) -> Option<u8> {
+        self.0.get(index)
     }
 }
 

@@ -1,4 +1,5 @@
 mod credential_ref;
+pub mod status_list;
 
 use ed25519_dalek::SigningKey;
 use itertools::Itertools;
