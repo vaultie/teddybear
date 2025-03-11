@@ -106,9 +106,9 @@ describe("can execute mdoc-related operations", () => {
     expect(mapped).toMatchObject({
       "org.iso.18013.5.1.mDL": {
         "org.iso.18013.5.1": {
-          given_name: "John"
-        }
-      }
+          given_name: "John",
+        },
+      },
     });
   });
 
