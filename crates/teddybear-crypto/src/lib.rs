@@ -1,8 +1,9 @@
+mod cached_did;
 mod encoder;
 mod jwk;
 mod x25519;
 
-use std::borrow::Cow;
+use std::{borrow::Cow, collections::HashMap};
 
 use did_web::DIDWeb;
 use p256::pkcs8::DecodePrivateKey;
@@ -26,6 +27,7 @@ use teddybear_high_assurance::DnsError;
 
 use crate::encoder::KeyEncoder;
 
+pub use cached_did::CachedDIDResolver;
 pub use jwk::{jwk_to_verification_method, DynamicVerificationMethod};
 pub use p256::elliptic_curve::sec1::ToEncodedPoint;
 pub use ssi_dids_core::{
@@ -51,8 +53,10 @@ pub fn default_did_method() -> SupportedDIDMethods {
     (DIDKey, DIDWeb)
 }
 
-pub type CustomVerificationMethodDIDResolver =
-    VerificationMethodDIDResolver<SupportedDIDMethods, Ed25519VerificationKey2020>;
+pub type CustomVerificationMethodDIDResolver = VerificationMethodDIDResolver<
+    CachedDIDResolver<SupportedDIDMethods>,
+    Ed25519VerificationKey2020,
+>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Ed25519Error {
@@ -162,17 +166,20 @@ impl Document {
         id: &DID,
         options: DocumentResolveOptions<'_>,
     ) -> Result<Self, Ed25519Error> {
-        let inner = CustomVerificationMethodDIDResolver::new(default_did_method())
-            .require_controller(id.as_iri())
-            .await
-            .map_err(|e| match e {
-                ControllerError::NotFound(e) => Ed25519Error::ControllerError(e),
-                ControllerError::Invalid => {
-                    Ed25519Error::ControllerError("Invalid controller".to_string())
-                }
-                ControllerError::Unsupported(e) => Ed25519Error::ControllerError(e),
-                ControllerError::InternalError(e) => Ed25519Error::ControllerError(e),
-            })?;
+        let inner = CustomVerificationMethodDIDResolver::new(CachedDIDResolver::new(
+            default_did_method(),
+            HashMap::default(),
+        ))
+        .require_controller(id.as_iri())
+        .await
+        .map_err(|e| match e {
+            ControllerError::NotFound(e) => Ed25519Error::ControllerError(e),
+            ControllerError::Invalid => {
+                Ed25519Error::ControllerError("Invalid controller".to_string())
+            }
+            ControllerError::Unsupported(e) => Ed25519Error::ControllerError(e),
+            ControllerError::InternalError(e) => Ed25519Error::ControllerError(e),
+        })?;
 
         // Additionally enforce DID subject to be the same as the
         // DID used to request the DID document.

@@ -1,9 +1,11 @@
 mod credential_ref;
 pub mod status_list;
 
+use std::collections::HashMap;
+
 use ed25519_dalek::SigningKey;
 use itertools::Itertools;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use ssi_claims::{
     data_integrity::{
         suites::Ed25519Signature2020, CryptographicSuite, DataIntegrity, ProofOptions,
@@ -24,7 +26,10 @@ use ssi_verification_methods::{
     Ed25519VerificationKey2020, ProofPurpose, ReferenceOrOwned, SingleSecretSigner,
     VerificationMethodResolutionError, VerificationMethodResolver,
 };
-use teddybear_crypto::{default_did_method, CustomVerificationMethodDIDResolver, Uri, DIDURL};
+use teddybear_crypto::{
+    default_did_method, CachedDIDResolver, CustomVerificationMethodDIDResolver, DIDBuf, Document,
+    Uri, DIDURL,
+};
 
 use crate::credential_ref::CredentialRef;
 
@@ -65,6 +70,30 @@ pub enum Error {
     VerificationMethodResolutionError(#[from] VerificationMethodResolutionError),
 }
 
+#[derive(Deserialize, Default)]
+#[serde(default, rename_all = "camelCase")]
+pub struct IssueOptions {
+    /// Cached DID documents.
+    #[serde(rename = "cachedDocuments")]
+    pub cached_documents: HashMap<DIDBuf, Document>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default, rename_all = "camelCase")]
+pub struct PresentOptions {
+    /// Cached DID documents.
+    #[serde(rename = "cachedDocuments")]
+    pub cached_documents: HashMap<DIDBuf, Document>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default, rename_all = "camelCase")]
+pub struct VerifyOptions {
+    /// Cached DID documents.
+    #[serde(rename = "cachedDocuments")]
+    pub cached_documents: HashMap<DIDBuf, Document>,
+}
+
 pub type SignedEd25519Credential<'a, C> = DI<CredentialRef<'a, C>>;
 
 pub async fn issue_vc<'a, C>(
@@ -72,11 +101,15 @@ pub async fn issue_vc<'a, C>(
     verification_method: IriBuf,
     credential: &'a C,
     context_loader: &mut ContextLoader,
+    cached_documents: HashMap<DIDBuf, Document>,
 ) -> Result<SignedEd25519Credential<'a, C>, Error>
 where
     C: Credential + JsonLdNodeObject + Expandable,
 {
-    let resolver = CustomVerificationMethodDIDResolver::new(default_did_method());
+    let resolver = CustomVerificationMethodDIDResolver::new(CachedDIDResolver::new(
+        default_did_method(),
+        cached_documents,
+    ));
 
     let params =
         VerificationParameters::from_resolver(&resolver).with_json_ld_loader(&context_loader);
@@ -110,11 +143,15 @@ pub async fn present_vp<'a, C>(
     domain: Option<String>,
     challenge: Option<String>,
     context_loader: &mut ContextLoader,
+    cached_documents: HashMap<DIDBuf, Document>,
 ) -> Result<SignedEd25519Presentation<'a, C>, Error>
 where
     C: Credential + JsonLdNodeObject + Expandable + Serialize,
 {
-    let resolver = CustomVerificationMethodDIDResolver::new(default_did_method());
+    let resolver = CustomVerificationMethodDIDResolver::new(CachedDIDResolver::new(
+        default_did_method(),
+        cached_documents,
+    ));
 
     let params =
         VerificationParameters::from_resolver(&resolver).with_json_ld_loader(&context_loader);
@@ -200,6 +237,7 @@ where
 pub async fn verify<'a, 'b, V>(
     value: &'a DI<V>,
     context_loader: &'b mut ContextLoader,
+    cached_documents: HashMap<DIDBuf, Document>,
 ) -> Result<(Ed25519VerificationKey2020, Option<&'a str>), Error>
 where
     V: HasClaimedSigner,
@@ -210,7 +248,10 @@ where
 {
     let claimed_signer = value.claimed_signer().ok_or(Error::MissingClaimedSigner)?;
 
-    let resolver = CustomVerificationMethodDIDResolver::new(default_did_method());
+    let resolver = CustomVerificationMethodDIDResolver::new(CachedDIDResolver::new(
+        default_did_method(),
+        cached_documents,
+    ));
 
     let params =
         VerificationParameters::from_resolver(&resolver).with_json_ld_loader(context_loader);

@@ -8,10 +8,16 @@ use teddybear_vc::{
     ssi_json_ld::ContextLoader as InnerContextLoader,
     ssi_vc::v2::syntax::{JsonPresentation, SpecializedJsonCredential},
     status_list::StatusList,
-    verify, DI,
+    verify, VerifyOptions, DI,
 };
 
 use crate::ed25519::PublicEd25519;
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "W3CVerifyOptions")]
+    pub type W3CVerifyOptions;
+}
 
 /// JSON-LD context loader.
 ///
@@ -87,11 +93,19 @@ impl BitstringStatusList {
 pub async fn js_verify_credential(
     document: Object,
     context_loader: &mut ContextLoader,
+    options: Option<W3CVerifyOptions>,
 ) -> Result<VerificationResult, JsError> {
     let credential: DI<SpecializedJsonCredential> =
         serde_wasm_bindgen::from_value(document.into())?;
 
-    let (key, challenge) = verify(&credential, &mut context_loader.0).await?;
+    let options: VerifyOptions = options
+        .map(Into::into)
+        .map(serde_wasm_bindgen::from_value)
+        .transpose()?
+        .unwrap_or_default();
+
+    let (key, challenge) =
+        verify(&credential, &mut context_loader.0, options.cached_documents).await?;
 
     Ok(VerificationResult {
         key,
@@ -106,10 +120,22 @@ pub async fn js_verify_credential(
 pub async fn js_verify_presentation(
     document: Object,
     context_loader: &mut ContextLoader,
+    options: Option<W3CVerifyOptions>,
 ) -> Result<VerificationResult, JsError> {
     let presentation: DI<JsonPresentation> = serde_wasm_bindgen::from_value(document.into())?;
 
-    let (key, challenge) = verify(&presentation, &mut context_loader.0).await?;
+    let options: VerifyOptions = options
+        .map(Into::into)
+        .map(serde_wasm_bindgen::from_value)
+        .transpose()?
+        .unwrap_or_default();
+
+    let (key, challenge) = verify(
+        &presentation,
+        &mut context_loader.0,
+        options.cached_documents,
+    )
+    .await?;
 
     Ok(VerificationResult {
         key,
