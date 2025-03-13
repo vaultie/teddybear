@@ -127,5 +127,40 @@ describe("can execute verifiable credentials operations", () => {
       `${key.toDIDKey()}#${key.toDIDKeyURLFragment()}`,
     );
     expect(presentationChallenge).toStrictEqual("123456");
+
+    await key.presentVP(
+      new DIDURL("did:web:example.com#test-key"),
+      {
+        "@context": ["https://www.w3.org/ns/credentials/v2"],
+        type: ["VerifiablePresentation"],
+        holder: key.toDIDKey().toString(),
+        verifiableCredential,
+      },
+      contextLoader,
+      undefined,
+      "123456",
+      {
+        cachedDocuments: {
+          "did:web:example.com": {
+            "@context": ["https://w3.org/ns/did/v1"],
+            "id": "did:web:example.com",
+            "authentication": [
+              "did:web:example.com#test-key"
+            ],
+            "assertionMethod": [
+              "did:web:example.com#test-key"
+            ],
+            "verificationMethod": [
+              {
+                "type": "Ed25519VerificationKey2020",
+                "id": "did:web:example.com#test-key",
+                "controller": "did:web:example.com",
+                "publicKeyMultibase": key.toDIDKeyURLFragment().toString()
+              }
+            ]
+          }
+        }
+      }
+    );
   });
 });

@@ -10,6 +10,7 @@ use wasm_bindgen::prelude::*;
 use teddybear_vc::{
     issue_vc, present_vp,
     ssi_vc::v2::syntax::{JsonPresentation, SpecializedJsonCredential},
+    IssueOptions, PresentOptions,
 };
 
 use crate::{
@@ -20,6 +21,15 @@ use crate::{
     x25519::PrivateX25519,
     OBJECT_SERIALIZER,
 };
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "W3CIssueOptions")]
+    pub type W3CIssueOptions;
+
+    #[wasm_bindgen(typescript_type = "W3CPresentOptions")]
+    pub type W3CPresentOptions;
+}
 
 /// Private Ed25519 key.
 ///
@@ -115,14 +125,22 @@ impl PrivateEd25519 {
         verification_method: &DIDURL,
         vc: Object,
         context_loader: &mut ContextLoader,
+        options: Option<W3CIssueOptions>,
     ) -> Result<Object, JsError> {
         let credential: SpecializedJsonCredential = serde_wasm_bindgen::from_value(vc.into())?;
+
+        let options: IssueOptions = options
+            .map(Into::into)
+            .map(serde_wasm_bindgen::from_value)
+            .transpose()?
+            .unwrap_or_default();
 
         Ok(issue_vc(
             self.0.inner().clone(),
             verification_method.0.as_iri().to_owned(),
             &credential,
             &mut context_loader.0,
+            options.cached_documents,
         )
         .await?
         .serialize(&OBJECT_SERIALIZER)?
@@ -138,9 +156,16 @@ impl PrivateEd25519 {
         context_loader: &mut ContextLoader,
         domain: Option<String>,
         challenge: Option<String>,
+        options: Option<W3CPresentOptions>,
     ) -> Result<Object, JsError> {
         let presentation: JsonPresentation<SpecializedJsonCredential> =
             serde_wasm_bindgen::from_value(vp.into())?;
+
+        let options: PresentOptions = options
+            .map(Into::into)
+            .map(serde_wasm_bindgen::from_value)
+            .transpose()?
+            .unwrap_or_default();
 
         Ok(present_vp(
             self.0.inner().clone(),
@@ -149,6 +174,7 @@ impl PrivateEd25519 {
             domain,
             challenge,
             &mut context_loader.0,
+            options.cached_documents,
         )
         .await?
         .serialize(&OBJECT_SERIALIZER)?
