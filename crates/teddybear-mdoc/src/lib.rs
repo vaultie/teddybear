@@ -12,7 +12,10 @@ use isomdl::{
     presentation::device::{self, DeviceSession, Document, SessionManager, SessionManagerInit},
 };
 use p256::ecdsa::{signature::Signer, Signature};
-use teddybear_crypto::{EcdsaSecp256r1VerificationKey2019, PrivateSecp256r1, ToEncodedPoint};
+use serde::Deserialize;
+use teddybear_crypto::{
+    EcdsaSecp256r1VerificationKey2019, PrivateSecp256r1, ToEncodedPoint, UriBuf,
+};
 use thiserror::Error;
 use time::OffsetDateTime;
 
@@ -124,13 +127,38 @@ impl Default for MDocBuilder {
     }
 }
 
+#[derive(Clone, Deserialize)]
+pub struct MsoStatusList {
+    pub uri: UriBuf,
+    pub idx: u32,
+}
+
+#[derive(Deserialize)]
+pub struct MsoStatusField {
+    pub status_list: MsoStatusList,
+}
+
 #[derive(Clone)]
-pub struct DeviceInternalMDoc(Document);
+pub struct DeviceInternalMDoc {
+    document: Document,
+    status: Option<MsoStatusList>,
+}
 
 impl DeviceInternalMDoc {
     pub fn from_bytes(value: &[u8]) -> Result<Self, Error> {
-        let document = isomdl::cbor::from_slice(value)?;
-        Ok(Self(document))
+        let document: Document = isomdl::cbor::from_slice(value)?;
+
+        let status: Option<MsoStatusField> =
+            if let Some(status) = document.mso.extra_fields.get("status") {
+                isomdl::cbor::from_value(status.clone()).ok()
+            } else {
+                None
+            };
+
+        Ok(Self {
+            document,
+            status: status.map(|v| v.status_list),
+        })
     }
 
     pub fn from_issued_bytes(value: &[u8]) -> Result<Self, Error> {
@@ -146,23 +174,32 @@ impl DeviceInternalMDoc {
             .map_err(|_| Error::InvalidIssuerAuth)?
             .into_inner();
 
-        Ok(Self(
-            Mdoc {
-                doc_type: mso.doc_type.clone(),
-                mso,
-                issuer_auth: issuer_signed.issuer_auth,
-                namespaces: issuer_signed.namespaces.ok_or(Error::MissingNamespaces)?,
-            }
-            .into(),
-        ))
+        let status: Option<MsoStatusField> = if let Some(status) = mso.extra_fields.get("status") {
+            isomdl::cbor::from_value(status.clone()).ok()
+        } else {
+            None
+        };
+
+        let document = Mdoc {
+            doc_type: mso.doc_type.clone(),
+            mso,
+            issuer_auth: issuer_signed.issuer_auth,
+            namespaces: issuer_signed.namespaces.ok_or(Error::MissingNamespaces)?,
+        }
+        .into();
+
+        Ok(Self {
+            document,
+            status: status.map(|v| v.status_list),
+        })
     }
 
     pub fn doc_type(&self) -> &str {
-        &self.0.mso.doc_type
+        &self.document.mso.doc_type
     }
 
     pub fn namespaces(&self) -> BTreeMap<String, BTreeMap<String, ciborium::Value>> {
-        self.0
+        self.document
             .namespaces
             .iter()
             .map(|(namespace, entries)| {
@@ -183,11 +220,15 @@ impl DeviceInternalMDoc {
     }
 
     pub fn validity_info(&self) -> &ValidityInfo {
-        &self.0.mso.validity_info
+        &self.document.mso.validity_info
+    }
+
+    pub fn status(&self) -> Option<&MsoStatusList> {
+        self.status.as_ref()
     }
 
     pub fn to_bytes(&self) -> Result<Vec<u8>, Error> {
-        Ok(isomdl::cbor::to_vec(&self.0)?)
+        Ok(isomdl::cbor::to_vec(&self.document)?)
     }
 }
 
@@ -266,7 +307,7 @@ impl PendingPresentation {
 
         let documents = documents
             .into_iter()
-            .map(|document| (document.doc_type().to_owned(), document.0))
+            .map(|document| (document.doc_type().to_owned(), document.document))
             .collect::<BTreeMap<_, _>>();
 
         let (session, _) =

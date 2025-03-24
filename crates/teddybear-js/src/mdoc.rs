@@ -100,6 +100,20 @@ impl MDocValidityInfo {
     }
 }
 
+#[wasm_bindgen]
+pub struct MDocStatusList(teddybear_mdoc::MsoStatusList);
+
+#[wasm_bindgen]
+impl MDocStatusList {
+    pub fn uri(&self) -> String {
+        self.0.uri.as_str().to_owned()
+    }
+
+    pub fn idx(&self) -> u32 {
+        self.0.idx
+    }
+}
+
 #[derive(TryFromJsValue)]
 #[wasm_bindgen]
 #[derive(Clone)]
@@ -130,8 +144,13 @@ impl DeviceInternalMDoc {
         Ok(self.0.namespaces().serialize(&OBJECT_SERIALIZER)?.into())
     }
 
+    #[wasm_bindgen(js_name = "validityInfo")]
     pub fn validity_info(&self) -> MDocValidityInfo {
         MDocValidityInfo(self.0.validity_info().clone())
+    }
+
+    pub fn status(&self) -> Option<MDocStatusList> {
+        self.0.status().cloned().map(MDocStatusList)
     }
 
     #[wasm_bindgen(js_name = "toBytes")]
