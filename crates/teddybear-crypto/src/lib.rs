@@ -53,10 +53,8 @@ pub fn default_did_method() -> SupportedDIDMethods {
     (DIDKey, DIDWeb)
 }
 
-pub type CustomVerificationMethodDIDResolver = VerificationMethodDIDResolver<
-    CachedDIDResolver<SupportedDIDMethods>,
-    Ed25519VerificationKey2020,
->;
+pub type CustomVerificationMethodDIDResolver<K> =
+    VerificationMethodDIDResolver<CachedDIDResolver<SupportedDIDMethods>, K>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Ed25519Error {
@@ -166,10 +164,9 @@ impl Document {
         id: &DID,
         options: DocumentResolveOptions<'_>,
     ) -> Result<Self, Ed25519Error> {
-        let inner = CustomVerificationMethodDIDResolver::new(CachedDIDResolver::new(
-            default_did_method(),
-            HashMap::default(),
-        ))
+        let inner = CustomVerificationMethodDIDResolver::<Ed25519VerificationKey2020>::new(
+            CachedDIDResolver::new(default_did_method(), HashMap::default()),
+        )
         .require_controller(id.as_iri())
         .await
         .map_err(|e| match e {

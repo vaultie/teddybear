@@ -1,17 +1,14 @@
 use std::collections::HashMap;
 
 use js_sys::Object;
-use teddybear_crypto::Ed25519VerificationKey2020;
 use wasm_bindgen::prelude::*;
 
 use teddybear_vc::{
     ssi_json_ld::ContextLoader as InnerContextLoader,
     ssi_vc::v2::syntax::{JsonPresentation, SpecializedJsonCredential},
     status_list::StatusList,
-    verify, VerifyOptions, DI,
+    verify, DIAny, VerifyOptions,
 };
-
-use crate::ed25519::PublicEd25519;
 
 #[wasm_bindgen]
 extern "C" {
@@ -48,17 +45,11 @@ impl ContextLoader {
 /// @category W3C VC
 #[wasm_bindgen]
 pub struct VerificationResult {
-    key: Ed25519VerificationKey2020,
     challenge: Option<String>,
 }
 
 #[wasm_bindgen]
 impl VerificationResult {
-    #[wasm_bindgen(getter)]
-    pub fn key(&self) -> PublicEd25519 {
-        PublicEd25519(self.key.clone())
-    }
-
     #[wasm_bindgen(getter)]
     pub fn challenge(&self) -> Option<String> {
         self.challenge.clone()
@@ -95,7 +86,7 @@ pub async fn js_verify_credential(
     context_loader: &mut ContextLoader,
     options: Option<W3CVerifyOptions>,
 ) -> Result<VerificationResult, JsError> {
-    let credential: DI<SpecializedJsonCredential> =
+    let credential: DIAny<SpecializedJsonCredential> =
         serde_wasm_bindgen::from_value(document.into())?;
 
     let options: VerifyOptions = options
@@ -104,11 +95,9 @@ pub async fn js_verify_credential(
         .transpose()?
         .unwrap_or_default();
 
-    let (key, challenge) =
-        verify(&credential, &mut context_loader.0, options.cached_documents).await?;
+    let challenge = verify(&credential, &mut context_loader.0, options.cached_documents).await?;
 
     Ok(VerificationResult {
-        key,
         challenge: challenge.map(ToString::to_string),
     })
 }
@@ -122,7 +111,7 @@ pub async fn js_verify_presentation(
     context_loader: &mut ContextLoader,
     options: Option<W3CVerifyOptions>,
 ) -> Result<VerificationResult, JsError> {
-    let presentation: DI<JsonPresentation> = serde_wasm_bindgen::from_value(document.into())?;
+    let presentation: DIAny<JsonPresentation> = serde_wasm_bindgen::from_value(document.into())?;
 
     let options: VerifyOptions = options
         .map(Into::into)
@@ -130,7 +119,7 @@ pub async fn js_verify_presentation(
         .transpose()?
         .unwrap_or_default();
 
-    let (key, challenge) = verify(
+    let challenge = verify(
         &presentation,
         &mut context_loader.0,
         options.cached_documents,
@@ -138,7 +127,6 @@ pub async fn js_verify_presentation(
     .await?;
 
     Ok(VerificationResult {
-        key,
         challenge: challenge.map(ToString::to_string),
     })
 }
