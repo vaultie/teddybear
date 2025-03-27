@@ -112,20 +112,14 @@ describe("can execute verifiable credentials operations", () => {
       "123456",
     );
 
-    const { key: credentialKey, challenge: credentialChallenge } =
+    const { challenge: credentialChallenge } =
       await verifyCredential(verifiableCredential, contextLoader);
 
-    expect(credentialKey.id.toString()).toStrictEqual(
-      `${key.toDIDKey()}#${key.toDIDKeyURLFragment()}`,
-    );
     expect(credentialChallenge).toBeUndefined();
 
-    const { key: presentationKey, challenge: presentationChallenge } =
+    const { challenge: presentationChallenge } =
       await verifyPresentation(verifiablePresentation, contextLoader);
 
-    expect(presentationKey.id.toString()).toStrictEqual(
-      `${key.toDIDKey()}#${key.toDIDKeyURLFragment()}`,
-    );
     expect(presentationChallenge).toStrictEqual("123456");
 
     await key.presentVP(

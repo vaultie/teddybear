@@ -8,7 +8,7 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use ssi_claims::{
     data_integrity::{
-        suites::Ed25519Signature2020, CryptographicSuite, DataIntegrity, ProofOptions,
+        suites::Ed25519Signature2020, AnySuite, CryptographicSuite, DataIntegrity, ProofOptions,
         StandardCryptographicSuite,
     },
     Invalid, InvalidClaims, ProofValidationError, SignatureEnvironment, SignatureError,
@@ -23,7 +23,7 @@ use ssi_vc::{
     Identified,
 };
 use ssi_verification_methods::{
-    Ed25519VerificationKey2020, ProofPurpose, ReferenceOrOwned, SingleSecretSigner,
+    AnyMethod, ProofPurpose, ReferenceOrOwned, SingleSecretSigner, VerificationMethod,
     VerificationMethodResolutionError, VerificationMethodResolver,
 };
 use teddybear_crypto::{
@@ -39,9 +39,10 @@ pub use ssi_vc;
 pub use ssi_verification_methods;
 
 pub type DI<V> = DataIntegrity<V, Ed25519Signature2020>;
+pub type DIAny<V> = DataIntegrity<V, AnySuite>;
 
-pub type CustomVerificationParameters<'a, 'b> =
-    VerificationParameters<&'a CustomVerificationMethodDIDResolver, &'b mut ContextLoader>;
+pub type CustomVerificationParameters<'a, 'b, K> =
+    VerificationParameters<&'a CustomVerificationMethodDIDResolver<K>, &'b mut ContextLoader>;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -235,20 +236,24 @@ where
 }
 
 pub async fn verify<'a, 'b, V>(
-    value: &'a DI<V>,
+    value: &'a DIAny<V>,
     context_loader: &'b mut ContextLoader,
     cached_documents: HashMap<DIDBuf, Document>,
-) -> Result<(Ed25519VerificationKey2020, Option<&'a str>), Error>
+) -> Result<Option<&'a str>, Error>
 where
     V: HasClaimedSigner,
-    for<'r> <DI<V> as VerifiableClaims>::Claims:
-        ValidateClaims<CustomVerificationParameters<'r, 'b>, <DI<V> as VerifiableClaims>::Proof>,
-    for<'r> <DI<V> as VerifiableClaims>::Proof:
-        ValidateProof<CustomVerificationParameters<'r, 'b>, <DI<V> as VerifiableClaims>::Claims>,
+    for<'r> <DIAny<V> as VerifiableClaims>::Claims: ValidateClaims<
+        CustomVerificationParameters<'r, 'b, AnyMethod>,
+        <DIAny<V> as VerifiableClaims>::Proof,
+    >,
+    for<'r> <DIAny<V> as VerifiableClaims>::Proof: ValidateProof<
+        CustomVerificationParameters<'r, 'b, AnyMethod>,
+        <DIAny<V> as VerifiableClaims>::Claims,
+    >,
 {
     let claimed_signer = value.claimed_signer().ok_or(Error::MissingClaimedSigner)?;
 
-    let resolver = CustomVerificationMethodDIDResolver::new(CachedDIDResolver::new(
+    let resolver = CustomVerificationMethodDIDResolver::<AnyMethod>::new(CachedDIDResolver::new(
         default_did_method(),
         cached_documents,
     ));
@@ -265,15 +270,25 @@ where
         .map_err(|_| Error::SingleProofOnly)?;
 
     let verification_method = resolver
-        .resolve_verification_method(None, Some(proof.verification_method.borrowed()))
+        .resolve_verification_method(
+            None,
+            Some(
+                proof
+                    .verification_method
+                    .clone()
+                    .try_cast::<AnyMethod>()
+                    .unwrap()
+                    .borrowed(),
+            ),
+        )
         .await?;
 
     let vm_id =
-        DIDURL::new(verification_method.id.as_bytes()).map_err(|_| Error::InvalidVmIdentifier)?;
+        DIDURL::new(verification_method.id().as_bytes()).map_err(|_| Error::InvalidVmIdentifier)?;
 
     if claimed_signer != vm_id.without_fragment().0.did().as_uri() {
         return Err(Error::InvalidVmIdentifier);
     }
 
-    Ok((verification_method.into_owned(), proof.challenge.as_deref()))
+    Ok(proof.challenge.as_deref())
 }
