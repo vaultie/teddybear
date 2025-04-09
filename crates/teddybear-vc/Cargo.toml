@@ -8,6 +8,8 @@ categories.workspace = true
 
 [dependencies]
 ssi-claims.workspace = true
+ssi-crypto.workspace = true
+ssi-data-integrity-core.workspace = true
 ssi-json-ld.workspace = true
 ssi-rdf.workspace = true
 ssi-vc.workspace = true

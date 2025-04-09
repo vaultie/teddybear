@@ -10,7 +10,9 @@ repository = "https://github.com/vaultie/teddybear"
 categories = ["cryptography", "wasm"]
 
 [workspace.dependencies]
-ssi-claims = { git = "https://github.com/spruceid/ssi", default-features = false, features = ["ed25519", "w3c"] }
+ssi-claims = { git = "https://github.com/spruceid/ssi", default-features = false, features = ["ed25519", "secp256r1", "w3c"] }
+ssi-crypto = { git = "https://github.com/spruceid/ssi", default-features = false }
+ssi-data-integrity-core = { git = "https://github.com/spruceid/ssi", default-features = false }
 ssi-dids-core = { git = "https://github.com/spruceid/ssi", default-features = false }
 ssi-json-ld = { git = "https://github.com/spruceid/ssi", default-features = false }
 ssi-jwk = { git = "https://github.com/spruceid/ssi", default-features = false, features = ["ed25519", "secp256r1"] }

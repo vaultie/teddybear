@@ -2,9 +2,15 @@ use std::str::FromStr;
 
 use js_sys::{Object, Uint8Array};
 use serde::Serialize;
-use teddybear_crypto::{DIDBuf, DIDURLBuf, JwkVerificationMethod, SignOptions};
+use teddybear_crypto::{DIDBuf, DIDURLBuf, ECParams, JwkVerificationMethod, Params, SignOptions};
 use teddybear_jwe::{A256Gcm, P256KeyPair, XC20P};
-use teddybear_vc::ssi_verification_methods::EcdsaSecp256r1VerificationKey2019;
+use teddybear_vc::{
+    IssueOptions, PresentOptions, issue_vc, present_vp,
+    ssi_claims::data_integrity::suites::EcdsaRdfc2019,
+    ssi_crypto::algorithm::ES256,
+    ssi_vc::v2::{SpecializedJsonCredential, syntax::JsonPresentation},
+    ssi_verification_methods::EcdsaSecp256r1VerificationKey2019,
+};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_derive::{TryFromJsValue, try_from_js_array};
 
@@ -14,6 +20,7 @@ use crate::{
     jwe::{Jwe, JweRecipient},
     jwk::JWK,
     jws::JwsOptions,
+    w3c::{ContextLoader, W3CIssueOptions, W3CPresentOptions},
 };
 
 #[wasm_bindgen]
@@ -103,6 +110,73 @@ impl PrivateSecp256r1 {
             .unwrap_or_default();
 
         Ok(self.0.sign(payload, options)?)
+    }
+
+    /// Create a new verifiable credential.
+    #[wasm_bindgen(js_name = "issueVC")]
+    pub async fn issue_vc(
+        &self,
+        verification_method: &DIDURL,
+        vc: Object,
+        context_loader: &mut ContextLoader,
+        options: Option<W3CIssueOptions>,
+    ) -> Result<Object, JsError> {
+        let credential: SpecializedJsonCredential = serde_wasm_bindgen::from_value(vc.into())?;
+
+        let options: IssueOptions = options
+            .map(Into::into)
+            .map(serde_wasm_bindgen::from_value)
+            .transpose()?
+            .unwrap_or_default();
+
+        let params = ECParams::from(self.0.inner());
+
+        Ok(issue_vc::<ES256, EcdsaRdfc2019, _, _>(
+            teddybear_crypto::JWK::from(Params::EC(params)),
+            verification_method.0.as_iri().to_owned(),
+            &credential,
+            &mut context_loader.0,
+            options.cached_documents,
+        )
+        .await?
+        .serialize(&OBJECT_SERIALIZER)?
+        .into())
+    }
+
+    /// Create a new verifiable presentation.
+    #[wasm_bindgen(js_name = "presentVP")]
+    pub async fn present_vp(
+        &self,
+        verification_method: &DIDURL,
+        vp: Object,
+        context_loader: &mut ContextLoader,
+        domain: Option<String>,
+        challenge: Option<String>,
+        options: Option<W3CPresentOptions>,
+    ) -> Result<Object, JsError> {
+        let presentation: JsonPresentation<SpecializedJsonCredential> =
+            serde_wasm_bindgen::from_value(vp.into())?;
+
+        let options: PresentOptions = options
+            .map(Into::into)
+            .map(serde_wasm_bindgen::from_value)
+            .transpose()?
+            .unwrap_or_default();
+
+        let params = ECParams::from(self.0.inner());
+
+        Ok(present_vp::<ES256, EcdsaRdfc2019, _, _>(
+            teddybear_crypto::JWK::from(Params::EC(params)),
+            verification_method.0.as_iri().to_owned(),
+            &presentation,
+            domain,
+            challenge,
+            &mut context_loader.0,
+            options.cached_documents,
+        )
+        .await?
+        .serialize(&OBJECT_SERIALIZER)?
+        .into())
     }
 
     /// Decrypt the provided JWE object using the X25519 key and the A256GCM algorithm.

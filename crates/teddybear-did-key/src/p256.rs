@@ -18,9 +18,8 @@ use static_iref::iri_ref;
 
 use crate::KeyType;
 
-const P256_CONTEXT: &IriRef =
-    iri_ref!("https://w3id.org/security#EcdsaSecp256r1VerificationKey2019");
-const P256_TYPE: &str = "EcdsaSecp256r1VerificationKey2019";
+const P256_CONTEXT: &IriRef = iri_ref!("https://w3id.org/security/multikey/v1");
+const P256_TYPE: &str = "Multikey";
 
 pub struct P256;
 

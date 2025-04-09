@@ -13,7 +13,7 @@ use ssi_dids_core::{
     DIDURLReference, DIDURLReferenceBuf, InvalidDIDURL, VerificationMethodDIDResolver,
     document::{DIDVerificationMethod, ResourceRef},
 };
-use ssi_jwk::{Algorithm, Params};
+use ssi_jwk::Algorithm;
 use ssi_jws::{
     Header, decode_jws_parts, decode_verify, encode_sign_custom_header, split_jws, verify_bytes,
 };
@@ -38,7 +38,7 @@ pub use ssi_dids_core::{
         iref::{Uri, UriBuf},
     },
 };
-pub use ssi_jwk::JWK;
+pub use ssi_jwk::{ECParams, JWK, Params};
 pub use ssi_verification_methods::{
     Controller, EcdsaSecp256r1VerificationKey2019, Ed25519VerificationKey2020,
     JwkVerificationMethod,

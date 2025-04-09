@@ -9,6 +9,8 @@ use wasm_bindgen::prelude::*;
 
 use teddybear_vc::{
     IssueOptions, PresentOptions, issue_vc, present_vp,
+    ssi_claims::data_integrity::suites::Ed25519Signature2020,
+    ssi_crypto::algorithm::EdDSA,
     ssi_vc::v2::syntax::{JsonPresentation, SpecializedJsonCredential},
 };
 
@@ -17,18 +19,9 @@ use crate::{
     document::{DID, DIDURL},
     jwk::JWK,
     jws::JwsOptions,
-    w3c::ContextLoader,
+    w3c::{ContextLoader, W3CIssueOptions, W3CPresentOptions},
     x25519::PrivateX25519,
 };
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(typescript_type = "W3CIssueOptions")]
-    pub type W3CIssueOptions;
-
-    #[wasm_bindgen(typescript_type = "W3CPresentOptions")]
-    pub type W3CPresentOptions;
-}
 
 /// Private Ed25519 key.
 ///
@@ -134,7 +127,7 @@ impl PrivateEd25519 {
             .transpose()?
             .unwrap_or_default();
 
-        Ok(issue_vc(
+        Ok(issue_vc::<EdDSA, Ed25519Signature2020, _, _>(
             self.0.inner().clone(),
             verification_method.0.as_iri().to_owned(),
             &credential,
@@ -166,7 +159,7 @@ impl PrivateEd25519 {
             .transpose()?
             .unwrap_or_default();
 
-        Ok(present_vp(
+        Ok(present_vp::<EdDSA, Ed25519Signature2020, _, _>(
             self.0.inner().clone(),
             verification_method.0.as_iri().to_owned(),
             &presentation,
