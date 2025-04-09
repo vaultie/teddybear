@@ -3,7 +3,6 @@ pub mod status_list;
 
 use std::collections::HashMap;
 
-use ed25519_dalek::SigningKey;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use ssi_claims::{
@@ -11,9 +10,11 @@ use ssi_claims::{
     ValidateClaims, ValidateProof, VerifiableClaims, VerificationParameters,
     data_integrity::{
         AnySuite, CryptographicSuite, DataIntegrity, ProofOptions, StandardCryptographicSuite,
-        suites::Ed25519Signature2020,
+        suite::CryptographicSuiteSigning,
     },
 };
+use ssi_crypto::algorithm::SignatureAlgorithmType;
+use ssi_data_integrity_core::suite::ConfigurationAlgorithm;
 use ssi_json_ld::{ContextLoader, Expandable, IriBuf, JsonLdNodeObject};
 use ssi_vc::{
     Identified,
@@ -23,8 +24,8 @@ use ssi_vc::{
     },
 };
 use ssi_verification_methods::{
-    AnyMethod, ProofPurpose, ReferenceOrOwned, SingleSecretSigner, VerificationMethod,
-    VerificationMethodResolutionError, VerificationMethodResolver,
+    AnyMethod, ProofPurpose, ReferenceOrOwned, SigningMethod, SingleSecretSigner,
+    VerificationMethod, VerificationMethodResolutionError, VerificationMethodResolver,
 };
 use teddybear_crypto::{
     CachedDIDResolver, CustomVerificationMethodDIDResolver, DIDBuf, DIDURL, Document, Uri,
@@ -34,11 +35,12 @@ use teddybear_crypto::{
 use crate::credential_ref::CredentialRef;
 
 pub use ssi_claims;
+pub use ssi_crypto;
 pub use ssi_json_ld;
 pub use ssi_vc;
 pub use ssi_verification_methods;
 
-pub type DI<V> = DataIntegrity<V, Ed25519Signature2020>;
+pub type DI<V, M> = DataIntegrity<V, M>;
 pub type DIAny<V> = DataIntegrity<V, AnySuite>;
 
 pub type CustomVerificationParameters<'a, 'b, K> =
@@ -95,17 +97,31 @@ pub struct VerifyOptions {
     pub cached_documents: HashMap<DIDBuf, Document>,
 }
 
-pub type SignedEd25519Credential<'a, C> = DI<CredentialRef<'a, C>>;
+pub type SignedCredential<'a, C, M> = DI<CredentialRef<'a, C>, M>;
 
-pub async fn issue_vc<'a, C>(
-    key: SigningKey,
+pub async fn issue_vc<'a, 'c, A, M, K, C>(
+    key: K,
     verification_method: IriBuf,
     credential: &'a C,
-    context_loader: &mut ContextLoader,
+    context_loader: &'c mut ContextLoader,
     cached_documents: HashMap<DIDBuf, Document>,
-) -> Result<SignedEd25519Credential<'a, C>, Error>
+) -> Result<SignedCredential<'a, C, M>, Error>
 where
+    M: StandardCryptographicSuite
+        + CryptographicSuiteSigning<
+            CredentialRef<'a, C>,
+            SignatureEnvironment<&'c mut ContextLoader>,
+            CustomVerificationMethodDIDResolver<
+                <M as StandardCryptographicSuite>::VerificationMethod,
+            >,
+            SingleSecretSigner<K>,
+        > + Default,
+    <M as StandardCryptographicSuite>::VerificationMethod: SigningMethod<K, A>,
+    <M as CryptographicSuite>::Configuration:
+        ConfigurationAlgorithm<M, InputSignatureOptions = (), InputSuiteOptions: Default>,
+    A: SignatureAlgorithmType,
     C: Credential + JsonLdNodeObject + Expandable,
+    K: 'c,
 {
     let resolver = CustomVerificationMethodDIDResolver::new(CachedDIDResolver::new(
         default_did_method(),
@@ -117,7 +133,7 @@ where
 
     credential.validate_credential(&params)?;
 
-    Ok(Ed25519Signature2020
+    Ok(M::default()
         .sign_with(
             SignatureEnvironment {
                 json_ld_loader: context_loader,
@@ -135,19 +151,34 @@ where
         .await?)
 }
 
-pub type SignedEd25519Presentation<'a, C> = DI<CredentialRef<'a, JsonPresentation<C>>>;
+pub type SignedPresentation<'a, C, M> = DI<CredentialRef<'a, JsonPresentation<C>>, M>;
 
-pub async fn present_vp<'a, C>(
-    key: SigningKey,
+pub async fn present_vp<'a, 'c, A, M, K, C>(
+    key: K,
     verification_method: IriBuf,
     presentation: &'a JsonPresentation<C>,
     domain: Option<String>,
     challenge: Option<String>,
-    context_loader: &mut ContextLoader,
+    context_loader: &'c mut ContextLoader,
     cached_documents: HashMap<DIDBuf, Document>,
-) -> Result<SignedEd25519Presentation<'a, C>, Error>
+) -> Result<SignedPresentation<'a, C, M>, Error>
 where
     C: Credential + JsonLdNodeObject + Expandable + Serialize,
+    M: StandardCryptographicSuite
+        + CryptographicSuiteSigning<
+            CredentialRef<'a, JsonPresentation<C>>,
+            SignatureEnvironment<&'c mut ContextLoader>,
+            CustomVerificationMethodDIDResolver<
+                <M as StandardCryptographicSuite>::VerificationMethod,
+            >,
+            SingleSecretSigner<K>,
+        > + Default,
+    <M as StandardCryptographicSuite>::VerificationMethod: SigningMethod<K, A>,
+    <M as CryptographicSuite>::Configuration:
+        ConfigurationAlgorithm<M, InputSignatureOptions = (), InputSuiteOptions: Default>,
+    A: SignatureAlgorithmType,
+    C: Credential + JsonLdNodeObject + Expandable,
+    K: 'c,
 {
     let resolver = CustomVerificationMethodDIDResolver::new(CachedDIDResolver::new(
         default_did_method(),
@@ -161,7 +192,7 @@ where
         vc.validate_credential(&params)?;
     }
 
-    Ok(Ed25519Signature2020
+    Ok(M::default()
         .sign_with(
             SignatureEnvironment {
                 json_ld_loader: context_loader,

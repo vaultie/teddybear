@@ -15,6 +15,12 @@ use teddybear_vc::{
 extern "C" {
     #[wasm_bindgen(typescript_type = "W3CVerifyOptions")]
     pub type W3CVerifyOptions;
+
+    #[wasm_bindgen(typescript_type = "W3CIssueOptions")]
+    pub type W3CIssueOptions;
+
+    #[wasm_bindgen(typescript_type = "W3CPresentOptions")]
+    pub type W3CPresentOptions;
 }
 
 /// JSON-LD context loader.
