@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
 use ssi_dids_core::{
+    DID, DIDBuf, DIDResolver,
     document::{self, representation::Options},
-    resolution, DIDBuf, DIDResolver, DID,
+    resolution,
 };
 
 use crate::Document;

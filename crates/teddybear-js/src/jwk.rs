@@ -2,7 +2,7 @@ use js_sys::Object;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
-use crate::{ed25519::PublicEd25519, p256::PublicSecp256r1, OBJECT_SERIALIZER};
+use crate::{OBJECT_SERIALIZER, ed25519::PublicEd25519, p256::PublicSecp256r1};
 
 /// Wrapped JWK value.
 ///

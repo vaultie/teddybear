@@ -5,24 +5,22 @@
   lib,
   makeRustPlatform,
   newScope,
-  placeholder-image,
+  openssl,
+  pkg-config,
   src,
   system,
   testSrc,
-  thumbnail-image,
   yarnLockHash,
 }:
 lib.makeScope newScope (self: {
   # https://webassembly.org/features
   # https://github.com/rust-lang/rust/blob/a1d7676d6a8c6ff13f9165e98cc25eeec66cb592/compiler/rustc_target/src/target_features.rs#L520-L536
-  wasmFeatures = [
-    "+bulk-memory"
-    "+multivalue"
-    "+mutable-globals"
-    "+nontrapping-fptoint"
-    "+sign-ext"
-    "+simd128"
-    "-reference-types"
+  enabledWasmFeatures = [
+    "bulk-memory"
+    "mutable-globals"
+    "nontrapping-fptoint"
+    "sign-ext"
+    "simd128"
   ];
 
   # Potentially, some unused code may be introduced into the resulting WASM blob,
@@ -49,32 +47,35 @@ lib.makeScope newScope (self: {
     self.commonArgs
     // {
       cargoExtraArgs = "--all-features --locked";
+
+      buildInputs = [openssl];
+      nativeBuildInputs = [pkg-config];
+
+      OPENSSL_NO_VENDOR = "true";
     };
 
   wasmArgs =
     self.commonArgs
     // {
-      cargoVendorDir = self.craneLib.vendorMultipleCargoDeps {
-        inherit (self.craneLib.findCargoFiles src) cargoConfigs;
+      # https://github.com/briansmith/ring/issues/2345
+      stdenv = p: p.clangMultiStdenv;
+      hardeningDisable = ["zerocallusedregs"];
 
-        cargoLockList = [
-          "${src}/Cargo.lock"
-          "${self.fenix.complete.rust-src}/lib/rustlib/src/rust/library/Cargo.lock"
-        ];
-      };
+      RUSTFLAGS = let
+        fmt = lib.concatMapStringsSep "," (f: "+${f}") self.enabledWasmFeatures;
+      in "-C target-feature=${fmt}";
 
-      RUSTFLAGS = "-Ctarget-cpu=mvp -C target-feature=${lib.concatStringsSep "," self.wasmFeatures}";
       CARGO_BUILD_TARGET = "wasm32-unknown-unknown";
     };
 
   fenix = fenix.packages.${system};
   rustToolchain = with self.fenix;
     combine [
-      complete.rustc
-      complete.cargo
-      complete.clippy
-      complete.rustfmt
-      complete.rust-src
+      stable.rustc
+      stable.cargo
+      stable.clippy
+      stable.rustfmt
+      targets.wasm32-unknown-unknown.stable.rust-std
     ];
 
   craneLib = (crane.mkLib self).overrideToolchain self.rustToolchain;
@@ -84,7 +85,7 @@ lib.makeScope newScope (self: {
   wasmCargoArtifacts = self.craneLib.buildDepsOnly (self.wasmArgs
     // {
       doCheck = false;
-      cargoExtraArgs = "-Z build-std=std,panic_abort -p teddybear-js --locked";
+      cargoExtraArgs = "-p teddybear-js --locked";
     });
 
   esm = self.callPackage ./package.nix {buildForNode = false;};
@@ -103,11 +104,9 @@ lib.makeScope newScope (self: {
   };
 
   e2e-test = self.callPackage ./e2e-testing/vm.nix {
-    inherit identity-context placeholder-image thumbnail-image;
+    inherit identity-context;
 
-    certificate = ./e2e-testing/crt.der;
     mdoc-certificate = ./e2e-testing/mdoc.der;
-    placeholder-pdf = ./e2e-testing/blank.pdf;
   };
 
   wasm-snip = self.callPackage ./wasm-snip.nix {

@@ -6,14 +6,14 @@ use teddybear_crypto::{DIDBuf, DIDURLBuf, JwkVerificationMethod, SignOptions};
 use teddybear_jwe::{A256Gcm, P256KeyPair, XC20P};
 use teddybear_vc::ssi_verification_methods::EcdsaSecp256r1VerificationKey2019;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen_derive::{try_from_js_array, TryFromJsValue};
+use wasm_bindgen_derive::{TryFromJsValue, try_from_js_array};
 
 use crate::{
+    OBJECT_SERIALIZER,
     document::{DID, DIDURL},
     jwe::{Jwe, JweRecipient},
     jwk::JWK,
     jws::JwsOptions,
-    OBJECT_SERIALIZER,
 };
 
 #[wasm_bindgen]

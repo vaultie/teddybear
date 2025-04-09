@@ -5,13 +5,13 @@ use serde::Serialize;
 use teddybear_crypto::{DIDBuf, DIDURLBuf, JwkVerificationMethod, X25519KeyAgreementKey2020};
 use teddybear_jwe::{A256Gcm, X25519KeyPair, XC20P};
 use wasm_bindgen::prelude::*;
-use wasm_bindgen_derive::{try_from_js_array, TryFromJsValue};
+use wasm_bindgen_derive::{TryFromJsValue, try_from_js_array};
 
 use crate::{
+    OBJECT_SERIALIZER,
     document::{DID, DIDURL},
     jwe::{Jwe, JweRecipient},
     jwk::JWK,
-    OBJECT_SERIALIZER,
 };
 
 #[wasm_bindgen]

@@ -1,11 +1,11 @@
 use js_sys::{Array, JsString, Object, Uint8Array};
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen_derive::{try_from_js_array, TryFromJsValue};
+use wasm_bindgen_derive::{TryFromJsValue, try_from_js_array};
 
 use crate::{
-    p256::{PrivateSecp256r1, PublicSecp256r1},
     OBJECT_SERIALIZER,
+    p256::{PrivateSecp256r1, PublicSecp256r1},
 };
 
 #[wasm_bindgen]

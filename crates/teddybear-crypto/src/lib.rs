@@ -10,12 +10,12 @@ use p256::pkcs8::DecodePrivateKey;
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use ssi_dids_core::{
-    document::{DIDVerificationMethod, ResourceRef},
     DIDURLReference, DIDURLReferenceBuf, InvalidDIDURL, VerificationMethodDIDResolver,
+    document::{DIDVerificationMethod, ResourceRef},
 };
 use ssi_jwk::{Algorithm, Params};
 use ssi_jws::{
-    decode_jws_parts, decode_verify, encode_sign_custom_header, split_jws, verify_bytes, Header,
+    Header, decode_jws_parts, decode_verify, encode_sign_custom_header, split_jws, verify_bytes,
 };
 use ssi_security::MultibaseBuf;
 use ssi_verification_methods::{
@@ -28,15 +28,15 @@ use teddybear_high_assurance::DnsError;
 use crate::encoder::KeyEncoder;
 
 pub use cached_did::CachedDIDResolver;
-pub use jwk::{jwk_to_verification_method, DynamicVerificationMethod};
+pub use jwk::{DynamicVerificationMethod, jwk_to_verification_method};
 pub use p256::elliptic_curve::sec1::ToEncodedPoint;
 pub use ssi_dids_core::{
+    DID, DIDBuf, DIDURL, DIDURLBuf, PrimaryDIDURL, PrimaryDIDURLBuf,
     document::verification_method::ValueOrReference,
     ssi_json_ld::{
-        iref::{Uri, UriBuf},
         Iri, IriBuf,
+        iref::{Uri, UriBuf},
     },
-    DIDBuf, DIDURLBuf, PrimaryDIDURL, PrimaryDIDURLBuf, DID, DIDURL,
 };
 pub use ssi_jwk::JWK;
 pub use ssi_verification_methods::{

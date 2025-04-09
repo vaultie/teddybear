@@ -8,18 +8,17 @@ use teddybear_crypto::{
 use wasm_bindgen::prelude::*;
 
 use teddybear_vc::{
-    issue_vc, present_vp,
+    IssueOptions, PresentOptions, issue_vc, present_vp,
     ssi_vc::v2::syntax::{JsonPresentation, SpecializedJsonCredential},
-    IssueOptions, PresentOptions,
 };
 
 use crate::{
+    OBJECT_SERIALIZER,
     document::{DID, DIDURL},
     jwk::JWK,
     jws::JwsOptions,
     w3c::ContextLoader,
     x25519::PrivateX25519,
-    OBJECT_SERIALIZER,
 };
 
 #[wasm_bindgen]

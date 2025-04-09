@@ -3,8 +3,8 @@ mod p256;
 mod x25519;
 
 use ssi_dids_core::{
-    resolution::{self, Error},
     DIDMethod, DIDMethodResolver,
+    resolution::{self, Error},
 };
 use ssi_multicodec::MultiEncoded;
 use ssi_security::{Multibase, MultibaseBuf};

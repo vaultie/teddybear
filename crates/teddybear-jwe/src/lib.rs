@@ -1,19 +1,19 @@
 use std::borrow::Cow;
 
 use askar_crypto::{
+    Error, ErrorKind,
     alg::{
+        HasKeyAlg, KeyAlg,
         aes::{A256Kw, AesKey},
         chacha20::Chacha20Key,
-        HasKeyAlg, KeyAlg,
     },
     encrypt::{KeyAeadInPlace, KeyAeadMeta},
     generic_array::GenericArray,
     jwk::{FromJwk, ToJwk},
-    kdf::{ecdh_es::EcdhEs, FromKeyDerivation, KeyExchange},
+    kdf::{FromKeyDerivation, KeyExchange, ecdh_es::EcdhEs},
     repr::{KeyGen, KeyPublicBytes, KeySecretBytes, ToPublicBytes, ToSecretBytes},
-    Error, ErrorKind,
 };
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use serde::{Deserialize, Serialize};
 use ssi_jwk::{Base64urlUInt, JWK};
 

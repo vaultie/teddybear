@@ -2,7 +2,7 @@ use js_sys::Object;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
-use crate::{jwk::JWK, OBJECT_SERIALIZER};
+use crate::{OBJECT_SERIALIZER, jwk::JWK};
 
 #[wasm_bindgen(js_name = "SDJWT")]
 pub struct SdJwt(teddybear_sd_jwt::SdJwt);

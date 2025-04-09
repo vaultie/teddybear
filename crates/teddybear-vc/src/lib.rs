@@ -7,28 +7,28 @@ use ed25519_dalek::SigningKey;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use ssi_claims::{
-    data_integrity::{
-        suites::Ed25519Signature2020, AnySuite, CryptographicSuite, DataIntegrity, ProofOptions,
-        StandardCryptographicSuite,
-    },
     Invalid, InvalidClaims, ProofValidationError, SignatureEnvironment, SignatureError,
     ValidateClaims, ValidateProof, VerifiableClaims, VerificationParameters,
+    data_integrity::{
+        AnySuite, CryptographicSuite, DataIntegrity, ProofOptions, StandardCryptographicSuite,
+        suites::Ed25519Signature2020,
+    },
 };
 use ssi_json_ld::{ContextLoader, Expandable, IriBuf, JsonLdNodeObject};
 use ssi_vc::{
-    v2::{
-        syntax::{JsonPresentation, SpecializedJsonCredential},
-        Credential, Presentation,
-    },
     Identified,
+    v2::{
+        Credential, Presentation,
+        syntax::{JsonPresentation, SpecializedJsonCredential},
+    },
 };
 use ssi_verification_methods::{
     AnyMethod, ProofPurpose, ReferenceOrOwned, SingleSecretSigner, VerificationMethod,
     VerificationMethodResolutionError, VerificationMethodResolver,
 };
 use teddybear_crypto::{
-    default_did_method, CachedDIDResolver, CustomVerificationMethodDIDResolver, DIDBuf, Document,
-    Uri, DIDURL,
+    CachedDIDResolver, CustomVerificationMethodDIDResolver, DIDBuf, DIDURL, Document, Uri,
+    default_did_method,
 };
 
 use crate::credential_ref::CredentialRef;
@@ -187,17 +187,17 @@ pub trait HasClaimedSigner {
 }
 
 impl<
-        Subject,
-        RequiredContext,
-        RequiredType,
-        Issuer,
-        Status,
-        Evidence,
-        Schema,
-        RefreshService,
-        TermsOfUse,
-        ExtraProperties,
-    > HasClaimedSigner
+    Subject,
+    RequiredContext,
+    RequiredType,
+    Issuer,
+    Status,
+    Evidence,
+    Schema,
+    RefreshService,
+    TermsOfUse,
+    ExtraProperties,
+> HasClaimedSigner
     for SpecializedJsonCredential<
         Subject,
         RequiredContext,
@@ -243,13 +243,13 @@ pub async fn verify<'a, 'b, V>(
 where
     V: HasClaimedSigner,
     for<'r> <DIAny<V> as VerifiableClaims>::Claims: ValidateClaims<
-        CustomVerificationParameters<'r, 'b, AnyMethod>,
-        <DIAny<V> as VerifiableClaims>::Proof,
-    >,
+            CustomVerificationParameters<'r, 'b, AnyMethod>,
+            <DIAny<V> as VerifiableClaims>::Proof,
+        >,
     for<'r> <DIAny<V> as VerifiableClaims>::Proof: ValidateProof<
-        CustomVerificationParameters<'r, 'b, AnyMethod>,
-        <DIAny<V> as VerifiableClaims>::Claims,
-    >,
+            CustomVerificationParameters<'r, 'b, AnyMethod>,
+            <DIAny<V> as VerifiableClaims>::Claims,
+        >,
 {
     let claimed_signer = value.claimed_signer().ok_or(Error::MissingClaimedSigner)?;
 

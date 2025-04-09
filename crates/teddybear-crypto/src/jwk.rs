@@ -1,5 +1,5 @@
 use ssi_dids_core::DIDURLBuf;
-use ssi_jwk::{Params, JWK};
+use ssi_jwk::{JWK, Params};
 use ssi_verification_methods::{EcdsaSecp256r1VerificationKey2019, Ed25519VerificationKey2020};
 use teddybear_did_key::KeyType;
 use thiserror::Error;

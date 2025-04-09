@@ -4,10 +4,11 @@ use js_sys::Object;
 use wasm_bindgen::prelude::*;
 
 use teddybear_vc::{
+    DIAny, VerifyOptions,
     ssi_json_ld::ContextLoader as InnerContextLoader,
     ssi_vc::v2::syntax::{JsonPresentation, SpecializedJsonCredential},
     status_list::StatusList,
-    verify, DIAny, VerifyOptions,
+    verify,
 };
 
 #[wasm_bindgen]
