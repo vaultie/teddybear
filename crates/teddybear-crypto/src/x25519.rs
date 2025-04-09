@@ -1,10 +1,10 @@
 use std::{borrow::Cow, str::FromStr};
 
 use serde::{Deserialize, Serialize};
-use ssi_dids_core::ssi_json_ld::{iref::UriBuf, Iri, IriBuf};
-use ssi_jwk::{Params, JWK};
+use ssi_dids_core::ssi_json_ld::{Iri, IriBuf, iref::UriBuf};
+use ssi_jwk::{JWK, Params};
 use ssi_multicodec::MultiEncodedBuf;
-use ssi_security::{multibase, Multibase, MultibaseBuf};
+use ssi_security::{Multibase, MultibaseBuf, multibase};
 use ssi_verification_methods::{
     ExpectedType, GenericVerificationMethod, InvalidVerificationMethod, JwkVerificationMethod,
     TypedVerificationMethod, VerificationMethod, VerificationMethodSet,

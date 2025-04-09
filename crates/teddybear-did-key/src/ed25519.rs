@@ -4,23 +4,22 @@ use ed25519_dalek::VerifyingKey;
 use iref::IriRef;
 use serde_json::Value;
 use ssi_dids_core::{
+    DIDBuf, DIDURLBuf, Document,
     document::{
-        self,
+        self, DIDVerificationMethod,
         representation::{self, json_ld},
         verification_method::ValueOrReference,
-        DIDVerificationMethod,
     },
     resolution::{self, Error},
-    DIDBuf, DIDURLBuf, Document,
 };
 use ssi_multicodec::MultiEncodedBuf;
-use ssi_security::{multibase::Base, MultibaseBuf};
+use ssi_security::{MultibaseBuf, multibase::Base};
 use static_iref::iri_ref;
 use x25519_dalek::PublicKey;
 
 use crate::{
-    x25519::{X25519, X25519_CONTEXT, X25519_TYPE},
     KeyType,
+    x25519::{X25519, X25519_CONTEXT, X25519_TYPE},
 };
 
 // https://www.w3.org/community/reports/credentials/CG-FINAL-di-eddsa-2020-20220724/#ed25519verificationkey2020

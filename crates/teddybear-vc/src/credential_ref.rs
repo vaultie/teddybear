@@ -2,9 +2,9 @@ use std::{borrow::Cow, hash::Hash};
 
 use serde::Serialize;
 use ssi_json_ld::{
+    Expandable, JsonLdNodeObject, JsonLdObject, JsonLdTypes, Loader,
     json_ld::rdf_types::{Interpretation, VocabularyMut},
     syntax::Context,
-    Expandable, JsonLdNodeObject, JsonLdObject, JsonLdTypes, Loader,
 };
 use ssi_rdf::{LdEnvironment, LinkedDataResource, LinkedDataSubject};
 

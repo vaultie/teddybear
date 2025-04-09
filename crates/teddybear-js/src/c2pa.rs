@@ -1,92 +1,12 @@
 use std::io::Cursor;
 
+use c2pa::{Reader, SignatureInfo, validation_status::ValidationStatus};
 use itertools::Itertools;
 use js_sys::{Object, Uint8Array};
 use serde::Serialize;
-use teddybear_c2pa::{Ed25519Signer, Manifest, Reader, ValidationStatus};
 use wasm_bindgen::prelude::*;
 
-use crate::{ed25519::PrivateEd25519, OBJECT_SERIALIZER};
-
-/// C2PA signing result.
-///
-/// @category C2PA
-#[wasm_bindgen(js_name = "C2PASignatureResult")]
-pub struct C2paSignatureResult(Vec<u8>, Vec<u8>);
-
-#[wasm_bindgen(js_class = "C2PASignatureResult")]
-impl C2paSignatureResult {
-    /// Payload with C2PA manifest embedded within.
-    #[wasm_bindgen(getter, js_name = "signedPayload")]
-    pub fn signed_payload(&self) -> Uint8Array {
-        self.0.as_slice().into()
-    }
-
-    /// C2PA manifest value.
-    #[wasm_bindgen(getter)]
-    pub fn manifest(&self) -> Uint8Array {
-        self.1.as_slice().into()
-    }
-}
-
-/// C2PA signature builder.
-///
-/// @category C2PA
-#[wasm_bindgen(js_name = "C2PABuilder")]
-pub struct C2paBuilder(Manifest);
-
-#[wasm_bindgen(js_class = "C2PABuilder")]
-impl C2paBuilder {
-    #[wasm_bindgen(constructor)]
-    pub fn new() -> Self {
-        Self(Manifest::default())
-    }
-
-    #[wasm_bindgen(js_name = "setManifestDefinition")]
-    pub fn set_manifest_definition(mut self, definition: Object) -> Result<C2paBuilder, JsError> {
-        self.0 = serde_wasm_bindgen::from_value(definition.into())?;
-        Ok(self)
-    }
-
-    #[wasm_bindgen(js_name = "setThumbnail")]
-    pub fn set_thumbnail(
-        mut self,
-        source: Uint8Array,
-        format: &str,
-    ) -> Result<C2paBuilder, JsError> {
-        self.0.set_thumbnail(format, source.to_vec())?;
-        Ok(self)
-    }
-
-    #[wasm_bindgen(js_name = "addVerifiableCredential")]
-    pub fn add_verifiable_credential(mut self, credential: Object) -> Result<C2paBuilder, JsError> {
-        let value: serde_json::Value = serde_wasm_bindgen::from_value(credential.into())?;
-        self.0.add_verifiable_credential(&value)?;
-        Ok(self)
-    }
-
-    pub async fn sign(
-        mut self,
-        key: &PrivateEd25519,
-        certificates: Vec<Uint8Array>,
-        source: Uint8Array,
-        format: &str,
-    ) -> Result<C2paSignatureResult, JsError> {
-        let mut source = Cursor::new(source.to_vec());
-        let mut dest = Cursor::new(Vec::new());
-
-        let signer = Ed25519Signer::new(
-            key.0.inner().clone(),
-            certificates.into_iter().map(|val| val.to_vec()).collect(),
-        );
-
-        let manifest = self
-            .0
-            .embed_to_stream(format, &mut source, &mut dest, &signer)?;
-
-        Ok(C2paSignatureResult(dest.into_inner(), manifest))
-    }
-}
+use crate::OBJECT_SERIALIZER;
 
 /// C2PA validation error.
 ///
@@ -122,12 +42,38 @@ impl C2paValidationError {
     }
 }
 
+/// C2PA manifest information.
+///
+/// @category C2PA
+#[derive(Clone)]
+#[wasm_bindgen]
+pub struct ManifestInfo {
+    data: Object,
+    signature_info: Option<SignatureInfo>,
+}
+
+#[wasm_bindgen]
+impl ManifestInfo {
+    #[wasm_bindgen(js_name = "certificateChain")]
+    pub fn certificate_chain(&self) -> Option<String> {
+        self.signature_info
+            .as_ref()
+            .map(|info| info.cert_chain().to_owned())
+    }
+
+    /// Serialize the current manifest as an object.
+    #[wasm_bindgen(js_name = "toJSON")]
+    pub fn to_json(&self) -> Object {
+        self.data.clone()
+    }
+}
+
 /// C2PA signature verification result.
 ///
 /// @category C2PA
 #[wasm_bindgen(js_name = "C2PAVerificationResult")]
 pub struct C2paVerificationResult {
-    manifests: Vec<Object>,
+    manifests: Vec<ManifestInfo>,
     validation_errors: Vec<C2paValidationError>,
 }
 
@@ -135,7 +81,7 @@ pub struct C2paVerificationResult {
 impl C2paVerificationResult {
     /// Embedded C2PA manifests.
     #[wasm_bindgen(getter)]
-    pub fn manifests(&self) -> Vec<Object> {
+    pub fn manifests(&self) -> Vec<ManifestInfo> {
         self.manifests.clone()
     }
 
@@ -167,8 +113,12 @@ pub async fn verify_c2pa(
 
     let manifests = reader
         .iter_manifests()
-        .map(|manifest| manifest.serialize(&OBJECT_SERIALIZER))
-        .map_ok(Into::into)
+        .map(|manifest| {
+            Ok::<_, JsError>(ManifestInfo {
+                data: manifest.serialize(&OBJECT_SERIALIZER).map(Into::into)?,
+                signature_info: manifest.signature_info().cloned(),
+            })
+        })
         .try_collect()?;
 
     Ok(C2paVerificationResult {

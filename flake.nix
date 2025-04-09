@@ -36,16 +36,6 @@
       url = "https://w3c.credential.nexus/identity.jsonld";
       flake = false;
     };
-
-    placeholder-image = {
-      url = "https:/picsum.photos/id/0/200/300";
-      flake = false;
-    };
-
-    thumbnail-image = {
-      url = "https:/picsum.photos/id/1/128/128";
-      flake = false;
-    };
   };
 
   outputs = {
@@ -55,8 +45,6 @@
     nix-filter,
     flake-utils,
     identity-context,
-    placeholder-image,
-    thumbnail-image,
     ...
   }:
     flake-utils.lib.eachDefaultSystem (
@@ -79,13 +67,19 @@
         testSrc = ./tests;
 
         teddybearPkgs = pkgs.callPackage ./nix/scope.nix {
-          inherit crane fenix identity-context placeholder-image src testSrc thumbnail-image yarnLockHash;
+          inherit crane fenix identity-context src testSrc yarnLockHash;
         };
+
+        pkgConfigPath = pkgs.lib.makeSearchPathOutput "dev" "lib/pkgconfig" [
+          pkgs.openssl
+        ];
       in {
         devShells = {
           default = pkgs.mkShell {
-            buildInputs = [teddybearPkgs.rustToolchain pkgs.nodejs pkgs.yarn pkgs.twiggy];
+            buildInputs = [teddybearPkgs.rustToolchain pkgs.pkg-config pkgs.openssl pkgs.nodejs pkgs.yarn pkgs.twiggy];
             inputsFrom = [teddybearPkgs.esm];
+            OPENSSL_NO_VENDOR = "1";
+            PKG_CONFIG_PATH = pkgConfigPath;
           };
 
           ci = pkgs.mkShell {

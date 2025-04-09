@@ -112,13 +112,17 @@ describe("can execute verifiable credentials operations", () => {
       "123456",
     );
 
-    const { challenge: credentialChallenge } =
-      await verifyCredential(verifiableCredential, contextLoader);
+    const { challenge: credentialChallenge } = await verifyCredential(
+      verifiableCredential,
+      contextLoader,
+    );
 
     expect(credentialChallenge).toBeUndefined();
 
-    const { challenge: presentationChallenge } =
-      await verifyPresentation(verifiablePresentation, contextLoader);
+    const { challenge: presentationChallenge } = await verifyPresentation(
+      verifiablePresentation,
+      contextLoader,
+    );
 
     expect(presentationChallenge).toStrictEqual("123456");
 
@@ -137,24 +141,20 @@ describe("can execute verifiable credentials operations", () => {
         cachedDocuments: {
           "did:web:example.com": {
             "@context": ["https://w3.org/ns/did/v1"],
-            "id": "did:web:example.com",
-            "authentication": [
-              "did:web:example.com#test-key"
-            ],
-            "assertionMethod": [
-              "did:web:example.com#test-key"
-            ],
-            "verificationMethod": [
+            id: "did:web:example.com",
+            authentication: ["did:web:example.com#test-key"],
+            assertionMethod: ["did:web:example.com#test-key"],
+            verificationMethod: [
               {
-                "type": "Ed25519VerificationKey2020",
-                "id": "did:web:example.com#test-key",
-                "controller": "did:web:example.com",
-                "publicKeyMultibase": key.toDIDKeyURLFragment().toString()
-              }
-            ]
-          }
-        }
-      }
+                type: "Ed25519VerificationKey2020",
+                id: "did:web:example.com#test-key",
+                controller: "did:web:example.com",
+                publicKeyMultibase: key.toDIDKeyURLFragment().toString(),
+              },
+            ],
+          },
+        },
+      },
     );
   });
 });

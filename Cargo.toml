@@ -1,10 +1,10 @@
 [workspace]
 members = ["crates/*"]
-resolver = "2"
+resolver = "3"
 
 [workspace.package]
 version = "0.21.0"
-edition = "2021"
+edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/vaultie/teddybear"
 categories = ["cryptography", "wasm"]
@@ -40,7 +40,6 @@ time = { version = "0.3.36", features = ["wasm-bindgen"] }
 tokio = { version = "1.35.1", features = ["macros"] }
 x25519-dalek = { version = "2.0.1", features = ["static_secrets"] }
 
-teddybear-c2pa.path = "crates/teddybear-c2pa"
 teddybear-crypto.path = "crates/teddybear-crypto"
 teddybear-did-key.path = "crates/teddybear-did-key"
 teddybear-high-assurance.path = "crates/teddybear-high-assurance"

@@ -2,16 +2,16 @@ use std::collections::{BTreeMap, HashMap};
 
 use isomdl::{
     definitions::{
+        CoseKey, DeviceKeyInfo, DeviceResponse, DigestAlgorithm, EC2Curve, EC2Y, IssuerSigned, Mso,
+        SessionEstablishment,
         device_request::{self, ItemsRequest},
         helpers::{ByteStr, Tag24},
-        x509::{trust_anchor::TrustAnchorRegistry, X5Chain},
-        CoseKey, DeviceKeyInfo, DeviceResponse, DigestAlgorithm, EC2Curve, IssuerSigned, Mso,
-        SessionEstablishment, EC2Y,
+        x509::{X5Chain, trust_anchor::TrustAnchorRegistry},
     },
     issuance::{self, Mdoc, Namespaces},
     presentation::device::{self, DeviceSession, Document, SessionManager, SessionManagerInit},
 };
-use p256::ecdsa::{signature::Signer, Signature};
+use p256::ecdsa::{Signature, signature::Signer};
 use serde::Deserialize;
 use teddybear_crypto::{
     EcdsaSecp256r1VerificationKey2019, PrivateSecp256r1, ToEncodedPoint, UriBuf,

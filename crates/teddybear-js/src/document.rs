@@ -4,7 +4,7 @@ use teddybear_crypto::{DIDBuf, DIDURLBuf, ValueOrReference};
 use wasm_bindgen::prelude::*;
 
 use crate::{
-    ed25519::PublicEd25519, p256::PublicSecp256r1, x25519::PublicX25519, OBJECT_SERIALIZER,
+    OBJECT_SERIALIZER, ed25519::PublicEd25519, p256::PublicSecp256r1, x25519::PublicX25519,
 };
 
 /// DID value.

@@ -1,14 +1,16 @@
 {
-  certificate,
+  fetchurl,
+  lib,
   identity-context,
   mdoc-certificate,
-  placeholder-image,
-  placeholder-pdf,
   runner,
   testers,
-  thumbnail-image,
-}:
-testers.runNixOSTest ({lib, ...}: {
+}: let
+  signedJpeg = fetchurl {
+    url = "https://raw.githubusercontent.com/contentauth/c2pa-rs/main/cli/tests/fixtures/verify.jpeg";
+    hash = "sha256-PgjZQQorhbNj0Z0fcW+KpBTFg4+OUqFBhzV1O3hNISE=";
+  };
+in testers.runNixOSTest ({lib, ...}: {
   name = "teddybear-nixos-test";
 
   nodes.machine = {
@@ -80,12 +82,10 @@ testers.runNixOSTest ({lib, ...}: {
       etc.did-web-root.source = ./web-root;
 
       variables = {
-        CERTIFICATE = certificate;
         IDENTITY_CONTEXT = identity-context;
         MDOC_CERTIFICATE = mdoc-certificate;
-        PLACEHOLDER_IMAGE = placeholder-image;
-        PLACEHOLDER_PDF = placeholder-pdf;
-        THUMBNAIL_IMAGE = thumbnail-image;
+
+        SIGNED_JPEG = signedJpeg;
 
         # We use self-signed certificates for testing purposes.
         NODE_TLS_REJECT_UNAUTHORIZED = "0";

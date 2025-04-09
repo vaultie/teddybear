@@ -46,11 +46,7 @@ impl StatusSize {
     }
 
     fn mask(&self) -> u8 {
-        if self.0 == 8 {
-            0xff
-        } else {
-            (1 << self.0) - 1
-        }
+        if self.0 == 8 { 0xff } else { (1 << self.0) - 1 }
     }
 }
 

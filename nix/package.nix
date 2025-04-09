@@ -41,7 +41,7 @@ in
           --out-name index \
           --target ${target} \
           --no-opt \
-          --release -- -Z build-std=std,panic_abort
+          --release
 
         ${lib.optionalString (wasmSnipPatterns != []) ''
           wasm-snip crates/teddybear-js/build/index_bg.wasm \
@@ -64,8 +64,7 @@ in
       '';
 
       checkPhaseCargoCommand = ''
-        wasm-validate crates/teddybear-js/build/index_bg.wasm \
-          --disable-reference-types
+        wasm-validate crates/teddybear-js/build/index_bg.wasm
       '';
 
       doInstallCargoArtifacts = false;

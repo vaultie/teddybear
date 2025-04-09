@@ -4,17 +4,16 @@ use iref::IriRef;
 use p256::{CompressedPoint, PublicKey};
 use serde_json::Value;
 use ssi_dids_core::{
+    DIDBuf, DIDURLBuf, Document,
     document::{
-        self,
+        self, DIDVerificationMethod,
         representation::{self, json_ld},
         verification_method::ValueOrReference,
-        DIDVerificationMethod,
     },
     resolution::{self, Error},
-    DIDBuf, DIDURLBuf, Document,
 };
 use ssi_multicodec::MultiEncodedBuf;
-use ssi_security::{multibase::Base, MultibaseBuf};
+use ssi_security::{MultibaseBuf, multibase::Base};
 use static_iref::iri_ref;
 
 use crate::KeyType;
