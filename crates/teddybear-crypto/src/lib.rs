@@ -20,7 +20,7 @@ use ssi_jws::{
 use ssi_security::MultibaseBuf;
 use ssi_verification_methods::{
     ControllerError, ControllerProvider, GenericVerificationMethod, InvalidVerificationMethod,
-    ProofPurpose,
+    Multikey, ProofPurpose,
 };
 use teddybear_did_key::{DIDKey, KeyType, X25519};
 use teddybear_high_assurance::DnsError;
@@ -440,6 +440,10 @@ impl PrivateSecp256r1 {
         controller: UriBuf,
     ) -> EcdsaSecp256r1VerificationKey2019 {
         EcdsaSecp256r1VerificationKey2019::from_public_key(id, controller, self.inner.public_key())
+    }
+
+    pub fn to_multikey(&self, id: IriBuf, controller: UriBuf) -> Multikey {
+        Multikey::from_public_key(id, controller, &self.inner.public_key())
     }
 
     pub fn sign(&self, payload: &str, options: SignOptions) -> Result<String, ssi_jws::Error> {

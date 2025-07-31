@@ -15,6 +15,7 @@ mod jwe;
 mod jwk;
 mod jws;
 mod mdoc;
+mod multikey;
 mod p256;
 mod sd_jwt;
 mod w3c;
