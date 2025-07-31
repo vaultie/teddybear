@@ -204,8 +204,8 @@ impl DeviceInternalMDoc {
             .iter()
             .map(|(namespace, entries)| {
                 let value = entries
-                    .iter()
-                    .map(|(_, value)| {
+                    .values()
+                    .map(|value| {
                         let item = value.clone().into_inner();
                         (
                             item.element_identifier,

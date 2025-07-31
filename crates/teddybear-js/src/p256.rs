@@ -20,6 +20,7 @@ use crate::{
     jwe::{Jwe, JweRecipient},
     jwk::JWK,
     jws::JwsOptions,
+    multikey::PublicMultikey,
     w3c::{ContextLoader, W3CIssueOptions, W3CPresentOptions},
 };
 
@@ -98,6 +99,20 @@ impl PrivateSecp256r1 {
             .to_verification_method(id.0.as_iri().to_owned(), controller.0.as_uri().to_owned());
 
         Ok(PublicSecp256r1(verification_method))
+    }
+
+    /// Derive a Multikey public key from the private key.
+    #[wasm_bindgen(js_name = "toPublicMultikey")]
+    pub fn to_public_multikey(
+        &self,
+        id: &DIDURL,
+        controller: &DID,
+    ) -> Result<PublicMultikey, JsError> {
+        let verification_method = self
+            .0
+            .to_multikey(id.0.as_iri().to_owned(), controller.0.as_uri().to_owned());
+
+        Ok(PublicMultikey(verification_method))
     }
 
     /// Sign the provided payload using the Secp256r1 key.
