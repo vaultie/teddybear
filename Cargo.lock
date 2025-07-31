@@ -5305,7 +5305,7 @@ checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 
 [[package]]
 name = "teddybear-crypto"
-version = "0.21.1"
+version = "0.21.2"
 dependencies = [
  "did-web",
  "ed25519-dalek",
@@ -5327,7 +5327,7 @@ dependencies = [
 
 [[package]]
 name = "teddybear-did-key"
-version = "0.21.1"
+version = "0.21.2"
 dependencies = [
  "ed25519-dalek",
  "iref",
@@ -5342,7 +5342,7 @@ dependencies = [
 
 [[package]]
 name = "teddybear-high-assurance"
-version = "0.21.1"
+version = "0.21.2"
 dependencies = [
  "hickory-proto",
  "reqwest",
@@ -5351,7 +5351,7 @@ dependencies = [
 
 [[package]]
 name = "teddybear-js"
-version = "0.21.1"
+version = "0.21.2"
 dependencies = [
  "c2pa",
  "itertools",
@@ -5371,7 +5371,7 @@ dependencies = [
 
 [[package]]
 name = "teddybear-jwe"
-version = "0.21.1"
+version = "0.21.2"
 dependencies = [
  "askar-crypto",
  "base64 0.22.1",
@@ -5387,7 +5387,7 @@ dependencies = [
 
 [[package]]
 name = "teddybear-mdoc"
-version = "0.21.1"
+version = "0.21.2"
 dependencies = [
  "anyhow",
  "ciborium",
@@ -5401,7 +5401,7 @@ dependencies = [
 
 [[package]]
 name = "teddybear-sd-jwt"
-version = "0.21.1"
+version = "0.21.2"
 dependencies = [
  "json-syntax",
  "serde",
@@ -5414,7 +5414,7 @@ dependencies = [
 
 [[package]]
 name = "teddybear-vc"
-version = "0.21.1"
+version = "0.21.2"
 dependencies = [
  "ed25519-dalek",
  "flate2",
