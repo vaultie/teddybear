@@ -3,7 +3,9 @@
   craneLib,
   nativeArgs,
 }:
-craneLib.cargoTest (nativeArgs
+craneLib.cargoTest (
+  nativeArgs
   // {
     inherit cargoArtifacts;
-  })
+  }
+)

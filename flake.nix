@@ -7,17 +7,17 @@
       ref = "nixos-unstable";
     };
 
+    rust-overlay = {
+      type = "github";
+      owner = "oxalica";
+      repo = "rust-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     crane = {
       type = "github";
       owner = "ipetkov";
       repo = "crane";
-    };
-
-    fenix = {
-      type = "github";
-      owner = "nix-community";
-      repo = "fenix";
-      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     nix-filter = {
@@ -31,59 +31,49 @@
       owner = "numtide";
       repo = "flake-utils";
     };
-
-    identity-context = {
-      url = "https://w3c.credential.nexus/identity.jsonld";
-      flake = false;
-    };
   };
 
-  outputs = {
-    nixpkgs,
-    crane,
-    fenix,
-    nix-filter,
-    flake-utils,
-    identity-context,
-    ...
-  }:
+  outputs =
+    {
+      nixpkgs,
+      rust-overlay,
+      flake-utils,
+      ...
+    }@inputs:
     flake-utils.lib.eachDefaultSystem (
-      system: let
+      system:
+      let
         pkgs = import nixpkgs {
           inherit system;
+
+          overlays = [ rust-overlay.overlays.default ];
         };
-
-        src = nix-filter.lib.filter {
-          root = ./.;
-
-          include = [
-            "crates"
-            "Cargo.toml"
-            "Cargo.lock"
-          ];
-        };
-
-        yarnLockHash = "sha256-KPOh4DVHQ1Z7rYEsoC7oQU42NrOW6jfSVAyxDNvaHfc=";
-        testSrc = ./tests;
 
         teddybearPkgs = pkgs.callPackage ./nix/scope.nix {
-          inherit crane fenix identity-context src testSrc yarnLockHash;
+          inherit inputs;
         };
-
-        pkgConfigPath = pkgs.lib.makeSearchPathOutput "dev" "lib/pkgconfig" [
-          pkgs.openssl
-        ];
-      in {
+      in
+      {
         devShells = {
           default = pkgs.mkShell {
-            buildInputs = [teddybearPkgs.rustToolchain pkgs.pkg-config pkgs.openssl pkgs.nodejs pkgs.yarn pkgs.twiggy];
-            inputsFrom = [teddybearPkgs.esm];
+            buildInputs = [
+              teddybearPkgs.rustToolchain
+              pkgs.yarn
+              pkgs.nodejs
+              pkgs.openssl
+              pkgs.pkg-config
+            ];
+
+            inputsFrom = [ teddybearPkgs.esm ];
+
             OPENSSL_NO_VENDOR = "1";
-            PKG_CONFIG_PATH = pkgConfigPath;
           };
 
           ci = pkgs.mkShell {
-            buildInputs = [teddybearPkgs.rustToolchain pkgs.cargo-edit];
+            buildInputs = [
+              teddybearPkgs.rustToolchain
+              pkgs.cargo-edit
+            ];
           };
         };
 
@@ -98,10 +88,19 @@
         };
 
         checks = {
-          inherit (teddybearPkgs) cjs esm uni docs e2e-test unit-test clippy fmt;
+          inherit (teddybearPkgs)
+            cjs
+            esm
+            uni
+            docs
+            e2e-test
+            unit-test
+            clippy
+            fmt
+            ;
         };
 
-        formatter = pkgs.alejandra;
+        formatter = pkgs.nixfmt-tree;
       }
     );
 }

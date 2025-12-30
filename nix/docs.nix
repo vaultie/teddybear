@@ -10,7 +10,7 @@ stdenvNoCC.mkDerivation {
 
   src = uni;
 
-  nativeBuildInputs = [deno];
+  nativeBuildInputs = [ deno ];
 
   buildPhase = ''
     runHook preBuild

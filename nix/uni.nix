@@ -9,7 +9,11 @@
 stdenvNoCC.mkDerivation {
   inherit (esm) pname version;
 
-  nativeBuildInputs = [jq moreutils wabt];
+  nativeBuildInputs = [
+    jq
+    moreutils
+    wabt
+  ];
 
   dontUnpack = true;
 

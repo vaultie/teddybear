@@ -5,21 +5,19 @@
   makeWrapper,
   nodejs-slim,
   stdenvNoCC,
-  testSrc,
   yarn,
-  yarnLockHash,
   uni,
 }:
-stdenvNoCC.mkDerivation {
+stdenvNoCC.mkDerivation (finalAttrs: {
   inherit (uni) version;
 
   pname = "teddybear-tests";
 
-  src = testSrc;
+  src = ../../tests;
 
   offlineCache = fetchYarnDeps {
-    yarnLock = "${testSrc}/yarn.lock";
-    hash = yarnLockHash;
+    yarnLock = "${finalAttrs.src}/yarn.lock";
+    hash = "sha256-FFe4q1xjo5SqmtBg3YCX1jeE9HavwUDJAqNdaEhag5A=";
   };
 
   nativeBuildInputs = [
@@ -74,4 +72,4 @@ stdenvNoCC.mkDerivation {
   '';
 
   meta.mainProgram = "test";
-}
+})
