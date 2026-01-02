@@ -13,7 +13,10 @@ use std::str::FromStr;
 use futures_util::{StreamExt, stream::FuturesUnordered};
 use js_sys::Uint8Array;
 use serde::{Deserialize, Serialize};
-use teddybear_w3c::status_lists::{BitstringStatusListCredential, StatusListFetcher};
+use teddybear_w3c::{
+    data::RecognizedW3CCredential,
+    status_lists::{BitstringStatusListCredential, StatusListFetcher},
+};
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 
@@ -21,6 +24,12 @@ use wasm_bindgen::prelude::*;
 pub enum VerificationError {
     #[error("unknown format: {0}")]
     UnknownFormat(String),
+
+    #[error("invalid credential: {0}")]
+    InvalidCredential(#[from] serde_wasm_bindgen::Error),
+
+    #[error("credential recognition error: {0}")]
+    RecognitionError(#[from] teddybear_w3c::Error),
 
     #[error("C2PA failure: {0}")]
     C2PA(#[from] teddybear_c2pa::Error),
@@ -36,7 +45,10 @@ impl From<VerificationError> for wasm_bindgen::JsValue {
 #[derive(Deserialize, Tsify)]
 #[tsify(from_wasm_abi)]
 pub struct TrustAnchors {
+    #[serde(default)]
     c2pa: Vec<String>,
+
+    #[serde(default)]
     w3c: Vec<String>,
 }
 
@@ -66,17 +78,17 @@ pub enum CredentialVerificationOutcome {
 
 #[derive(Serialize, Tsify)]
 #[tsify(into_wasm_abi)]
-pub struct VerificationOutcome {
+pub struct C2PAVerificationOutcome {
     c2pa: teddybear_c2pa::VerificationOutcome,
     w3c: Vec<CredentialVerificationOutcome>,
 }
 
-#[wasm_bindgen]
-pub async fn verify(
+#[wasm_bindgen(js_name = "verifyC2PA")]
+pub async fn verify_c2pa(
     format: &str,
     asset: Uint8Array,
     configuration: VerificationConfiguration,
-) -> Result<VerificationOutcome, VerificationError> {
+) -> Result<C2PAVerificationOutcome, VerificationError> {
     console_error_panic_hook::set_once();
 
     let format = teddybear_c2pa::SupportedFormat::from_str(format)
@@ -117,10 +129,38 @@ pub async fn verify(
 
     let resolved_credentials = FuturesUnordered::from_iter(credentials).collect().await;
 
-    Ok(VerificationOutcome {
+    Ok(C2PAVerificationOutcome {
         c2pa: c2pa_outcome,
         w3c: resolved_credentials,
     })
+}
+
+#[wasm_bindgen(js_name = "verifyW3C")]
+pub async fn verify_w3c(
+    asset: JsValue,
+    configuration: VerificationConfiguration,
+) -> Result<RecognizedW3CCredential, VerificationError> {
+    console_error_panic_hook::set_once();
+
+    let fetcher = if configuration.status_list_fetcher.is_function() {
+        Some(JSStatusListFetcher(
+            configuration.status_list_fetcher.into(),
+        ))
+    } else {
+        None
+    };
+
+    let credential =
+        serde_wasm_bindgen::from_value(asset).map_err(VerificationError::InvalidCredential)?;
+
+    let credential = teddybear_w3c::verify_credential(
+        &credential,
+        &configuration.trust_anchors.w3c,
+        fetcher.as_ref(),
+    )
+    .await?;
+
+    Ok(credential)
 }
 
 #[derive(thiserror::Error, Debug)]
