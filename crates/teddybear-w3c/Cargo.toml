@@ -22,3 +22,5 @@ ssi-vc = "0.6.1"
 ssi-verification-methods = { version = "0.1.3", default-features = false, features = ["ed25519", "p256", "rsa", "secp256r1"] }
 static-iref = "3.0.0"
 thiserror.workspace = true
+tsify.workspace = true
+wasm-bindgen.workspace = true

@@ -13,22 +13,23 @@ use std::str::FromStr;
 use futures_util::{StreamExt, stream::FuturesUnordered};
 use js_sys::Uint8Array;
 use serde::{Deserialize, Serialize};
-use serde_wasm_bindgen::Serializer;
-use teddybear_w3c::status_lists::{BitstringStatusListCredential, StatusListFetcher};
+use teddybear_w3c::{
+    data::RecognizedW3CCredential,
+    status_lists::{BitstringStatusListCredential, StatusListFetcher},
+};
+use tsify::Tsify;
 use wasm_bindgen::prelude::*;
-
-const OBJECT_SERIALIZER: Serializer = Serializer::new().serialize_maps_as_objects(true);
 
 #[derive(thiserror::Error, Debug)]
 pub enum VerificationError {
     #[error("unknown format: {0}")]
     UnknownFormat(String),
 
-    #[error("invalid trust anchors object: {0}")]
-    InvalidTrustAnchors(serde_wasm_bindgen::Error),
+    #[error("invalid credential: {0}")]
+    InvalidCredential(#[from] serde_wasm_bindgen::Error),
 
-    #[error("output serialization failed: {0}")]
-    OutputSerializationFailed(serde_wasm_bindgen::Error),
+    #[error("credential recognition error: {0}")]
+    RecognitionError(#[from] teddybear_w3c::Error),
 
     #[error("C2PA failure: {0}")]
     C2PA(#[from] teddybear_c2pa::Error),
@@ -41,14 +42,19 @@ impl From<VerificationError> for wasm_bindgen::JsValue {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Tsify)]
+#[tsify(from_wasm_abi)]
 pub struct TrustAnchors {
+    #[serde(default)]
     c2pa: Vec<String>,
+
+    #[serde(default)]
     w3c: Vec<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
+#[tsify(from_wasm_abi)]
 pub struct VerificationConfiguration {
     trust_anchors: TrustAnchors,
 
@@ -57,8 +63,9 @@ pub struct VerificationConfiguration {
     status_list_fetcher: JsValue,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Tsify)]
 #[serde(tag = "status", rename_all = "camelCase")]
+#[tsify(into_wasm_abi)]
 pub enum CredentialVerificationOutcome {
     Success {
         credential: teddybear_w3c::data::RecognizedW3CCredential,
@@ -69,22 +76,20 @@ pub enum CredentialVerificationOutcome {
     },
 }
 
-#[derive(Serialize)]
-pub struct VerificationOutcome {
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
+pub struct C2PAVerificationOutcome {
     c2pa: teddybear_c2pa::VerificationOutcome,
     w3c: Vec<CredentialVerificationOutcome>,
 }
 
-#[wasm_bindgen]
-pub async fn verify(
+#[wasm_bindgen(js_name = "verifyC2PA")]
+pub async fn verify_c2pa(
     format: &str,
     asset: Uint8Array,
-    configuration: JsValue,
-) -> Result<JsValue, VerificationError> {
+    configuration: VerificationConfiguration,
+) -> Result<C2PAVerificationOutcome, VerificationError> {
     console_error_panic_hook::set_once();
-
-    let configuration: VerificationConfiguration = serde_wasm_bindgen::from_value(configuration)
-        .map_err(VerificationError::InvalidTrustAnchors)?;
 
     let format = teddybear_c2pa::SupportedFormat::from_str(format)
         .map_err(|_| VerificationError::UnknownFormat(format.to_owned()))?;
@@ -124,12 +129,38 @@ pub async fn verify(
 
     let resolved_credentials = FuturesUnordered::from_iter(credentials).collect().await;
 
-    VerificationOutcome {
+    Ok(C2PAVerificationOutcome {
         c2pa: c2pa_outcome,
         w3c: resolved_credentials,
-    }
-    .serialize(&OBJECT_SERIALIZER)
-    .map_err(VerificationError::OutputSerializationFailed)
+    })
+}
+
+#[wasm_bindgen(js_name = "verifyW3C")]
+pub async fn verify_w3c(
+    asset: JsValue,
+    configuration: VerificationConfiguration,
+) -> Result<RecognizedW3CCredential, VerificationError> {
+    console_error_panic_hook::set_once();
+
+    let fetcher = if configuration.status_list_fetcher.is_function() {
+        Some(JSStatusListFetcher(
+            configuration.status_list_fetcher.into(),
+        ))
+    } else {
+        None
+    };
+
+    let credential =
+        serde_wasm_bindgen::from_value(asset).map_err(VerificationError::InvalidCredential)?;
+
+    let credential = teddybear_w3c::verify_credential(
+        &credential,
+        &configuration.trust_anchors.w3c,
+        fetcher.as_ref(),
+    )
+    .await?;
+
+    Ok(credential)
 }
 
 #[derive(thiserror::Error, Debug)]

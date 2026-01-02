@@ -1,4 +1,4 @@
-import { verify } from "@vaultie/teddybear";
+import { verifyC2PA } from "@vaultie/teddybear";
 import { readFileSync } from "fs";
 import { describe, expect, it } from "vitest";
 
@@ -6,7 +6,7 @@ const pdf = readFileSync(process.env.SIGNED_PDF!);
 
 describe("can verify signed C2PA assets", () => {
   it("can verify a signed PDF", async () => {
-    const result = await verify("application/pdf", new Uint8Array(pdf), {
+    const result = await verifyC2PA("application/pdf", new Uint8Array(pdf), {
       trustAnchors: {
         c2pa: [
           `-----BEGIN CERTIFICATE-----
