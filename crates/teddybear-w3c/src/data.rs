@@ -19,6 +19,7 @@ const CREDENTIAL_SUBJECT_PROPERTY: &Iri =
 
 #[derive(Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
+#[tsify(hashmap_as_object)]
 pub struct RecognizedCredentialSubject {
     pub id: Option<String>,
     pub types: Vec<String>,
