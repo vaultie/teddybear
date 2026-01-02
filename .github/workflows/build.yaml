@@ -36,8 +36,6 @@ jobs:
       - name: Publish unified package
         run: npm publish --access public
         working-directory: ./result
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
       - name: Build documentation
         run: nix build .#docs
       - name: Upload documentation artifact
