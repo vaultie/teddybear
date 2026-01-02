@@ -13,22 +13,14 @@ use std::str::FromStr;
 use futures_util::{StreamExt, stream::FuturesUnordered};
 use js_sys::Uint8Array;
 use serde::{Deserialize, Serialize};
-use serde_wasm_bindgen::Serializer;
 use teddybear_w3c::status_lists::{BitstringStatusListCredential, StatusListFetcher};
+use tsify::Tsify;
 use wasm_bindgen::prelude::*;
-
-const OBJECT_SERIALIZER: Serializer = Serializer::new().serialize_maps_as_objects(true);
 
 #[derive(thiserror::Error, Debug)]
 pub enum VerificationError {
     #[error("unknown format: {0}")]
     UnknownFormat(String),
-
-    #[error("invalid trust anchors object: {0}")]
-    InvalidTrustAnchors(serde_wasm_bindgen::Error),
-
-    #[error("output serialization failed: {0}")]
-    OutputSerializationFailed(serde_wasm_bindgen::Error),
 
     #[error("C2PA failure: {0}")]
     C2PA(#[from] teddybear_c2pa::Error),
@@ -41,14 +33,16 @@ impl From<VerificationError> for wasm_bindgen::JsValue {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Tsify)]
+#[tsify(from_wasm_abi)]
 pub struct TrustAnchors {
     c2pa: Vec<String>,
     w3c: Vec<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
+#[tsify(from_wasm_abi)]
 pub struct VerificationConfiguration {
     trust_anchors: TrustAnchors,
 
@@ -57,8 +51,9 @@ pub struct VerificationConfiguration {
     status_list_fetcher: JsValue,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Tsify)]
 #[serde(tag = "status", rename_all = "camelCase")]
+#[tsify(into_wasm_abi)]
 pub enum CredentialVerificationOutcome {
     Success {
         credential: teddybear_w3c::data::RecognizedW3CCredential,
@@ -69,7 +64,8 @@ pub enum CredentialVerificationOutcome {
     },
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Tsify)]
+#[tsify(into_wasm_abi)]
 pub struct VerificationOutcome {
     c2pa: teddybear_c2pa::VerificationOutcome,
     w3c: Vec<CredentialVerificationOutcome>,
@@ -79,12 +75,9 @@ pub struct VerificationOutcome {
 pub async fn verify(
     format: &str,
     asset: Uint8Array,
-    configuration: JsValue,
-) -> Result<JsValue, VerificationError> {
+    configuration: VerificationConfiguration,
+) -> Result<VerificationOutcome, VerificationError> {
     console_error_panic_hook::set_once();
-
-    let configuration: VerificationConfiguration = serde_wasm_bindgen::from_value(configuration)
-        .map_err(VerificationError::InvalidTrustAnchors)?;
 
     let format = teddybear_c2pa::SupportedFormat::from_str(format)
         .map_err(|_| VerificationError::UnknownFormat(format.to_owned()))?;
@@ -124,12 +117,10 @@ pub async fn verify(
 
     let resolved_credentials = FuturesUnordered::from_iter(credentials).collect().await;
 
-    VerificationOutcome {
+    Ok(VerificationOutcome {
         c2pa: c2pa_outcome,
         w3c: resolved_credentials,
-    }
-    .serialize(&OBJECT_SERIALIZER)
-    .map_err(VerificationError::OutputSerializationFailed)
+    })
 }
 
 #[derive(thiserror::Error, Debug)]

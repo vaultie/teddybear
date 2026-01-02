@@ -6,6 +6,7 @@ use ssi_json_ld::{
     BlankIdBuf, ExpandedDocument, Iri, IriBuf, Node, Object, object::node::Properties, syntax,
 };
 use static_iref::iri;
+use tsify::Tsify;
 
 use crate::{
     W3CCredential,
@@ -16,7 +17,7 @@ const ISSUER_PROPERTY: &Iri = iri!("https://www.w3.org/2018/credentials#issuer")
 const CREDENTIAL_SUBJECT_PROPERTY: &Iri =
     iri!("https://www.w3.org/2018/credentials#credentialSubject");
 
-#[derive(Serialize)]
+#[derive(Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct RecognizedCredentialSubject {
     pub id: Option<String>,
@@ -24,7 +25,7 @@ pub struct RecognizedCredentialSubject {
     pub properties: HashMap<syntax::String, syntax::Value>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct RecognizedW3CCredential {
     pub id: Option<String>,

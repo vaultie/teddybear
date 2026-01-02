@@ -12,6 +12,8 @@ serde_bytes = "0.11.19"
 serde_json.workspace = true
 strum = { version = "0.27.2", features = ["derive"] }
 toml = "0.9.8"
+tsify.workspace = true
+wasm-bindgen.workspace = true
 
 [dependencies.c2pa]
 version = "0.68.0"

@@ -3,6 +3,7 @@ use std::{collections::HashMap, io::Cursor};
 use c2pa::{Reader, ValidationState, settings::Settings};
 use serde::{Deserialize, Serialize};
 use strum::{EnumString, IntoStaticStr};
+use tsify::Tsify;
 
 pub use c2pa::Error;
 
@@ -15,7 +16,7 @@ pub enum SupportedFormat {
     Pdf,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct C2PAThumbnail {
     pub format: String,
@@ -24,13 +25,13 @@ pub struct C2PAThumbnail {
     pub data: Vec<u8>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct C2PAIngredient {
     pub manifest_id: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct RecognizedManifest {
     pub id: String,
@@ -43,7 +44,7 @@ pub struct RecognizedManifest {
     pub ingredients: Vec<C2PAIngredient>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct VerificationOutcome {
     pub state: bool,
