@@ -20,9 +20,7 @@ pub enum SupportedFormat {
 #[serde(rename_all = "camelCase")]
 pub struct C2PAThumbnail {
     pub format: String,
-
-    #[serde(with = "serde_bytes")]
-    pub data: Vec<u8>,
+    pub data: serde_bytes::ByteBuf,
 }
 
 #[derive(Serialize, Tsify)]
@@ -33,6 +31,7 @@ pub struct C2PAIngredient {
 
 #[derive(Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
+#[tsify(hashmap_as_object)]
 pub struct RecognizedManifest {
     pub id: String,
     pub title: Option<String>,
@@ -74,7 +73,7 @@ pub fn verify(
         .map(|(label, manifest)| {
             let thumbnail = manifest.thumbnail().map(|(format, bytes)| C2PAThumbnail {
                 format: format.to_owned(),
-                data: bytes.into_owned(),
+                data: bytes.into_owned().into(),
             });
 
             let ingredients = manifest
