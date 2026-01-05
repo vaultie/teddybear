@@ -59,7 +59,7 @@
             buildInputs = [
               teddybearPkgs.rustToolchain
               pkgs.yarn
-              pkgs.nodejs
+              pkgs.nodejs-slim
               pkgs.openssl
               pkgs.pkg-config
             ];

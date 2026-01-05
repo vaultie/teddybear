@@ -48,8 +48,11 @@ cCFi5klrTcHy2XSd3ZAnO8kaZt4GpeqkX05GKcUzccSsrym5GiQ6MUfb7Vqwt4ja
 NL5v5ZgkGIgv2NdhngsX4GJS9927
 -----END CERTIFICATE-----`,
         ],
-        w3c: [],
       },
+
+      statusListFetcher: async () => {},
+      remoteContextFetcher: async () => {},
+      didWebClient: async () => {},
     });
 
     expect(result.c2pa).toMatchObject({

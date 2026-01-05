@@ -11,6 +11,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 teddybear-c2pa.path = "../teddybear-c2pa"
+teddybear-common.path = "../teddybear-common"
 teddybear-w3c.path = "../teddybear-w3c"
 
 futures-util = "0.3.31"

@@ -8,11 +8,10 @@ categories.workspace = true
 
 [dependencies]
 did-method-key = { version = "0.3.1", default-features = false, features = ["p256", "secp256r1"] }
-did-web = "0.3.4"
 iref = "3.2.2"
 itertools.workspace = true
-reqwest = "0.12.28"
 serde.workspace = true
+serde_bytes.workspace = true
 ssi-claims-core = "0.1.3"
 ssi-data-integrity = "0.2.0"
 ssi-dids-core = "0.1.3"
@@ -21,6 +20,7 @@ ssi-status = "0.5.0"
 ssi-vc = "0.6.1"
 ssi-verification-methods = { version = "0.1.3", default-features = false, features = ["ed25519", "p256", "rsa", "secp256r1"] }
 static-iref = "3.0.0"
+teddybear-common.path = "../teddybear-common"
 thiserror.workspace = true
 tsify.workspace = true
 wasm-bindgen.workspace = true

@@ -985,19 +985,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "did-web"
-version = "0.3.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8653c3deb9e3107e9350139ed5958156df7011abbfe1c93a2f43dae4297b49f2"
-dependencies = [
- "http 0.2.12",
- "iref",
- "reqwest 0.11.27",
- "ssi-dids-core",
- "thiserror 1.0.69",
-]
-
-[[package]]
 name = "digest"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5080,6 +5067,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "teddybear-common"
+version = "0.22.4"
+
+[[package]]
 name = "teddybear-js"
 version = "0.22.4"
 dependencies = [
@@ -5090,6 +5081,7 @@ dependencies = [
  "serde-wasm-bindgen",
  "serde_json",
  "teddybear-c2pa",
+ "teddybear-common",
  "teddybear-w3c",
  "thiserror 2.0.17",
  "tsify",
@@ -5103,11 +5095,10 @@ name = "teddybear-w3c"
 version = "0.22.4"
 dependencies = [
  "did-method-key",
- "did-web",
  "iref",
  "itertools 0.14.0",
- "reqwest 0.12.28",
  "serde",
+ "serde_bytes",
  "ssi-claims-core",
  "ssi-data-integrity",
  "ssi-dids-core",
@@ -5116,6 +5107,7 @@ dependencies = [
  "ssi-vc",
  "ssi-verification-methods",
  "static-iref",
+ "teddybear-common",
  "thiserror 2.0.17",
  "tsify",
  "wasm-bindgen",
