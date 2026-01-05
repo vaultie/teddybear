@@ -8,17 +8,18 @@
 
 extern crate alloc;
 
+mod http_client;
+
 use std::str::FromStr;
 
 use futures_util::{StreamExt, stream::FuturesUnordered};
 use js_sys::Uint8Array;
 use serde::{Deserialize, Serialize};
-use teddybear_w3c::{
-    data::RecognizedW3CCredential,
-    status_lists::{BitstringStatusListCredential, StatusListFetcher},
-};
+use teddybear_w3c::data::RecognizedW3CCredential;
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
+
+use crate::http_client::DelegateHttpClient;
 
 #[derive(thiserror::Error, Debug)]
 pub enum VerificationError {
@@ -59,8 +60,13 @@ pub struct VerificationConfiguration {
     trust_anchors: TrustAnchors,
 
     #[serde(with = "serde_wasm_bindgen::preserve")]
-    #[serde(default = "JsValue::null")]
     status_list_fetcher: JsValue,
+
+    #[serde(with = "serde_wasm_bindgen::preserve")]
+    remote_context_fetcher: JsValue,
+
+    #[serde(with = "serde_wasm_bindgen::preserve")]
+    did_web_client: JsValue,
 }
 
 #[derive(Serialize, Tsify)]
@@ -98,13 +104,10 @@ pub async fn verify_c2pa(
 
     let c2pa_outcome = teddybear_c2pa::verify(format, &asset, &configuration.trust_anchors.c2pa)?;
 
-    let fetcher = if configuration.status_list_fetcher.is_function() {
-        Some(JSStatusListFetcher(
-            configuration.status_list_fetcher.into(),
-        ))
-    } else {
-        None
-    };
+    let status_list_fetcher = DelegateHttpClient::new(configuration.status_list_fetcher.into());
+    let remote_context_fetcher =
+        DelegateHttpClient::new(configuration.remote_context_fetcher.into());
+    let did_web_client = DelegateHttpClient::new(configuration.did_web_client.into());
 
     let credentials = c2pa_outcome
         .manifests
@@ -115,7 +118,9 @@ pub async fn verify_c2pa(
             let outcome = teddybear_w3c::verify_credential(
                 &credential,
                 &configuration.trust_anchors.w3c,
-                fetcher.as_ref(),
+                &status_list_fetcher,
+                &remote_context_fetcher,
+                &did_web_client,
             )
             .await;
 
@@ -142,13 +147,10 @@ pub async fn verify_w3c(
 ) -> Result<RecognizedW3CCredential, VerificationError> {
     console_error_panic_hook::set_once();
 
-    let fetcher = if configuration.status_list_fetcher.is_function() {
-        Some(JSStatusListFetcher(
-            configuration.status_list_fetcher.into(),
-        ))
-    } else {
-        None
-    };
+    let status_list_fetcher = DelegateHttpClient::new(configuration.status_list_fetcher.into());
+    let remote_context_fetcher =
+        DelegateHttpClient::new(configuration.remote_context_fetcher.into());
+    let did_web_client = DelegateHttpClient::new(configuration.did_web_client.into());
 
     let credential =
         serde_wasm_bindgen::from_value(asset).map_err(VerificationError::InvalidCredential)?;
@@ -156,38 +158,11 @@ pub async fn verify_w3c(
     let credential = teddybear_w3c::verify_credential(
         &credential,
         &configuration.trust_anchors.w3c,
-        fetcher.as_ref(),
+        &status_list_fetcher,
+        &remote_context_fetcher,
+        &did_web_client,
     )
     .await?;
 
     Ok(credential)
-}
-
-#[derive(thiserror::Error, Debug)]
-enum JSStatusListFetcherError {
-    #[error(
-        "status list fetcher returned unexpected value: {}",
-        .0.as_string().as_deref().unwrap_or("unknown")
-    )]
-    FunctionCall(JsValue),
-
-    #[error("invalid status list object value: {0}")]
-    Value(serde_wasm_bindgen::Error),
-}
-
-struct JSStatusListFetcher(js_sys::Function);
-
-impl StatusListFetcher for JSStatusListFetcher {
-    type Error = JSStatusListFetcherError;
-
-    async fn fetch(&self, url: &str) -> Result<BitstringStatusListCredential, Self::Error> {
-        let this = JsValue::null();
-
-        let res = self
-            .0
-            .call1(&this, &JsValue::from_str(url))
-            .map_err(JSStatusListFetcherError::FunctionCall)?;
-
-        serde_wasm_bindgen::from_value(res).map_err(JSStatusListFetcherError::Value)
-    }
 }

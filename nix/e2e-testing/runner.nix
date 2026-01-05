@@ -17,7 +17,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
 
   offlineCache = fetchYarnDeps {
     yarnLock = "${finalAttrs.src}/yarn.lock";
-    hash = "sha256-FFe4q1xjo5SqmtBg3YCX1jeE9HavwUDJAqNdaEhag5A=";
+    hash = "sha256-jn7ZV8VFFHbgkGy4TaPlRAkr+2F7mEpbc+QNH4OAARA=";
   };
 
   nativeBuildInputs = [
