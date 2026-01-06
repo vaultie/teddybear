@@ -28,7 +28,7 @@ pub struct RecognizedCredentialSubject {
 
 #[derive(Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
-#[tsify(into_wasm_abi)]
+#[tsify(into_wasm_abi, hashmap_as_object)]
 pub struct RecognizedW3CCredential {
     pub id: Option<String>,
     pub issuer: String,

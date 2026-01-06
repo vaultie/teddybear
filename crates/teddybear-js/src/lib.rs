@@ -71,7 +71,7 @@ pub struct VerificationConfiguration {
 
 #[derive(Serialize, Tsify)]
 #[serde(tag = "status", rename_all = "camelCase")]
-#[tsify(into_wasm_abi)]
+#[tsify(into_wasm_abi, hashmap_as_object)]
 pub enum CredentialVerificationOutcome {
     Success {
         credential: teddybear_w3c::data::RecognizedW3CCredential,
@@ -83,7 +83,7 @@ pub enum CredentialVerificationOutcome {
 }
 
 #[derive(Serialize, Tsify)]
-#[tsify(into_wasm_abi)]
+#[tsify(into_wasm_abi, hashmap_as_object)]
 pub struct C2PAVerificationOutcome {
     c2pa: teddybear_c2pa::VerificationOutcome,
     w3c: Vec<CredentialVerificationOutcome>,
