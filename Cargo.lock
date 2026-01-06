@@ -5054,7 +5054,7 @@ checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 
 [[package]]
 name = "teddybear-c2pa"
-version = "0.22.5"
+version = "0.22.6"
 dependencies = [
  "c2pa",
  "serde",
@@ -5068,11 +5068,11 @@ dependencies = [
 
 [[package]]
 name = "teddybear-common"
-version = "0.22.5"
+version = "0.22.6"
 
 [[package]]
 name = "teddybear-js"
-version = "0.22.5"
+version = "0.22.6"
 dependencies = [
  "console_error_panic_hook",
  "futures-util",
@@ -5092,7 +5092,7 @@ dependencies = [
 
 [[package]]
 name = "teddybear-w3c"
-version = "0.22.5"
+version = "0.22.6"
 dependencies = [
  "did-method-key",
  "iref",
